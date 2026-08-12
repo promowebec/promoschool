@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mockups · Sistema Educativo Integral</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  .role-btn.active { background: #1F4E79; color: white; }
+  .nav-item.active { background: #EFF6FF; color: #1D4ED8; border-left: 3px solid #1D4ED8; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .mockup-tag { font-size: 10px; background:#FEF3C7; color:#92400E; padding:2px 8px; border-radius:999px; }
+</style>
+</head>
+<body class="bg-gray-50">
+
+<!-- Top banner -->
+<div class="bg-yellow-50 border-b border-yellow-200 text-yellow-900 text-sm py-2 px-4 text-center">
+  <strong>MOCKUP DE VALIDACIÓN</strong> — Datos de ejemplo. Diseño preliminar para revisión con la institución educativa.
+</div>
+
+<!-- Role selector -->
+<div class="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-50 shadow-sm">
+  <div class="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-blue-700 text-white rounded-lg flex items-center justify-center font-bold">SE</div>
+      <div>
+        <div class="font-bold text-gray-800">Sistema Educativo Integral</div>
+        <div class="text-xs text-gray-500">U.E. San Francisco de Quito · Año Lectivo 2026–2027</div>
+      </div>
+    </div>
+    <div class="flex gap-2 flex-wrap">
+      <button onclick="showPanel('admin')" class="role-btn px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 hover:bg-blue-50">👤 Admin</button>
+      <button onclick="showPanel('docente')" class="role-btn active px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 hover:bg-blue-50">📚 Docente</button>
+      <button onclick="showPanel('padre')" class="role-btn px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 hover:bg-blue-50">👨‍👩‍👧 Padre</button>
+      <button onclick="showPanel('estudiante')" class="role-btn px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 hover:bg-blue-50">🎒 Estudiante</button>
+      <button onclick="showPanel('rector')" class="role-btn px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 hover:bg-blue-50">🎓 Rector</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ADMIN PANEL ============ -->
+<div id="panel-admin" class="panel">
+  <div class="max-w-7xl mx-auto p-4 grid grid-cols-12 gap-4">
+    <aside class="col-span-12 md:col-span-3 bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+      <div class="text-xs text-gray-500 mb-2 px-2 font-semibold">ADMINISTRACIÓN</div>
+      <nav class="space-y-1 text-sm">
+        <a onclick="showView('admin','inicio')" class="nav-item active block px-3 py-2 rounded cursor-pointer">🏠 Inicio</a>
+        <a onclick="showView('admin','institucion')" class="nav-item block px-3 py-2 rounded cursor-pointer">🏫 Institución</a>
+        <a onclick="showView('admin','periodos')" class="nav-item block px-3 py-2 rounded cursor-pointer">📅 Períodos lectivos</a>
+        <a onclick="showView('admin','grados')" class="nav-item block px-3 py-2 rounded cursor-pointer">🎓 Grados y paralelos</a>
+        <a onclick="showView('admin','materias')" class="nav-item block px-3 py-2 rounded cursor-pointer">📖 Materias</a>
+        <a onclick="showView('admin','docentes')" class="nav-item block px-3 py-2 rounded cursor-pointer">👨‍🏫 Docentes</a>
+        <a onclick="showView('admin','estudiantes')" class="nav-item block px-3 py-2 rounded cursor-pointer">🧑‍🎓 Estudiantes</a>
+        <a onclick="showView('admin','padres')" class="nav-item block px-3 py-2 rounded cursor-pointer">👨‍👩‍👦 Representantes</a>
+        <a onclick="showView('admin','config')" class="nav-item block px-3 py-2 rounded cursor-pointer">⚙️ Configuración</a>
+        <a onclick="showView('admin','auditoria')" class="nav-item block px-3 py-2 rounded cursor-pointer">🔒 Auditoría</a>
+      </nav>
+    </aside>
+    <main class="col-span-12 md:col-span-9 space-y-4">
+
+      <!-- Vista Inicio Admin -->
+      <div id="view-admin-inicio" class="view active">
+        <h1 class="text-2xl font-bold text-gray-800 mb-1">Dashboard Administrador</h1>
+        <p class="text-gray-500 text-sm mb-4">Resumen general de la institución educativa.</p>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm"><div class="text-xs text-gray-500">Estudiantes activos</div><div class="text-3xl font-bold text-blue-700">847</div></div>
+          <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm"><div class="text-xs text-gray-500">Docentes</div><div class="text-3xl font-bold text-emerald-600">62</div></div>
+          <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm"><div class="text-xs text-gray-500">Representantes</div><div class="text-3xl font-bold text-violet-600">912</div></div>
+          <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm"><div class="text-xs text-gray-500">Grados / paralelos</div><div class="text-3xl font-bold text-amber-600">38</div></div>
+        </div>
+        <div class="bg-white rounded-lg p-5 mt-4 border border-gray-200 shadow-sm">
+          <h3 class="font-semibold text-gray-800 mb-3">Configuración rápida</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+            <div class="border border-gray-200 rounded p-3"><div class="font-medium">Año lectivo</div><div class="text-gray-500">2026–2027</div><div class="text-xs text-emerald-600 mt-1">● Activo</div></div>
+            <div class="border border-gray-200 rounded p-3"><div class="font-medium">Trimestre actual</div><div class="text-gray-500">2do trimestre · Parcial 1</div></div>
+            <div class="border border-gray-200 rounded p-3"><div class="font-medium">Cierre próximo</div><div class="text-gray-500">15 de junio 2026</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista Institución -->
+      <div id="view-admin-institucion" class="view">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Datos de la institución</h1>
+        <div class="bg-white rounded-lg border border-gray-200 p-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div><label class="block text-gray-500 text-xs mb-1">Razón social</label><input class="w-full border rounded p-2" value="Unidad Educativa San Francisco de Quito"></div>
+          <div><label class="block text-gray-500 text-xs mb-1">RUC</label><input class="w-full border rounded p-2" value="1791234567001"></div>
+          <div><label class="block text-gray-500 text-xs mb-1">Dirección</label><input class="w-full border rounded p-2" value="Av. 6 de Diciembre N34-156"></div>
+          <div><label class="block text-gray-500 text-xs mb-1">Teléfono</label><input class="w-full border rounded p-2" value="(02) 245-6789"></div>
+          <div><label class="block text-gray-500 text-xs mb-1">Régimen</label><select class="w-full border rounded p-2"><option>Sierra-Amazonía</option><option>Costa-Galápagos</option></select></div>
+          <div><label class="block text-gray-500 text-xs mb-1">Logo</label><div class="border-2 border-dashed rounded p-3 text-gray-400 text-center">Arrastra el logo aquí</div></div>
+        </div>
+      </div>
+
+      <!-- Vista Grados -->
+      <div id="view-admin-grados" class="view">
+        <div class="flex justify-between items-center mb-4">
+          <h1 class="text-2xl font-bold text-gray-800">Grados y paralelos</h1>
+          <button onclick="showView('admin','crear-grado')" class="bg-blue-700 text-white px-4 py-2 rounded text-sm">+ Nuevo grado/paralelo</button>
+        </div>
+        <div class="bg-white rounded-lg border p-3 mb-3 flex flex-wrap gap-2 text-sm">
+          <select class="border rounded p-2"><option>Todos los niveles</option><option>Inicial</option><option>EGB Preparatoria</option><option>EGB Elemental</option><option>EGB Media</option><option>EGB Superior</option><option>Bachillerato General (BG)</option><option>Bachillerato Técnico (BT)</option></select>
+          <input type="text" placeholder="Buscar..." class="border rounded p-2">
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-left text-gray-600"><tr><th class="p-3">Subnivel</th><th class="p-3">Grado / Curso</th><th class="p-3">Paralelo</th><th class="p-3">Tutor</th><th class="p-3">Estudiantes</th><th class="p-3"></th></tr></thead>
+            <tbody>
+              <tr class="border-t"><td class="p-3"><span class="bg-amber-100 text-amber-700 text-xs px-2 py-1 rounded">EGB Preparatoria</span></td><td class="p-3">1ro EGB</td><td class="p-3">A</td><td class="p-3">Lcda. Rosa Naranjo</td><td class="p-3">24</td><td class="p-3 text-blue-600 cursor-pointer">Editar</td></tr>
+              <tr class="border-t"><td class="p-3"><span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">EGB Media</span></td><td class="p-3">5to EGB</td><td class="p-3">A</td><td class="p-3">Lcda. María Vega <span class="text-xs text-gray-500">(+2 grados)</span></td><td class="p-3">28</td><td class="p-3 text-blue-600 cursor-pointer">Editar</td></tr>
+              <tr class="border-t"><td class="p-3"><span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">EGB Media</span></td><td class="p-3">5to EGB</td><td class="p-3">B</td><td class="p-3">Lcdo. Carlos Pérez</td><td class="p-3">26</td><td class="p-3 text-blue-600 cursor-pointer">Editar</td></tr>
+              <tr class="border-t"><td class="p-3"><span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">EGB Media</span></td><td class="p-3">5to EGB</td><td class="p-3">C</td><td class="p-3">Lcda. María Vega <span class="text-xs text-gray-500">(+2 grados)</span></td><td class="p-3">27</td><td class="p-3 text-blue-600 cursor-pointer">Editar</td></tr>
+              <tr class="border-t"><td class="p-3"><span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">EGB Media</span></td><td class="p-3">5to EGB</td><td class="p-3">D</td><td class="p-3">Lcda. Patricia Tello</td><td class="p-3">25</td><td class="p-3 text-blue-600 cursor-pointer">Editar</td></tr>
+              <tr class="border-t"><td class="p-3"><span class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded">EGB Superior</span></td><td class="p-3">9no EGB</td><td class="p-3">A</td><td class="p-3">Ing. Luis Castro</td><td class="p-3">31</td><td class="p-3 text-blue-600 cursor-pointer">Editar</td></tr>
+              <tr class="border-t"><td class="p-3"><span class="bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded">Bachillerato General (BG)</span></td><td class="p-3">1ro BG</td><td class="p-3">A</td><td class="p-3">Ing. José López <span class="text-xs text-gray-500">(+1 grado)</span></td><td class="p-3">32</td><td class="p-3 text-blue-600 cursor-pointer">Editar</td></tr>
+              <tr class="border-t"><td class="p-3"><span class="bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded">Bachillerato General (BG)</span></td><td class="p-3">1ro BG</td><td class="p-3">B</td><td class="p-3">Ing. José López <span class="text-xs text-gray-500">(+1 grado)</span></td><td class="p-3">30</td><td class="p-3 text-blue-600 cursor-pointer">Editar</td></tr>
+              <tr class="border-t"><td class="p-3"><span class="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded">Bachillerato Técnico (BT)</span></td><td class="p-3">1ro BT Informática</td><td class="p-3">A</td><td class="p-3">Ing. Mario Vásquez</td><td class="p-3">28</td><td class="p-3 text-blue-600 cursor-pointer">Editar</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded p-3 mt-3 text-sm text-blue-900">
+          💡 <strong>Multi-tutoría:</strong> un mismo docente puede ser tutor de varios grados (ej. Lcda. María Vega es tutora de 5to A, 5to C y 6to A).
+        </div>
+      </div>
+
+      <!-- Crear Grado -->
+      <div id="view-admin-crear-grado" class="view">
+        <div class="flex items-center gap-2 mb-4">
+          <button onclick="showView('admin','grados')" class="text-blue-600 text-sm">← Volver</button>
+          <h1 class="text-2xl font-bold text-gray-800">Nuevo grado / paralelo</h1>
+        </div>
+        <div class="bg-white rounded-lg border p-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <label class="block text-gray-500 text-xs mb-1">Nivel</label>
+            <select class="w-full border rounded p-2">
+              <option>Educación Inicial</option>
+              <option>Educación General Básica</option>
+              <option>Bachillerato</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-gray-500 text-xs mb-1">Subnivel</label>
+            <select class="w-full border rounded p-2">
+              <option>EGB Preparatoria (1ro EGB)</option>
+              <option>EGB Elemental (2do-4to EGB)</option>
+              <option>EGB Media (5to-7mo EGB)</option>
+              <option>EGB Superior (8vo-10mo EGB)</option>
+              <option>Bachillerato General (BG)</option>
+              <option>Bachillerato Técnico (BT)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-gray-500 text-xs mb-1">Grado / Curso</label>
+            <select class="w-full border rounded p-2">
+              <option>5to EGB</option>
+              <option>6to EGB</option>
+              <option>1ro BG</option>
+              <option>2do BG</option>
+              <option>3ro BG</option>
+              <option>1ro BT</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-gray-500 text-xs mb-1">Paralelo</label>
+            <div class="flex gap-2">
+              <label class="flex items-center gap-1 border rounded p-2 cursor-pointer hover:bg-blue-50 flex-1 justify-center"><input type="radio" name="par"> A</label>
+              <label class="flex items-center gap-1 border rounded p-2 cursor-pointer hover:bg-blue-50 flex-1 justify-center"><input type="radio" name="par"> B</label>
+              <label class="flex items-center gap-1 border rounded p-2 cursor-pointer hover:bg-blue-50 flex-1 justify-center"><input type="radio" name="par"> C</label>
+              <label class="flex items-center gap-1 border rounded p-2 cursor-pointer hover:bg-blue-50 flex-1 justify-center"><input type="radio" name="par"> D</label>
+            </div>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-gray-500 text-xs mb-1">Especialidad (solo BT)</label>
+            <select class="w-full border rounded p-2">
+              <option>— No aplica —</option>
+              <option>Informática</option>
+              <option>Contabilidad</option>
+              <option>Electrónica</option>
+              <option>Mecánica Industrial</option>
+              <option>Otra…</option>
+            </select>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-gray-500 text-xs mb-1">Tutor (docente)</label>
+            <select class="w-full border rounded p-2">
+              <option>Seleccionar docente…</option>
+              <option>Lcda. María Vega (ya tutora de 2 grados)</option>
+              <option>Lcdo. Carlos Pérez</option>
+              <option>Ing. José López (ya tutor de 1 grado)</option>
+            </select>
+            <div class="text-xs text-gray-500 mt-1">Un docente puede ser tutor de varios grados.</div>
+          </div>
+          <div class="md:col-span-2 flex gap-2">
+            <button class="bg-blue-700 text-white px-4 py-2 rounded">Crear grado</button>
+            <button class="border px-4 py-2 rounded">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista Auditoría -->
+      <div id="view-admin-auditoria" class="view">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Auditoría del sistema</h1>
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-left text-gray-600"><tr><th class="p-3">Fecha</th><th class="p-3">Usuario</th><th class="p-3">Acción</th><th class="p-3">Detalle</th></tr></thead>
+            <tbody>
+              <tr class="border-t"><td class="p-3 text-gray-500">16/05/2026 10:32</td><td class="p-3">Lcda. María Vega</td><td class="p-3"><span class="text-amber-600">Modificó nota</span></td><td class="p-3">Estudiante #1234, Matemáticas, P1: 7.5 → 8.0</td></tr>
+              <tr class="border-t"><td class="p-3 text-gray-500">16/05/2026 09:15</td><td class="p-3">Ing. José López</td><td class="p-3"><span class="text-emerald-600">Cierre parcial</span></td><td class="p-3">1ro BGU · Física · Parcial 1 cerrado</td></tr>
+              <tr class="border-t"><td class="p-3 text-gray-500">15/05/2026 16:48</td><td class="p-3">Admin</td><td class="p-3"><span class="text-blue-600">Comunicado masivo</span></td><td class="p-3">Enviado a 847 representantes</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Vista Períodos lectivos -->
+      <div id="view-admin-periodos" class="view">
+        <div class="flex justify-between items-center mb-4">
+          <h1 class="text-2xl font-bold text-gray-800">Períodos lectivos</h1>
+          <button class="bg-blue-700 text-white px-4 py-2 rounded text-sm">+ Nuevo período</button>
+        </div>
+
+        <div class="bg-white rounded-lg border p-6 mb-4">
+          <h3 class="font-semibold mb-3 text-gray-800">Configurar nuevo período lectivo</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <label class="block text-gray-500 text-xs mb-1">Régimen escolar</label>
+              <div class="grid grid-cols-2 gap-2">
+                <label class="border rounded p-3 cursor-pointer hover:bg-blue-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                  <input type="radio" name="regime" checked> <strong>Sierra-Amazonía</strong>
+                  <div class="text-xs text-gray-500 mt-1">Septiembre 2026 → Julio 2027</div>
+                </label>
+                <label class="border rounded p-3 cursor-pointer hover:bg-blue-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                  <input type="radio" name="regime"> <strong>Costa-Galápagos</strong>
+                  <div class="text-xs text-gray-500 mt-1">Mayo 2026 → Febrero 2027</div>
+                </label>
+              </div>
+            </div>
+            <div>
+              <label class="block text-gray-500 text-xs mb-1">Nombre del período</label>
+              <input class="w-full border rounded p-2" value="2026 – 2027">
+            </div>
+            <div>
+              <label class="block text-gray-500 text-xs mb-1">Fecha de inicio</label>
+              <input type="date" class="w-full border rounded p-2" value="2026-09-01">
+            </div>
+            <div>
+              <label class="block text-gray-500 text-xs mb-1">Fecha de fin</label>
+              <input type="date" class="w-full border rounded p-2" value="2027-07-10">
+            </div>
+            <div>
+              <label class="block text-gray-500 text-xs mb-1">Total días laborables</label>
+              <input type="number" class="w-full border rounded p-2" value="200">
+              <div class="text-xs text-gray-500 mt-1">Estándar Mineduc: 200 días</div>
+            </div>
+            <div>
+              <label class="block text-gray-500 text-xs mb-1">Número de trimestres</label>
+              <input type="number" class="w-full border rounded p-2" value="3">
+            </div>
+          </div>
+
+          <h4 class="font-semibold mt-5 mb-2 text-gray-700">Calendario de trimestres</h4>
+          <table class="w-full text-sm border">
+            <thead class="bg-gray-50"><tr><th class="p-2">Trimestre</th><th class="p-2">Inicio</th><th class="p-2">Fin</th><th class="p-2">Días</th><th class="p-2">Parcial 1</th><th class="p-2">Parcial 2</th><th class="p-2">Examen final</th></tr></thead>
+            <tbody>
+              <tr class="border-t"><td class="p-2 font-semibold">1er Trimestre</td><td class="p-2"><input type="date" class="border rounded p-1" value="2026-09-01"></td><td class="p-2"><input type="date" class="border rounded p-1" value="2026-12-10"></td><td class="p-2 text-center">66</td><td class="p-2 text-xs text-gray-500">sep 1 → oct 17</td><td class="p-2 text-xs text-gray-500">oct 20 → dic 3</td><td class="p-2 text-xs text-gray-500">dic 4 → 10</td></tr>
+              <tr class="border-t"><td class="p-2 font-semibold">2do Trimestre</td><td class="p-2"><input type="date" class="border rounded p-1" value="2026-12-15"></td><td class="p-2"><input type="date" class="border rounded p-1" value="2027-03-25"></td><td class="p-2 text-center">67</td><td class="p-2 text-xs text-gray-500">dic 15 → feb 5</td><td class="p-2 text-xs text-gray-500">feb 8 → mar 18</td><td class="p-2 text-xs text-gray-500">mar 19 → 25</td></tr>
+              <tr class="border-t"><td class="p-2 font-semibold">3er Trimestre</td><td class="p-2"><input type="date" class="border rounded p-1" value="2027-03-30"></td><td class="p-2"><input type="date" class="border rounded p-1" value="2027-07-10"></td><td class="p-2 text-center">67</td><td class="p-2 text-xs text-gray-500">mar 30 → may 20</td><td class="p-2 text-xs text-gray-500">may 23 → jul 3</td><td class="p-2 text-xs text-gray-500">jul 4 → 10</td></tr>
+              <tr class="border-t bg-gray-50 font-semibold"><td class="p-2">Total</td><td colspan="2" class="p-2 text-right">Días laborables</td><td class="p-2 text-center text-emerald-600">200 ✓</td><td colspan="3"></td></tr>
+            </tbody>
+          </table>
+
+          <div class="bg-amber-50 border border-amber-200 rounded p-3 mt-4 text-sm text-amber-900">
+            ⚠️ <strong>Validaciones automáticas:</strong> El sistema verifica que la suma de días = 200, que las fechas no se superpongan y descuenta feriados nacionales y locales del calendario.
+          </div>
+
+          <div class="mt-4 flex gap-2">
+            <button class="bg-blue-700 text-white px-4 py-2 rounded">Guardar período</button>
+            <button class="border px-4 py-2 rounded">Cancelar</button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg border p-5">
+          <h3 class="font-semibold mb-3">Períodos registrados</h3>
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-left"><tr><th class="p-2">Año</th><th class="p-2">Régimen</th><th class="p-2">Inicio</th><th class="p-2">Fin</th><th class="p-2">Días</th><th class="p-2">Estado</th></tr></thead>
+            <tbody>
+              <tr class="border-t"><td class="p-2">2026-2027</td><td class="p-2">Sierra</td><td class="p-2">01/09/2026</td><td class="p-2">10/07/2027</td><td class="p-2">200</td><td class="p-2"><span class="text-emerald-600">● Activo</span></td></tr>
+              <tr class="border-t"><td class="p-2">2025-2026</td><td class="p-2">Sierra</td><td class="p-2">02/09/2025</td><td class="p-2">04/07/2026</td><td class="p-2">200</td><td class="p-2"><span class="text-gray-500">○ Cerrado</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Vista Materias -->
+      <div id="view-admin-materias" class="view">
+        <div class="flex justify-between items-center mb-4">
+          <h1 class="text-2xl font-bold text-gray-800">Materias del pensum</h1>
+          <div class="flex gap-2">
+            <button onclick="showView('admin','importar-curriculo')" class="border px-4 py-2 rounded text-sm">📥 Importar currículo Mineduc</button>
+            <button onclick="showView('admin','nueva-materia')" class="bg-blue-700 text-white px-4 py-2 rounded text-sm">+ Nueva materia</button>
+          </div>
+        </div>
+
+        <!-- Filtro por subnivel -->
+        <div class="bg-white rounded-lg border p-3 mb-3 flex flex-wrap gap-2 text-sm">
+          <label class="text-gray-600 self-center">Ver por subnivel:</label>
+          <select id="subnivel-filter" class="border rounded p-2">
+            <option>Todos</option>
+            <option>EGB Preparatoria</option>
+            <option>EGB Elemental</option>
+            <option>EGB Media</option>
+            <option>EGB Superior</option>
+            <option selected>Bachillerato General (BG)</option>
+            <option>Bachillerato Técnico (BT)</option>
+          </select>
+        </div>
+
+        <!-- Grupo: Preparatoria -->
+        <div class="bg-white rounded-lg border mb-3 overflow-hidden">
+          <div class="bg-amber-50 px-4 py-3 border-b flex justify-between items-center">
+            <div><strong class="text-amber-900">EGB Preparatoria</strong> <span class="text-xs text-amber-700 ml-2">1ro EGB</span></div>
+            <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">3 materias del currículo</span>
+          </div>
+          <table class="w-full text-sm">
+            <tbody>
+              <tr class="border-t"><td class="p-3">📘 Currículo Integrador por ámbitos de aprendizaje</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🎨 Educación Cultural y Artística</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">⚽ Educación Física</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Grupo: Elemental y Media -->
+        <div class="bg-white rounded-lg border mb-3 overflow-hidden">
+          <div class="bg-blue-50 px-4 py-3 border-b flex justify-between items-center">
+            <div><strong class="text-blue-900">EGB Elemental y EGB Media</strong> <span class="text-xs text-blue-700 ml-2">2do a 7mo EGB</span></div>
+            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">9 materias del currículo</span>
+          </div>
+          <table class="w-full text-sm">
+            <tbody>
+              <tr class="border-t"><td class="p-3">📚 Lengua y Literatura</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🧮 Matemática</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🌍 Estudios Sociales</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🔬 Ciencias Naturales</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🇬🇧 Inglés</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🎨 Educación Cultural y Artística</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">⚽ Educación Física</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🤝 Acompañamiento integral en el aula</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">📖 Animación a la lectura</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Grupo: EGB Superior -->
+        <div class="bg-white rounded-lg border mb-3 overflow-hidden">
+          <div class="bg-purple-50 px-4 py-3 border-b flex justify-between items-center">
+            <div><strong class="text-purple-900">EGB Superior</strong> <span class="text-xs text-purple-700 ml-2">8vo a 10mo EGB</span></div>
+            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">10 materias del currículo</span>
+          </div>
+          <table class="w-full text-sm">
+            <tbody>
+              <tr class="border-t"><td class="p-3">📚 Lengua y Literatura</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🧮 Matemática</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🌍 Estudios Sociales</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🔬 Ciencias Naturales</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🇬🇧 Inglés</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🎨 Educación Cultural y Artística</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">⚽ Educación Física</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t bg-purple-25"><td class="p-3">🧭 Orientación vocacional y profesional</td><td class="p-3 text-xs text-purple-600">Mineduc · solo EGB Superior</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🤝 Acompañamiento integral en el aula</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">📖 Animación a la lectura</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Grupo: BG -->
+        <div class="bg-white rounded-lg border mb-3 overflow-hidden">
+          <div class="bg-emerald-50 px-4 py-3 border-b flex justify-between items-center">
+            <div><strong class="text-emerald-900">Bachillerato General (BG)</strong> <span class="text-xs text-emerald-700 ml-2">1ro a 3ro BG</span></div>
+            <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded">13 materias del currículo</span>
+          </div>
+          <table class="w-full text-sm">
+            <tbody>
+              <tr class="border-t"><td class="p-3">🧮 Matemática</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">⚗️ Física</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🧪 Química</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🧬 Biología</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">📜 Historia</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">⚖️ Educación para la ciudadanía</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">💭 Filosofía</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">📚 Lengua y Literatura</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🇬🇧 Inglés</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🎨 Educación Cultural y Artística</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">⚽ Educación Física</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">💼 Emprendimiento y Gestión</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+              <tr class="border-t"><td class="p-3">🤝 Acompañamiento integral en el aula</td><td class="p-3 text-xs text-gray-500">Mineduc</td><td class="p-3 w-20"><button class="text-blue-600 text-xs">Asignar</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Grupo BT -->
+        <div class="bg-white rounded-lg border mb-3 overflow-hidden">
+          <div class="bg-orange-50 px-4 py-3 border-b flex justify-between items-center">
+            <div><strong class="text-orange-900">Bachillerato Técnico (BT)</strong> <span class="text-xs text-orange-700 ml-2">por figura profesional</span></div>
+            <span class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">Tronco común + módulos técnicos</span>
+          </div>
+          <div class="p-4 text-sm text-gray-600">
+            Tronco común igual a BG + módulos técnicos según la figura profesional configurada en cada grado (Informática, Contabilidad, Electrónica, Mecánica Industrial, etc.).
+            <button class="ml-2 text-blue-600">Configurar módulos técnicos →</button>
+          </div>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-900">
+          💡 <strong>Catálogo oficial del Ministerio de Educación:</strong> precargado al instalar el plugin. Cada subnivel tiene su set de materias predefinidas. Puedes agregar materias propias de la institución con el botón "+ Nueva materia".
+        </div>
+      </div>
+
+      <!-- Nueva Materia -->
+      <div id="view-admin-nueva-materia" class="view">
+        <div class="flex items-center gap-2 mb-4">
+          <button onclick="showView('admin','materias')" class="text-blue-600 text-sm">← Volver</button>
+          <h1 class="text-2xl font-bold text-gray-800">Crear nueva materia</h1>
+        </div>
+        <div class="bg-white rounded-lg border p-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm max-w-3xl">
+          <div class="md:col-span-2">
+            <label class="block text-gray-500 text-xs mb-1">Origen</label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="border rounded p-3 cursor-pointer hover:bg-blue-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                <input type="radio" name="origen"> <strong>📥 Del currículo Mineduc</strong>
+                <div class="text-xs text-gray-500 mt-1">Seleccionar de la lista oficial</div>
+              </label>
+              <label class="border rounded p-3 cursor-pointer hover:bg-blue-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+                <input type="radio" name="origen" checked> <strong>✏️ Materia propia</strong>
+                <div class="text-xs text-gray-500 mt-1">Crear una materia personalizada</div>
+              </label>
+            </div>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-gray-500 text-xs mb-1">Nombre de la materia</label>
+            <input class="w-full border rounded p-2" placeholder="Ej: Robótica Educativa">
+          </div>
+          <div>
+            <label class="block text-gray-500 text-xs mb-1">Código (opcional)</label>
+            <input class="w-full border rounded p-2" placeholder="ROB-101">
+          </div>
+          <div>
+            <label class="block text-gray-500 text-xs mb-1">Área</label>
+            <select class="w-full border rounded p-2"><option>Ciencias exactas</option><option>Lengua y comunicación</option><option>Ciencias sociales</option><option>Artística</option><option>Técnica</option><option>Otra</option></select>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-gray-500 text-xs mb-1">Aplica a subniveles</label>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+              <label class="flex items-center gap-2 border rounded p-2"><input type="checkbox"> EGB Preparatoria</label>
+              <label class="flex items-center gap-2 border rounded p-2"><input type="checkbox"> EGB Elemental</label>
+              <label class="flex items-center gap-2 border rounded p-2"><input type="checkbox" checked> EGB Media</label>
+              <label class="flex items-center gap-2 border rounded p-2"><input type="checkbox" checked> EGB Superior</label>
+              <label class="flex items-center gap-2 border rounded p-2"><input type="checkbox"> BG</label>
+              <label class="flex items-center gap-2 border rounded p-2"><input type="checkbox"> BT</label>
+            </div>
+          </div>
+          <div class="md:col-span-2 flex gap-2">
+            <button class="bg-blue-700 text-white px-4 py-2 rounded">Crear materia</button>
+            <button class="border px-4 py-2 rounded">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Importar Currículo -->
+      <div id="view-admin-importar-curriculo" class="view">
+        <div class="flex items-center gap-2 mb-4">
+          <button onclick="showView('admin','materias')" class="text-blue-600 text-sm">← Volver</button>
+          <h1 class="text-2xl font-bold text-gray-800">Importar currículo del Ministerio</h1>
+        </div>
+        <div class="bg-white rounded-lg border p-6 max-w-3xl">
+          <p class="text-sm text-gray-600 mb-4">Carga masiva del catálogo oficial del Mineduc Ecuador. El sistema agregará las materias estándar por subnivel sin duplicar las que ya existen.</p>
+          <div class="space-y-2 text-sm">
+            <label class="flex items-center justify-between border rounded p-3"><span><input type="checkbox" checked> EGB Preparatoria (3 materias)</span><span class="text-xs text-gray-500">Currículo Integrador, ECA, EF</span></label>
+            <label class="flex items-center justify-between border rounded p-3"><span><input type="checkbox" checked> EGB Elemental (9 materias)</span><span class="text-xs text-gray-500">Lengua, Mate, Sociales, Ciencias, Inglés…</span></label>
+            <label class="flex items-center justify-between border rounded p-3"><span><input type="checkbox" checked> EGB Media (9 materias)</span><span class="text-xs text-gray-500">Igual a Elemental</span></label>
+            <label class="flex items-center justify-between border rounded p-3"><span><input type="checkbox" checked> EGB Superior (10 materias)</span><span class="text-xs text-gray-500">+ Orientación vocacional y profesional</span></label>
+            <label class="flex items-center justify-between border rounded p-3"><span><input type="checkbox" checked> Bachillerato General (13 materias)</span><span class="text-xs text-gray-500">Física, Química, Filosofía, Emprendimiento…</span></label>
+            <label class="flex items-center justify-between border rounded p-3"><span><input type="checkbox"> Bachillerato Técnico (tronco común)</span><span class="text-xs text-gray-500">Sin módulos técnicos (se cargan aparte)</span></label>
+          </div>
+          <button class="bg-blue-700 text-white px-4 py-2 rounded mt-4">Importar 44 materias seleccionadas</button>
+        </div>
+      </div>
+      <div id="view-admin-docentes" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Gestión de docentes y asignación a materias <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-admin-estudiantes" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Matrícula de estudiantes <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-admin-padres" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Gestión de representantes y vínculos familiares <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-admin-config" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Configuración global del sistema <span class="mockup-tag">en diseño</span></div></div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ DOCENTE PANEL ============ -->
+<div id="panel-docente" class="panel active">
+  <div class="max-w-7xl mx-auto p-4 grid grid-cols-12 gap-4">
+    <aside class="col-span-12 md:col-span-3 bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+      <div class="flex items-center gap-3 p-2 mb-2 border-b pb-3">
+        <div class="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold">MV</div>
+        <div><div class="font-semibold text-sm">Lcda. María Vega</div><div class="text-xs text-gray-500">Tutora 5to EGB A</div></div>
+      </div>
+      <div class="text-xs text-gray-500 mb-2 px-2 font-semibold">DOCENTE</div>
+      <nav class="space-y-1 text-sm">
+        <a onclick="showView('docente','inicio')" class="nav-item active block px-3 py-2 rounded cursor-pointer">🏠 Inicio</a>
+        <a onclick="showView('docente','materias')" class="nav-item block px-3 py-2 rounded cursor-pointer">📚 Mis materias</a>
+        <a onclick="showView('docente','calificaciones')" class="nav-item block px-3 py-2 rounded cursor-pointer">📝 Calificaciones</a>
+        <a onclick="showView('docente','tareas')" class="nav-item block px-3 py-2 rounded cursor-pointer">📋 Tareas y lecciones</a>
+        <a onclick="showView('docente','asistencia')" class="nav-item block px-3 py-2 rounded cursor-pointer">✅ Asistencia</a>
+        <a onclick="showView('docente','comunicados')" class="nav-item block px-3 py-2 rounded cursor-pointer">📢 Comunicados</a>
+        <a onclick="showView('docente','material')" class="nav-item block px-3 py-2 rounded cursor-pointer">📁 Material de clase</a>
+      </nav>
+    </aside>
+    <main class="col-span-12 md:col-span-9 space-y-4">
+
+      <!-- Inicio Docente -->
+      <div id="view-docente-inicio" class="view active">
+        <h1 class="text-2xl font-bold text-gray-800 mb-1">Buenos días, María 👋</h1>
+        <p class="text-gray-500 text-sm mb-4">2do Trimestre · Parcial 1 · Semana 6 de 8</p>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div class="bg-white rounded-lg p-3 border"><div class="text-xs text-gray-500">Entregas por calificar</div><div class="text-2xl font-bold text-amber-600">12</div></div>
+          <div class="bg-white rounded-lg p-3 border"><div class="text-xs text-gray-500">Tareas activas</div><div class="text-2xl font-bold text-blue-600">5</div></div>
+          <div class="bg-white rounded-lg p-3 border"><div class="text-xs text-gray-500">Asistencia hoy</div><div class="text-2xl font-bold text-emerald-600">26/28</div></div>
+          <div class="bg-white rounded-lg p-3 border"><div class="text-xs text-gray-500">Comunicados sin leer</div><div class="text-2xl font-bold text-violet-600">3</div></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white rounded-lg p-5 border">
+            <h3 class="font-semibold mb-3 text-gray-800">Próximas entregas</h3>
+            <ul class="space-y-2 text-sm">
+              <li class="flex justify-between border-b pb-2"><span>Tarea de fracciones · 5to A</span><span class="text-amber-600">vence en 2 días</span></li>
+              <li class="flex justify-between border-b pb-2"><span>Lección oral · 5to B</span><span class="text-red-600">vence hoy</span></li>
+              <li class="flex justify-between"><span>Proyecto trimestral · 5to A</span><span class="text-gray-500">en 1 semana</span></li>
+            </ul>
+          </div>
+          <div class="bg-white rounded-lg p-5 border">
+            <h3 class="font-semibold mb-3 text-gray-800">Alertas de estudiantes</h3>
+            <ul class="space-y-2 text-sm">
+              <li class="flex justify-between border-b pb-2"><span>🔴 Juan Quispe</span><span class="text-gray-500">3 faltas consecutivas</span></li>
+              <li class="flex justify-between border-b pb-2"><span>🟠 Sofía Castro</span><span class="text-gray-500">Notas bajas en Mate</span></li>
+              <li class="flex justify-between"><span>🟡 Diego Vinueza</span><span class="text-gray-500">No entregó última tarea</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calificaciones Docente -->
+      <div id="view-docente-calificaciones" class="view">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h1 class="text-2xl font-bold text-gray-800">Calificaciones</h1>
+          <div class="flex gap-2">
+            <button class="border px-3 py-2 rounded text-sm">📥 Importar Excel</button>
+            <button class="border px-3 py-2 rounded text-sm">📤 Exportar</button>
+            <button class="bg-emerald-600 text-white px-3 py-2 rounded text-sm">💾 Guardar</button>
+          </div>
+        </div>
+        <div class="bg-white p-4 rounded-lg border flex flex-wrap gap-3 mb-3 text-sm">
+          <select class="border rounded p-2"><option>5to EGB A</option><option>5to EGB B</option></select>
+          <select class="border rounded p-2"><option>Matemáticas</option><option>Lengua</option></select>
+          <select class="border rounded p-2"><option>2do Trimestre</option></select>
+          <select class="border rounded p-2"><option>Parcial 1</option><option>Parcial 2</option><option>Examen Final</option></select>
+        </div>
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-left text-gray-600">
+              <tr><th class="p-3">Estudiante</th><th class="p-3 text-center">Tareas (20%)</th><th class="p-3 text-center">Lecciones (20%)</th><th class="p-3 text-center">Trabajos (20%)</th><th class="p-3 text-center">Actuación (10%)</th><th class="p-3 text-center">Prueba (30%)</th><th class="p-3 text-center bg-blue-50">Parcial</th></tr>
+            </thead>
+            <tbody>
+              <tr class="border-t"><td class="p-3">Andrade, Sofía</td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="9.0"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="8.5"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="9.5"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="10"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="8.0"></td><td class="p-3 text-center bg-blue-50 font-bold text-blue-700">8.85</td></tr>
+              <tr class="border-t"><td class="p-3">Bermeo, Mateo</td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="7.5"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="7.0"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="8.0"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="9"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="7.0"></td><td class="p-3 text-center bg-blue-50 font-bold text-blue-700">7.50</td></tr>
+              <tr class="border-t"><td class="p-3">Castro, Sofía</td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="6.0"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="5.5"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="6.5"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="7"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="5.0"></td><td class="p-3 text-center bg-red-50 font-bold text-red-700">5.80</td></tr>
+              <tr class="border-t"><td class="p-3">Quispe, Juan</td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="7.0"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="8.0"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="7.5"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="9"></td><td class="p-2 text-center"><input type="number" class="w-14 border rounded p-1 text-center" value="8.5"></td><td class="p-3 text-center bg-blue-50 font-bold text-blue-700">7.95</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded p-3 mt-3 text-sm text-blue-900">
+          💡 <strong>Cálculo automático:</strong> El sistema aplica los pesos definidos por materia. La nota del trimestre será: (P1 + P2)/2 × 70% + Examen Final × 30%.
+        </div>
+      </div>
+
+      <!-- Tareas Docente -->
+      <div id="view-docente-tareas" class="view">
+        <div class="flex justify-between items-center mb-4">
+          <h1 class="text-2xl font-bold text-gray-800">Tareas y lecciones</h1>
+          <button onclick="showView('docente','crear-tarea')" class="bg-blue-700 text-white px-4 py-2 rounded text-sm">+ Nueva tarea</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white rounded-lg border p-4">
+            <div class="flex justify-between mb-2"><span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Tarea</span><span class="text-xs text-gray-500">Matemáticas · 5to A</span></div>
+            <h3 class="font-semibold">Ejercicios de fracciones</h3>
+            <p class="text-sm text-gray-600 mt-1">Resolver los problemas 1 al 12 del capítulo 4.</p>
+            <div class="mt-3 flex justify-between text-xs text-gray-500"><span>📅 Vence: 20/05/2026</span><span>📥 12/28 entregadas</span></div>
+          </div>
+          <div class="bg-white rounded-lg border p-4">
+            <div class="flex justify-between mb-2"><span class="text-xs bg-violet-100 text-violet-700 px-2 py-1 rounded">Lección</span><span class="text-xs text-gray-500">Matemáticas · 5to B</span></div>
+            <h3 class="font-semibold">Lección oral: tablas de multiplicar</h3>
+            <p class="text-sm text-gray-600 mt-1">Lección presencial individual del 6, 7 y 8.</p>
+            <div class="mt-3 flex justify-between text-xs text-gray-500"><span>📅 Hoy</span><span>📥 0/26 calificadas</span></div>
+          </div>
+          <div class="bg-white rounded-lg border p-4">
+            <div class="flex justify-between mb-2"><span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">Trabajo</span><span class="text-xs text-gray-500">Matemáticas · 5to A</span></div>
+            <h3 class="font-semibold">Proyecto trimestral: figuras geométricas</h3>
+            <p class="text-sm text-gray-600 mt-1">Construir las 5 figuras vistas en clase con material reciclado.</p>
+            <div class="mt-3 flex justify-between text-xs text-gray-500"><span>📅 Vence: 25/05/2026</span><span>📥 0/28 entregadas</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Crear Tarea -->
+      <div id="view-docente-crear-tarea" class="view">
+        <div class="flex items-center gap-2 mb-4">
+          <button onclick="showView('docente','tareas')" class="text-blue-600 text-sm">← Volver</button>
+          <h1 class="text-2xl font-bold text-gray-800">Crear nueva tarea</h1>
+        </div>
+        <div class="bg-white rounded-lg border p-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div class="md:col-span-2"><label class="block text-gray-500 text-xs mb-1">Título</label><input class="w-full border rounded p-2" placeholder="Ej: Ejercicios de fracciones"></div>
+          <div><label class="block text-gray-500 text-xs mb-1">Tipo</label><select class="w-full border rounded p-2"><option>Tarea</option><option>Lección</option><option>Trabajo</option><option>Deber</option><option>Examen</option></select></div>
+          <div><label class="block text-gray-500 text-xs mb-1">Materia</label><select class="w-full border rounded p-2"><option>Matemáticas</option></select></div>
+          <div><label class="block text-gray-500 text-xs mb-1">Grado</label><select class="w-full border rounded p-2"><option>5to EGB A</option><option>5to EGB B</option></select></div>
+          <div><label class="block text-gray-500 text-xs mb-1">Fecha de entrega</label><input type="date" class="w-full border rounded p-2"></div>
+          <div class="md:col-span-2"><label class="block text-gray-500 text-xs mb-1">Descripción</label><textarea class="w-full border rounded p-2" rows="4"></textarea></div>
+          <div class="md:col-span-2"><label class="block text-gray-500 text-xs mb-1">Archivos adjuntos</label><div class="border-2 border-dashed rounded p-4 text-center text-gray-400 text-sm">PDF, Word, PowerPoint, imágenes (máx. 10 MB)</div></div>
+          <div class="md:col-span-2 flex items-center gap-2"><input type="checkbox" checked> <span>Notificar a representantes por correo</span></div>
+          <div class="md:col-span-2 flex items-center gap-2"><input type="checkbox"> <span>Notificar por WhatsApp</span></div>
+          <div class="md:col-span-2 flex gap-2"><button class="bg-blue-700 text-white px-4 py-2 rounded">Publicar tarea</button><button class="border px-4 py-2 rounded">Guardar borrador</button></div>
+        </div>
+      </div>
+
+      <!-- Asistencia -->
+      <div id="view-docente-asistencia" class="view">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Asistencia · 5to EGB A · Hoy</h1>
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50"><tr><th class="p-3 text-left">Estudiante</th><th class="p-3">Presente</th><th class="p-3">Atraso</th><th class="p-3">Falta J.</th><th class="p-3">Falta I.</th></tr></thead>
+            <tbody>
+              <tr class="border-t"><td class="p-3">Andrade, Sofía</td><td class="text-center"><input type="radio" name="a1" checked></td><td class="text-center"><input type="radio" name="a1"></td><td class="text-center"><input type="radio" name="a1"></td><td class="text-center"><input type="radio" name="a1"></td></tr>
+              <tr class="border-t"><td class="p-3">Bermeo, Mateo</td><td class="text-center"><input type="radio" name="a2" checked></td><td class="text-center"><input type="radio" name="a2"></td><td class="text-center"><input type="radio" name="a2"></td><td class="text-center"><input type="radio" name="a2"></td></tr>
+              <tr class="border-t"><td class="p-3">Castro, Sofía</td><td class="text-center"><input type="radio" name="a3"></td><td class="text-center"><input type="radio" name="a3" checked></td><td class="text-center"><input type="radio" name="a3"></td><td class="text-center"><input type="radio" name="a3"></td></tr>
+              <tr class="border-t"><td class="p-3">Quispe, Juan</td><td class="text-center"><input type="radio" name="a4"></td><td class="text-center"><input type="radio" name="a4"></td><td class="text-center"><input type="radio" name="a4"></td><td class="text-center"><input type="radio" name="a4" checked></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <button class="mt-3 bg-emerald-600 text-white px-4 py-2 rounded text-sm">Guardar asistencia</button>
+      </div>
+
+      <!-- Comunicados -->
+      <div id="view-docente-comunicados" class="view">
+        <div class="flex justify-between items-center mb-4">
+          <h1 class="text-2xl font-bold text-gray-800">Comunicados</h1>
+          <button class="bg-blue-700 text-white px-4 py-2 rounded text-sm">+ Nuevo comunicado</button>
+        </div>
+        <div class="bg-white rounded-lg border p-5 mb-3">
+          <label class="block text-xs text-gray-500 mb-1">Para</label>
+          <select class="border rounded p-2 text-sm mb-3"><option>Todo el grado (5to EGB A)</option><option>Estudiante individual</option><option>Varios grados</option></select>
+          <label class="block text-xs text-gray-500 mb-1">Plantilla</label>
+          <select class="border rounded p-2 text-sm mb-3"><option>(En blanco)</option><option>Atraso</option><option>Falta</option><option>Felicitación</option><option>Citación a reunión</option></select>
+          <label class="block text-xs text-gray-500 mb-1">Mensaje</label>
+          <textarea class="w-full border rounded p-2 text-sm" rows="4">Estimados padres de familia, les recordamos que mañana se realiza la entrega de la tarea de fracciones...</textarea>
+          <div class="flex gap-3 mt-3">
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" checked> Email</label>
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" checked> Portal del padre</label>
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox"> WhatsApp</label>
+          </div>
+          <button class="bg-blue-700 text-white px-4 py-2 rounded text-sm mt-3">Enviar a 28 representantes</button>
+        </div>
+        <div class="bg-white rounded-lg border p-4 text-sm">
+          <h3 class="font-semibold mb-2">Historial</h3>
+          <div class="border-t py-2 flex justify-between"><span>Recordatorio entrega tarea · 15/05</span><span class="text-emerald-600">24/28 leídos</span></div>
+          <div class="border-t py-2 flex justify-between"><span>Citación reunión padres · 10/05</span><span class="text-emerald-600">28/28 leídos</span></div>
+        </div>
+      </div>
+
+      <div id="view-docente-materias" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Lista de materias asignadas <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-docente-material" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Biblioteca de material por materia <span class="mockup-tag">en diseño</span></div></div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ PADRE PANEL ============ -->
+<div id="panel-padre" class="panel">
+  <div class="max-w-7xl mx-auto p-4 grid grid-cols-12 gap-4">
+    <aside class="col-span-12 md:col-span-3 bg-white rounded-lg shadow-sm border p-3">
+      <div class="flex items-center gap-3 p-2 mb-2 border-b pb-3">
+        <div class="w-12 h-12 rounded-full bg-violet-500 text-white flex items-center justify-center font-bold">JT</div>
+        <div><div class="font-semibold text-sm">Jorge Torres</div><div class="text-xs text-gray-500">Representante</div></div>
+      </div>
+      <div class="text-xs text-gray-500 mb-2 px-2 font-semibold">VIENDO A</div>
+      <select class="w-full border rounded p-2 text-sm mb-3"><option>Andrés Torres · 5to EGB A</option><option>Camila Torres · 2do EGB B</option></select>
+      <nav class="space-y-1 text-sm">
+        <a onclick="showView('padre','inicio')" class="nav-item active block px-3 py-2 rounded cursor-pointer">🏠 Inicio</a>
+        <a onclick="showView('padre','notas')" class="nav-item block px-3 py-2 rounded cursor-pointer">📊 Notas</a>
+        <a onclick="showView('padre','tareas')" class="nav-item block px-3 py-2 rounded cursor-pointer">📋 Tareas</a>
+        <a onclick="showView('padre','asistencia')" class="nav-item block px-3 py-2 rounded cursor-pointer">✅ Asistencia</a>
+        <a onclick="showView('padre','comunicados')" class="nav-item block px-3 py-2 rounded cursor-pointer">📢 Comunicados <span class="bg-red-500 text-white text-xs px-2 rounded-full ml-1">3</span></a>
+        <a onclick="showView('padre','boletines')" class="nav-item block px-3 py-2 rounded cursor-pointer">📄 Boletines</a>
+        <a onclick="showView('padre','pagos')" class="nav-item block px-3 py-2 rounded cursor-pointer">💳 Pagos</a>
+      </nav>
+    </aside>
+    <main class="col-span-12 md:col-span-9 space-y-4">
+
+      <!-- Inicio Padre -->
+      <div id="view-padre-inicio" class="view active">
+        <h1 class="text-2xl font-bold text-gray-800 mb-1">Buenas tardes, Jorge</h1>
+        <p class="text-gray-500 text-sm mb-4">Resumen de Andrés Torres · 5to EGB A</p>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div class="bg-white rounded-lg p-3 border"><div class="text-xs text-gray-500">Promedio actual</div><div class="text-2xl font-bold text-emerald-600">8.7</div></div>
+          <div class="bg-white rounded-lg p-3 border"><div class="text-xs text-gray-500">Asistencia</div><div class="text-2xl font-bold text-blue-600">96%</div></div>
+          <div class="bg-white rounded-lg p-3 border"><div class="text-xs text-gray-500">Tareas pendientes</div><div class="text-2xl font-bold text-amber-600">2</div></div>
+          <div class="bg-white rounded-lg p-3 border"><div class="text-xs text-gray-500">Comunicados</div><div class="text-2xl font-bold text-red-500">3 nuevos</div></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white rounded-lg p-5 border">
+            <h3 class="font-semibold mb-3">Últimas notas</h3>
+            <ul class="space-y-2 text-sm">
+              <li class="flex justify-between border-b pb-2"><span>Matemáticas · Tarea fracciones</span><span class="font-semibold text-emerald-600">9.0</span></li>
+              <li class="flex justify-between border-b pb-2"><span>Lengua · Lectura comprensiva</span><span class="font-semibold text-emerald-600">8.5</span></li>
+              <li class="flex justify-between"><span>Ciencias · Trabajo grupal</span><span class="font-semibold text-amber-600">7.0</span></li>
+            </ul>
+          </div>
+          <div class="bg-white rounded-lg p-5 border">
+            <h3 class="font-semibold mb-3">Comunicados sin leer</h3>
+            <ul class="space-y-2 text-sm">
+              <li class="border-b pb-2"><div class="font-medium">Citación reunión de padres</div><div class="text-xs text-gray-500">Rectorado · hace 2 días</div></li>
+              <li class="border-b pb-2"><div class="font-medium">Recordatorio tarea matemáticas</div><div class="text-xs text-gray-500">Lcda. M. Vega · ayer</div></li>
+              <li><div class="font-medium">Cierre de parcial · 15 jun</div><div class="text-xs text-gray-500">Rectorado · hoy</div></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notas Padre -->
+      <div id="view-padre-notas" class="view">
+        <h1 class="text-2xl font-bold text-gray-800 mb-1">Calificaciones de Andrés Torres</h1>
+        <p class="text-gray-500 text-sm mb-4">Año Lectivo 2026–2027</p>
+        <div class="flex gap-2 mb-3 text-sm">
+          <select class="border rounded p-2"><option>2do Trimestre</option><option>1er Trimestre</option><option>3er Trimestre</option></select>
+        </div>
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-left text-gray-600">
+              <tr><th class="p-3">Materia</th><th class="p-3 text-center">Parcial 1 (70%)</th><th class="p-3 text-center">Parcial 2 (70%)</th><th class="p-3 text-center">Examen Final (30%)</th><th class="p-3 text-center bg-blue-50">Nota trimestre</th></tr>
+            </thead>
+            <tbody>
+              <tr class="border-t"><td class="p-3">Matemáticas</td><td class="text-center p-3">8.85</td><td class="text-center p-3 text-gray-400">—</td><td class="text-center p-3 text-gray-400">—</td><td class="text-center p-3 bg-blue-50 font-bold text-blue-700">8.85</td></tr>
+              <tr class="border-t"><td class="p-3">Lengua y Literatura</td><td class="text-center p-3">9.20</td><td class="text-center p-3 text-gray-400">—</td><td class="text-center p-3 text-gray-400">—</td><td class="text-center p-3 bg-blue-50 font-bold text-blue-700">9.20</td></tr>
+              <tr class="border-t"><td class="p-3">Ciencias Naturales</td><td class="text-center p-3">8.10</td><td class="text-center p-3 text-gray-400">—</td><td class="text-center p-3 text-gray-400">—</td><td class="text-center p-3 bg-blue-50 font-bold text-blue-700">8.10</td></tr>
+              <tr class="border-t"><td class="p-3">Estudios Sociales</td><td class="text-center p-3">8.70</td><td class="text-center p-3 text-gray-400">—</td><td class="text-center p-3 text-gray-400">—</td><td class="text-center p-3 bg-blue-50 font-bold text-blue-700">8.70</td></tr>
+              <tr class="border-t"><td class="p-3">Inglés</td><td class="text-center p-3">9.50</td><td class="text-center p-3 text-gray-400">—</td><td class="text-center p-3 text-gray-400">—</td><td class="text-center p-3 bg-blue-50 font-bold text-blue-700">9.50</td></tr>
+              <tr class="border-t bg-gray-50 font-semibold"><td class="p-3">Promedio del trimestre</td><td colspan="3"></td><td class="text-center p-3 bg-blue-100 text-blue-800">8.87</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-3 text-sm text-gray-500">📌 Fórmula: (Parcial 1 + Parcial 2) ÷ 2 × 70% + Examen Final × 30%</div>
+      </div>
+
+      <!-- Comunicados Padre -->
+      <div id="view-padre-comunicados" class="view">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Comunicados</h1>
+        <div class="space-y-3">
+          <div class="bg-white border-l-4 border-red-500 rounded p-4">
+            <div class="flex justify-between mb-1"><strong>Citación reunión de padres</strong><span class="text-xs text-gray-500">hace 2 días</span></div>
+            <p class="text-sm text-gray-700">Estimados representantes, los invitamos a la reunión del 5to EGB A el día viernes 22 de mayo a las 17h00...</p>
+            <div class="mt-3 flex justify-between"><span class="text-xs text-gray-500">De: Rectorado</span><button class="text-xs bg-emerald-100 text-emerald-700 px-3 py-1 rounded">✓ Confirmar lectura</button></div>
+          </div>
+          <div class="bg-white border-l-4 border-amber-500 rounded p-4">
+            <div class="flex justify-between mb-1"><strong>Recordatorio tarea matemáticas</strong><span class="text-xs text-gray-500">ayer</span></div>
+            <p class="text-sm text-gray-700">Estimados padres, su hijo tiene pendiente la entrega de la tarea de fracciones para el viernes...</p>
+            <div class="mt-3 flex justify-between"><span class="text-xs text-gray-500">De: Lcda. María Vega</span><button class="text-xs bg-emerald-100 text-emerald-700 px-3 py-1 rounded">✓ Confirmar lectura</button></div>
+          </div>
+          <div class="bg-gray-50 border rounded p-4 opacity-70">
+            <div class="flex justify-between mb-1"><strong>Día del estudiante · evento institucional</strong><span class="text-xs text-gray-500">hace 1 semana</span></div>
+            <p class="text-sm text-gray-700">Información sobre la celebración del Día del Estudiante...</p>
+            <div class="mt-3"><span class="text-xs text-emerald-600">✓ Leído el 09/05/2026</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-padre-tareas" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Listado de tareas asignadas a Andrés <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-padre-asistencia" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Registro de asistencia mensual <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-padre-boletines" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Descarga de boletines PDF por trimestre <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-padre-pagos" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Estado de pensiones y pagos <span class="mockup-tag">en diseño</span></div></div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ ESTUDIANTE PANEL ============ -->
+<div id="panel-estudiante" class="panel">
+  <div class="max-w-7xl mx-auto p-4 grid grid-cols-12 gap-4">
+    <aside class="col-span-12 md:col-span-3 bg-white rounded-lg shadow-sm border p-3">
+      <div class="flex items-center gap-3 p-2 mb-2 border-b pb-3">
+        <div class="w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold">AT</div>
+        <div><div class="font-semibold text-sm">Andrés Torres</div><div class="text-xs text-gray-500">5to EGB A</div></div>
+      </div>
+      <div class="text-xs text-gray-500 mb-2 px-2 font-semibold">ESTUDIANTE</div>
+      <nav class="space-y-1 text-sm">
+        <a onclick="showView('estudiante','inicio')" class="nav-item active block px-3 py-2 rounded cursor-pointer">🏠 Inicio</a>
+        <a onclick="showView('estudiante','tareas')" class="nav-item block px-3 py-2 rounded cursor-pointer">📋 Mis tareas <span class="bg-amber-500 text-white text-xs px-2 rounded-full ml-1">2</span></a>
+        <a onclick="showView('estudiante','notas')" class="nav-item block px-3 py-2 rounded cursor-pointer">📊 Mis notas</a>
+        <a onclick="showView('estudiante','calendario')" class="nav-item block px-3 py-2 rounded cursor-pointer">📅 Calendario</a>
+        <a onclick="showView('estudiante','material')" class="nav-item block px-3 py-2 rounded cursor-pointer">📁 Material</a>
+        <a onclick="showView('estudiante','comunicados')" class="nav-item block px-3 py-2 rounded cursor-pointer">📢 Comunicados</a>
+      </nav>
+    </aside>
+    <main class="col-span-12 md:col-span-9 space-y-4">
+
+      <!-- Inicio Estudiante -->
+      <div id="view-estudiante-inicio" class="view active">
+        <h1 class="text-2xl font-bold text-gray-800 mb-1">¡Hola Andrés! 👋</h1>
+        <p class="text-gray-500 text-sm mb-4">Tienes 2 tareas pendientes esta semana.</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-4 rounded-lg">
+            <div class="text-xs opacity-80">Próxima entrega</div>
+            <div class="font-bold text-lg mt-1">Tarea de fracciones</div>
+            <div class="text-sm opacity-90 mt-1">Matemáticas · vence en 2 días</div>
+          </div>
+          <div class="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white p-4 rounded-lg">
+            <div class="text-xs opacity-80">Promedio actual</div>
+            <div class="font-bold text-3xl mt-1">8.7</div>
+            <div class="text-sm opacity-90 mt-1">2do trimestre</div>
+          </div>
+          <div class="bg-gradient-to-br from-amber-500 to-amber-700 text-white p-4 rounded-lg">
+            <div class="text-xs opacity-80">Logro</div>
+            <div class="font-bold text-lg mt-1">¡5 tareas seguidas! 🏆</div>
+            <div class="text-sm opacity-90 mt-1">Sigue así</div>
+          </div>
+        </div>
+        <div class="bg-white rounded-lg p-5 border mt-4">
+          <h3 class="font-semibold mb-3">Mis tareas pendientes</h3>
+          <ul class="space-y-2 text-sm">
+            <li class="flex justify-between border-b pb-2"><div><strong>Tarea de fracciones</strong><div class="text-xs text-gray-500">Matemáticas · Lcda. María Vega</div></div><button onclick="showView('estudiante','entregar')" class="bg-blue-700 text-white px-3 py-1 rounded text-xs">Entregar</button></li>
+            <li class="flex justify-between"><div><strong>Proyecto trimestral: figuras</strong><div class="text-xs text-gray-500">Matemáticas · vence 25/05</div></div><button class="bg-gray-200 px-3 py-1 rounded text-xs">Ver detalle</button></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Entregar tarea -->
+      <div id="view-estudiante-entregar" class="view">
+        <div class="flex items-center gap-2 mb-4">
+          <button onclick="showView('estudiante','inicio')" class="text-blue-600 text-sm">← Volver</button>
+          <h1 class="text-2xl font-bold text-gray-800">Entregar tarea</h1>
+        </div>
+        <div class="bg-white rounded-lg border p-6">
+          <h3 class="font-semibold text-lg">Tarea de fracciones</h3>
+          <p class="text-sm text-gray-500">Matemáticas · 5to EGB A · vence 20/05/2026</p>
+          <div class="mt-4 p-3 bg-gray-50 rounded text-sm">
+            <strong>Instrucciones:</strong> Resolver los problemas 1 al 12 del capítulo 4 del libro. Subir las hojas escaneadas en PDF o foto.
+          </div>
+          <div class="mt-4">
+            <label class="block text-sm font-semibold mb-2">Subir archivo</label>
+            <div class="border-2 border-dashed border-blue-300 rounded p-8 text-center text-gray-500 bg-blue-50">
+              <div class="text-4xl mb-2">📎</div>
+              <div class="font-medium text-blue-700">Arrastra archivos aquí o haz clic para seleccionar</div>
+              <div class="text-xs mt-1">PDF, Word, PowerPoint, JPG, PNG (máx. 10 MB)</div>
+            </div>
+          </div>
+          <div class="mt-4">
+            <label class="block text-sm font-semibold mb-2">Comentario al docente (opcional)</label>
+            <textarea class="w-full border rounded p-2 text-sm" rows="3" placeholder="Escribe un comentario..."></textarea>
+          </div>
+          <button class="mt-4 bg-emerald-600 text-white px-6 py-2 rounded">Enviar entrega</button>
+        </div>
+      </div>
+
+      <!-- Notas Estudiante -->
+      <div id="view-estudiante-notas" class="view">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Mis notas</h1>
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-left text-gray-600"><tr><th class="p-3">Materia</th><th class="p-3 text-center">T1</th><th class="p-3 text-center">T2</th><th class="p-3 text-center">T3</th><th class="p-3 text-center bg-blue-50">Promedio</th></tr></thead>
+            <tbody>
+              <tr class="border-t"><td class="p-3">Matemáticas</td><td class="text-center p-3">9.10</td><td class="text-center p-3 text-amber-600">8.85*</td><td class="text-center text-gray-400">—</td><td class="text-center bg-blue-50 font-bold p-3">8.97</td></tr>
+              <tr class="border-t"><td class="p-3">Lengua</td><td class="text-center p-3">8.90</td><td class="text-center p-3 text-amber-600">9.20*</td><td class="text-center text-gray-400">—</td><td class="text-center bg-blue-50 font-bold p-3">9.05</td></tr>
+              <tr class="border-t"><td class="p-3">Ciencias</td><td class="text-center p-3">7.80</td><td class="text-center p-3 text-amber-600">8.10*</td><td class="text-center text-gray-400">—</td><td class="text-center bg-blue-50 font-bold p-3">7.95</td></tr>
+              <tr class="border-t"><td class="p-3">Sociales</td><td class="text-center p-3">8.50</td><td class="text-center p-3 text-amber-600">8.70*</td><td class="text-center text-gray-400">—</td><td class="text-center bg-blue-50 font-bold p-3">8.60</td></tr>
+              <tr class="border-t"><td class="p-3">Inglés</td><td class="text-center p-3">9.20</td><td class="text-center p-3 text-amber-600">9.50*</td><td class="text-center text-gray-400">—</td><td class="text-center bg-blue-50 font-bold p-3">9.35</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-3 text-xs text-gray-500">* Trimestre en curso (sin examen final aún)</div>
+      </div>
+
+      <div id="view-estudiante-tareas" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Listado completo de mis tareas <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-estudiante-calendario" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Calendario académico <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-estudiante-material" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Material y recursos de clase <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-estudiante-comunicados" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Comunicados de la institución <span class="mockup-tag">en diseño</span></div></div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ RECTOR PANEL ============ -->
+<div id="panel-rector" class="panel">
+  <div class="max-w-7xl mx-auto p-4 grid grid-cols-12 gap-4">
+    <aside class="col-span-12 md:col-span-3 bg-white rounded-lg shadow-sm border p-3">
+      <div class="flex items-center gap-3 p-2 mb-2 border-b pb-3">
+        <div class="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold">MS</div>
+        <div><div class="font-semibold text-sm">Dr. Manuel Salazar</div><div class="text-xs text-gray-500">Rector</div></div>
+      </div>
+      <div class="text-xs text-gray-500 mb-2 px-2 font-semibold">RECTORADO</div>
+      <nav class="space-y-1 text-sm">
+        <a onclick="showView('rector','inicio')" class="nav-item active block px-3 py-2 rounded cursor-pointer">🏠 Inicio</a>
+        <a onclick="showView('rector','rendimiento')" class="nav-item block px-3 py-2 rounded cursor-pointer">📊 Rendimiento</a>
+        <a onclick="showView('rector','docentes')" class="nav-item block px-3 py-2 rounded cursor-pointer">👨‍🏫 Docentes</a>
+        <a onclick="showView('rector','grados')" class="nav-item block px-3 py-2 rounded cursor-pointer">🎓 Grados</a>
+        <a onclick="showView('rector','alertas')" class="nav-item block px-3 py-2 rounded cursor-pointer">🚨 Alertas <span class="bg-red-500 text-white text-xs px-2 rounded-full ml-1">7</span></a>
+        <a onclick="showView('rector','comunicados')" class="nav-item block px-3 py-2 rounded cursor-pointer">📢 Comunicados</a>
+        <a onclick="showView('rector','reportes')" class="nav-item block px-3 py-2 rounded cursor-pointer">📄 Reportes</a>
+      </nav>
+    </aside>
+    <main class="col-span-12 md:col-span-9 space-y-4">
+
+      <!-- Inicio Rector -->
+      <div id="view-rector-inicio" class="view active">
+        <h1 class="text-2xl font-bold text-gray-800 mb-1">Dashboard Institucional</h1>
+        <p class="text-gray-500 text-sm mb-4">U.E. San Francisco de Quito · 2do Trimestre · Parcial 1</p>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div class="bg-white rounded-lg p-4 border"><div class="text-xs text-gray-500">% Aprobados</div><div class="text-3xl font-bold text-emerald-600">89%</div><div class="text-xs text-emerald-600 mt-1">↑ 3% vs T1</div></div>
+          <div class="bg-white rounded-lg p-4 border"><div class="text-xs text-gray-500">Promedio general</div><div class="text-3xl font-bold text-blue-600">8.2</div><div class="text-xs text-emerald-600 mt-1">↑ 0.3 vs T1</div></div>
+          <div class="bg-white rounded-lg p-4 border"><div class="text-xs text-gray-500">Asistencia</div><div class="text-3xl font-bold text-violet-600">94%</div><div class="text-xs text-red-600 mt-1">↓ 2% vs T1</div></div>
+          <div class="bg-white rounded-lg p-4 border"><div class="text-xs text-gray-500">Estudiantes en riesgo</div><div class="text-3xl font-bold text-red-500">23</div><div class="text-xs text-gray-500 mt-1">2.7% del total</div></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white rounded-lg p-5 border">
+            <h3 class="font-semibold mb-3">Rendimiento por grado</h3>
+            <div class="space-y-3 text-sm">
+              <div><div class="flex justify-between mb-1"><span>5to EGB A</span><span class="font-semibold">8.7</span></div><div class="h-2 bg-gray-200 rounded"><div class="h-2 bg-emerald-500 rounded" style="width:87%"></div></div></div>
+              <div><div class="flex justify-between mb-1"><span>5to EGB B</span><span class="font-semibold">8.1</span></div><div class="h-2 bg-gray-200 rounded"><div class="h-2 bg-emerald-500 rounded" style="width:81%"></div></div></div>
+              <div><div class="flex justify-between mb-1"><span>6to EGB A</span><span class="font-semibold">7.9</span></div><div class="h-2 bg-gray-200 rounded"><div class="h-2 bg-amber-500 rounded" style="width:79%"></div></div></div>
+              <div><div class="flex justify-between mb-1"><span>1ro BGU A</span><span class="font-semibold">8.4</span></div><div class="h-2 bg-gray-200 rounded"><div class="h-2 bg-emerald-500 rounded" style="width:84%"></div></div></div>
+              <div><div class="flex justify-between mb-1"><span>3ro BGU A</span><span class="font-semibold">7.2</span></div><div class="h-2 bg-gray-200 rounded"><div class="h-2 bg-amber-500 rounded" style="width:72%"></div></div></div>
+            </div>
+          </div>
+          <div class="bg-white rounded-lg p-5 border">
+            <h3 class="font-semibold mb-3">⚠ Alertas activas</h3>
+            <ul class="space-y-2 text-sm">
+              <li class="border-b pb-2"><strong>Física · 3ro BGU A</strong><div class="text-xs text-gray-500">Promedio 6.4 · 30% de los estudiantes bajo 7</div></li>
+              <li class="border-b pb-2"><strong>5 docentes con notas pendientes</strong><div class="text-xs text-gray-500">Cierre parcial en 5 días</div></li>
+              <li class="border-b pb-2"><strong>23 estudiantes en riesgo</strong><div class="text-xs text-gray-500">Notas bajas + faltas combinadas</div></li>
+              <li><strong>Asistencia baja · 6to A</strong><div class="text-xs text-gray-500">87% promedio mensual</div></li>
+            </ul>
+          </div>
+        </div>
+        <div class="bg-white rounded-lg p-5 border mt-4">
+          <h3 class="font-semibold mb-3">Carga de notas por docente</h3>
+          <table class="w-full text-sm">
+            <thead class="text-left text-gray-600 border-b"><tr><th class="py-2">Docente</th><th>Materia</th><th>Avance</th><th>Estado</th></tr></thead>
+            <tbody>
+              <tr class="border-b"><td class="py-2">Lcda. María Vega</td><td>Matemáticas 5A</td><td>100%</td><td><span class="text-emerald-600">✓ Completo</span></td></tr>
+              <tr class="border-b"><td class="py-2">Ing. José López</td><td>Física 1BGU</td><td>78%</td><td><span class="text-amber-600">En curso</span></td></tr>
+              <tr class="border-b"><td class="py-2">Lcda. Ana Romero</td><td>Lengua 6A</td><td>45%</td><td><span class="text-red-600">⚠ Atrasado</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Alertas Rector -->
+      <div id="view-rector-alertas" class="view">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Estudiantes en riesgo</h1>
+        <div class="bg-white rounded-lg border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-left text-gray-600"><tr><th class="p-3">Estudiante</th><th class="p-3">Grado</th><th class="p-3">Promedio</th><th class="p-3">Faltas</th><th class="p-3">Materias críticas</th><th class="p-3">Acción</th></tr></thead>
+            <tbody>
+              <tr class="border-t"><td class="p-3">Castro, Sofía</td><td class="p-3">5to A</td><td class="p-3 text-red-600 font-semibold">5.8</td><td class="p-3">3</td><td class="p-3">Mate, Ciencias</td><td class="p-3"><button class="text-blue-600 text-xs">Convocar</button></td></tr>
+              <tr class="border-t"><td class="p-3">Quispe, Juan</td><td class="p-3">5to A</td><td class="p-3 text-amber-600 font-semibold">6.5</td><td class="p-3">5</td><td class="p-3">Mate</td><td class="p-3"><button class="text-blue-600 text-xs">Convocar</button></td></tr>
+              <tr class="border-t"><td class="p-3">Vinueza, Diego</td><td class="p-3">6to A</td><td class="p-3 text-amber-600 font-semibold">6.8</td><td class="p-3">2</td><td class="p-3">Lengua</td><td class="p-3"><button class="text-blue-600 text-xs">Convocar</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="view-rector-rendimiento" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Análisis profundo por materia, grado y docente <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-rector-docentes" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Listado y desempeño de docentes <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-rector-grados" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Vista detallada por grado <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-rector-comunicados" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Comunicados institucionales y plantillas <span class="mockup-tag">en diseño</span></div></div>
+      <div id="view-rector-reportes" class="view"><div class="bg-white p-6 rounded-lg border text-gray-500">Generador de reportes para Ministerio y junta académica <span class="mockup-tag">en diseño</span></div></div>
+    </main>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="max-w-7xl mx-auto p-4 text-center text-xs text-gray-400 mt-8">
+  Sistema Educativo Integral · Mockup de validación · Mayo 2026<br>
+  Datos de ejemplo. Diseño preliminar para revisión.
+</div>
+
+<script>
+  function showPanel(name) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+  function showView(panel, name) {
+    document.querySelectorAll('#panel-' + panel + ' .view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + panel + '-' + name).classList.add('active');
+    document.querySelectorAll('#panel-' + panel + ' .nav-item').forEach(n => n.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

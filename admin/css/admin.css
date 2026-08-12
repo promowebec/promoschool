@@ -1,0 +1,144 @@
+/* Sistema Educativo · estilos del admin */
+
+.edu-wrap { max-width: 1200px; }
+
+/* Switcher de institución */
+.edu-institution-switcher {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 10px 14px;
+	margin: 12px 0 18px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+.edu-switcher-label { font-weight: 600; color: #50575e; }
+.edu-switcher-form { display: inline-flex; align-items: center; gap: 10px; margin: 0; flex-wrap: wrap; }
+.edu-switcher-form select { min-width: 260px; }
+
+/* Inline forms y botones-link */
+.edu-inline-form { display: inline; margin: 0; }
+.edu-link-button {
+	background: none;
+	border: none;
+	color: #2271b1;
+	cursor: pointer;
+	text-decoration: underline;
+	padding: 0;
+	font: inherit;
+}
+.edu-link-button:hover { color: #135e96; }
+.edu-link-danger { color: #b32d2e; }
+.edu-link-danger:hover { color: #8a0000; }
+
+/* Dashboard de inicio */
+.edu-stats-grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 14px;
+	margin: 20px 0;
+}
+@media (max-width: 900px) {
+	.edu-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.edu-stat-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 6px;
+	padding: 14px 16px;
+}
+.edu-stat-label { font-size: 12px; color: #646970; }
+.edu-stat-value { font-size: 28px; font-weight: 700; color: #2271b1; line-height: 1.1; margin-top: 4px; }
+
+.edu-quick-links { margin: 18px 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.edu-muted { color: #8c8f94; font-size: 13px; }
+
+/* Formularios */
+.edu-form { background: #fff; padding: 18px 22px; border: 1px solid #c3c4c7; border-radius: 4px; }
+.edu-form .required { color: #b32d2e; }
+
+.edu-paralelo-radios label {
+	display: inline-block;
+	margin-right: 8px;
+	padding: 6px 14px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	cursor: pointer;
+}
+.edu-paralelo-radios label:has(input:checked) { background: #f0f6fc; border-color: #2271b1; }
+
+/* Filtros */
+.edu-filter-bar {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 10px 14px;
+	margin: 12px 0;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+/* Badges y tags de subnivel */
+.edu-badge { display: inline-block; padding: 2px 8px; font-size: 11px; border-radius: 10px; margin-left: 6px; }
+.edu-badge-active { background: #d4edda; color: #155724; }
+
+.edu-tag { display: inline-block; padding: 3px 8px; font-size: 11px; border-radius: 4px; font-weight: 500; }
+.edu-tag-pink    { background: #fce7f3; color: #831843; }
+.edu-tag-amber   { background: #fef3c7; color: #92400e; }
+.edu-tag-cyan    { background: #cffafe; color: #155e75; }
+.edu-tag-blue    { background: #dbeafe; color: #1e3a8a; }
+.edu-tag-purple  { background: #ede9fe; color: #5b21b6; }
+.edu-tag-emerald { background: #d1fae5; color: #065f46; }
+.edu-tag-orange  { background: #ffedd5; color: #9a3412; }
+
+.edu-status-active   { color: #15803d; font-weight: 600; }
+.edu-status-inactive { color: #6b7280; }
+
+/* Bloques agrupados (vista Materias) */
+.edu-block {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 6px;
+	margin: 12px 0;
+	overflow: hidden;
+}
+.edu-block-header {
+	padding: 12px 16px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 1px solid #e5e7eb;
+}
+.edu-block-hint { color: #6b7280; font-size: 12px; margin-left: 8px; }
+.edu-block-count { font-size: 12px; padding: 3px 8px; border-radius: 4px; background: #e5e7eb; color: #374151; }
+.edu-block-body { padding: 12px 16px; }
+
+.edu-block-amber   .edu-block-header { background: #fefce8; }
+.edu-block-amber   .edu-block-count  { background: #fef3c7; color: #92400e; }
+.edu-block-blue    .edu-block-header { background: #eff6ff; }
+.edu-block-blue    .edu-block-count  { background: #dbeafe; color: #1e3a8a; }
+.edu-block-purple  .edu-block-header { background: #faf5ff; }
+.edu-block-purple  .edu-block-count  { background: #ede9fe; color: #5b21b6; }
+.edu-block-emerald .edu-block-header { background: #ecfdf5; }
+.edu-block-emerald .edu-block-count  { background: #d1fae5; color: #065f46; }
+.edu-block-orange  .edu-block-header { background: #fff7ed; }
+.edu-block-orange  .edu-block-count  { background: #ffedd5; color: #9a3412; }
+.edu-block-slate   .edu-block-header { background: #f1f5f9; }
+.edu-block-slate   .edu-block-count  { background: #e2e8f0; color: #1e293b; }
+
+.edu-source-badge {
+	font-size: 10px;
+	padding: 2px 6px;
+	border-radius: 3px;
+	background: #e5e7eb;
+	color: #374151;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+}
+.edu-source-custom { background: #fef3c7; color: #92400e; }
+.edu-muted-cell    { color: #6b7280; font-size: 12px; }
+.edu-action-cell   { text-align: right; }
+.edu-adopted       { color: #15803d; font-size: 13px; }

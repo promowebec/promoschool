@@ -1,0 +1,22 @@
+{
+    "name": "cowork/sistema-educativo",
+    "description": "Plugin WordPress – Sistema Educativo Integral Ecuador",
+    "type": "wordpress-plugin",
+    "require": {
+        "php": ">=8.2",
+        "mpdf/mpdf": "^8.2"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "platform": {
+            "php": "8.2.29",
+            "ext-gd": "1.0"
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "SistemaEducativo\\": "includes/"
+        }
+    }
+}

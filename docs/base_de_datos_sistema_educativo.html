@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Base de Datos · Sistema Educativo Integral</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  .group-title { background: linear-gradient(90deg, #1F4E79, #2E75B6); }
+  table.cols th { background: #F3F4F6; font-size: 12px; padding: 8px; text-align: left; }
+  table.cols td { padding: 8px; border-top: 1px solid #E5E7EB; font-size: 13px; }
+  .pk { color: #B91C1C; font-weight: 600; }
+  .fk { color: #1D4ED8; }
+  .nn { color: #047857; font-size: 10px; }
+  .badge { display:inline-block; padding:2px 8px; border-radius: 4px; font-size:11px; font-weight:600; }
+  .b-core { background:#DBEAFE; color:#1E3A8A; }
+  .b-people { background:#FEF3C7; color:#92400E; }
+  .b-academic { background:#D1FAE5; color:#065F46; }
+  .b-comm { background:#EDE9FE; color:#5B21B6; }
+  .b-attend { background:#FCE7F3; color:#9D174D; }
+  .b-audit { background:#FEE2E2; color:#991B1B; }
+  pre { background: #0F172A; color: #E2E8F0; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.6; }
+  .mermaid { background: white; padding: 20px; border-radius: 8px; border: 1px solid #E5E7EB; }
+</style>
+</head>
+<body class="bg-gray-50">
+
+<!-- Header -->
+<div class="bg-gradient-to-r from-blue-800 to-blue-600 text-white">
+  <div class="max-w-7xl mx-auto px-6 py-8">
+    <div class="text-xs uppercase tracking-wider opacity-80">Documentación técnica</div>
+    <h1 class="text-3xl font-bold mt-1">Modelo de Base de Datos</h1>
+    <p class="opacity-90 mt-1">Sistema Educativo Integral · Plugin WordPress · 27 tablas · Listo para implementar</p>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="bg-white border-b sticky top-0 z-50 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 flex flex-wrap gap-1">
+    <button onclick="showTab('diagrama')" class="tab-btn active px-4 py-3 text-sm font-medium border-b-2 border-blue-700 text-blue-700">📊 Diagrama ER</button>
+    <button onclick="showTab('tablas')" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-600 hover:text-blue-700">📋 Tablas</button>
+    <button onclick="showTab('relaciones')" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-600 hover:text-blue-700">🔗 Relaciones clave</button>
+    <button onclick="showTab('flujos')" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-600 hover:text-blue-700">⚡ Flujos de cálculo</button>
+    <button onclick="showTab('sql')" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-600 hover:text-blue-700">💻 Script SQL</button>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto p-6">
+
+<!-- ============ TAB DIAGRAMA ============ -->
+<div id="tab-diagrama" class="tab-content">
+  <div class="bg-white rounded-lg border p-4 mb-4">
+    <h2 class="text-xl font-bold mb-2">Diagrama Entidad-Relación</h2>
+    <p class="text-sm text-gray-600 mb-3">Visualización completa del modelo. Los colores agrupan tablas por dominio funcional.</p>
+    <div class="flex flex-wrap gap-2 mb-4 text-xs">
+      <span class="badge b-core">CORE INSTITUCIONAL</span>
+      <span class="badge b-people">PERSONAS</span>
+      <span class="badge b-academic">ACADÉMICO</span>
+      <span class="badge b-comm">COMUNICACIÓN</span>
+      <span class="badge b-attend">ASISTENCIA</span>
+      <span class="badge b-audit">AUDITORÍA</span>
+    </div>
+  </div>
+
+  <div class="mermaid">
+erDiagram
+  INSTITUTIONS ||--o{ PERIODS : "tiene"
+  INSTITUTIONS ||--o{ GRADES : "tiene"
+  INSTITUTIONS ||--o{ SUBJECTS : "ofrece"
+  PERIODS ||--o{ TRIMESTERS : "se divide en"
+  GRADES ||--o{ GRADE_SUBJECTS : "incluye"
+  SUBJECTS ||--o{ GRADE_SUBJECTS : "se dicta en"
+  GRADES ||--o{ STUDENTS : "matricula"
+  GRADES ||--o{ TEACHER_ASSIGNMENTS : "tiene"
+  SUBJECTS ||--o{ TEACHER_ASSIGNMENTS : "es dictada por"
+  TEACHERS ||--o{ TEACHER_ASSIGNMENTS : "imparte"
+  PARENTS ||--o{ PARENT_STUDENT : "representa"
+  STUDENTS ||--o{ PARENT_STUDENT : "es representado por"
+  TEACHERS ||--o{ ASSIGNMENTS : "crea"
+  GRADES ||--o{ ASSIGNMENTS : "recibe"
+  SUBJECTS ||--o{ ASSIGNMENTS : "pertenece a"
+  ASSIGNMENTS ||--o{ ASSIGNMENT_FILES : "adjunta"
+  ASSIGNMENTS ||--o{ SUBMISSIONS : "es entregada por"
+  STUDENTS ||--o{ SUBMISSIONS : "entrega"
+  SUBMISSIONS ||--o{ SUBMISSION_FILES : "incluye"
+  ASSIGNMENTS ||--o{ RUBRICS : "evaluada por"
+  RUBRICS ||--o{ RUBRIC_SCORES : "califica"
+  SUBMISSIONS ||--o{ RUBRIC_SCORES : "recibe"
+  STUDENTS ||--o{ GRADES_LOG : "tiene notas en"
+  GRADE_COMPONENTS ||--o{ GRADES_LOG : "compone"
+  TRIMESTERS ||--o{ GRADE_COMPONENTS : "agrupa"
+  STUDENTS ||--o{ PARCIAL_SCORES : "obtiene"
+  STUDENTS ||--o{ TRIMESTER_SCORES : "obtiene"
+  STUDENTS ||--o{ YEAR_SCORES : "obtiene"
+  STUDENTS ||--o{ ATTENDANCE : "registra"
+  SUBJECTS ||--o{ ATTENDANCE : "se controla en"
+  ANNOUNCEMENTS ||--o{ ANNOUNCEMENT_RECIPIENTS : "se envía a"
+  ANNOUNCEMENT_TEMPLATES ||--o{ ANNOUNCEMENTS : "se basa en"
+  USERS ||--o{ AUDIT : "ejecuta"
+
+  INSTITUTIONS {
+    bigint id PK
+    string name
+    string ruc
+    string regime
+    string logo_url
+  }
+  PERIODS {
+    bigint id PK
+    bigint institution_id FK
+    string name
+    date start_date
+    date end_date
+    boolean is_active
+  }
+  TRIMESTERS {
+    bigint id PK
+    bigint period_id FK
+    int number
+    boolean is_closed
+  }
+  GRADES {
+    bigint id PK
+    bigint institution_id FK
+    string level
+    string name
+    string paralelo
+    bigint tutor_user_id FK
+  }
+  SUBJECTS {
+    bigint id PK
+    bigint institution_id FK
+    string name
+    string code
+  }
+  GRADE_SUBJECTS {
+    bigint id PK
+    bigint grade_id FK
+    bigint subject_id FK
+    int hours_week
+  }
+  TEACHERS {
+    bigint id PK
+    bigint user_id FK
+    string cedula
+    string phone
+  }
+  STUDENTS {
+    bigint id PK
+    bigint user_id FK
+    bigint grade_id FK
+    string cedula
+    date birth_date
+  }
+  PARENTS {
+    bigint id PK
+    bigint user_id FK
+    string cedula
+    string phone
+  }
+  PARENT_STUDENT {
+    bigint id PK
+    bigint parent_id FK
+    bigint student_id FK
+    string relationship
+    boolean is_primary
+  }
+  TEACHER_ASSIGNMENTS {
+    bigint id PK
+    bigint teacher_id FK
+    bigint grade_id FK
+    bigint subject_id FK
+    bigint period_id FK
+  }
+  ASSIGNMENTS {
+    bigint id PK
+    bigint teacher_id FK
+    bigint grade_id FK
+    bigint subject_id FK
+    string type
+    string title
+    date due_date
+  }
+  ASSIGNMENT_FILES {
+    bigint id PK
+    bigint assignment_id FK
+    string file_url
+  }
+  SUBMISSIONS {
+    bigint id PK
+    bigint assignment_id FK
+    bigint student_id FK
+    string status
+    decimal score
+    datetime submitted_at
+  }
+  SUBMISSION_FILES {
+    bigint id PK
+    bigint submission_id FK
+    string file_url
+  }
+  RUBRICS {
+    bigint id PK
+    bigint assignment_id FK
+    string criterion
+    decimal max_score
+  }
+  RUBRIC_SCORES {
+    bigint id PK
+    bigint submission_id FK
+    bigint rubric_id FK
+    decimal score
+  }
+  GRADE_COMPONENTS {
+    bigint id PK
+    bigint subject_id FK
+    bigint trimester_id FK
+    int parcial_num
+    string name
+    decimal weight
+  }
+  GRADES_LOG {
+    bigint id PK
+    bigint student_id FK
+    bigint component_id FK
+    decimal score
+    datetime registered_at
+  }
+  PARCIAL_SCORES {
+    bigint id PK
+    bigint student_id FK
+    bigint subject_id FK
+    bigint trimester_id FK
+    int parcial_num
+    decimal computed_score
+    boolean is_closed
+  }
+  TRIMESTER_SCORES {
+    bigint id PK
+    bigint student_id FK
+    bigint subject_id FK
+    bigint trimester_id FK
+    decimal parcial1
+    decimal parcial2
+    decimal final_exam
+    decimal computed_score
+  }
+  YEAR_SCORES {
+    bigint id PK
+    bigint student_id FK
+    bigint subject_id FK
+    decimal average
+    string status
+  }
+  ATTENDANCE {
+    bigint id PK
+    bigint student_id FK
+    bigint subject_id FK
+    date date
+    string status
+  }
+  ANNOUNCEMENTS {
+    bigint id PK
+    bigint sender_user_id FK
+    string scope
+    string title
+    text body
+    datetime sent_at
+  }
+  ANNOUNCEMENT_RECIPIENTS {
+    bigint id PK
+    bigint announcement_id FK
+    bigint user_id FK
+    datetime read_at
+  }
+  ANNOUNCEMENT_TEMPLATES {
+    bigint id PK
+    string name
+    text body
+  }
+  AUDIT {
+    bigint id PK
+    bigint user_id FK
+    string action
+    string entity_type
+    bigint entity_id
+    datetime timestamp
+  }
+  USERS {
+    bigint id PK
+    string user_login
+    string user_email
+  }
+  </div>
+</div>
+
+<!-- ============ TAB TABLAS ============ -->
+<div id="tab-tablas" class="tab-content hidden">
+
+  <!-- Grupo 1: CORE INSTITUCIONAL -->
+  <div class="bg-white rounded-lg border overflow-hidden mb-4">
+    <div class="group-title text-white p-4"><h3 class="font-bold">🏛 CORE INSTITUCIONAL · 6 tablas</h3></div>
+    <div class="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      <div class="border rounded">
+        <div class="bg-blue-50 px-3 py-2 font-semibold text-sm">wp_edu_institutions</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>Identificador único</td></tr>
+          <tr><td>name</td><td>VARCHAR(200)</td><td>Razón social</td></tr>
+          <tr><td>ruc</td><td>VARCHAR(13)</td><td>RUC institucional</td></tr>
+          <tr><td>address</td><td>TEXT</td><td>Dirección</td></tr>
+          <tr><td>phone</td><td>VARCHAR(20)</td><td>Teléfono</td></tr>
+          <tr><td>logo_url</td><td>VARCHAR(255)</td><td>URL del logo</td></tr>
+          <tr><td>regime</td><td>ENUM</td><td>Sierra/Costa</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-blue-50 px-3 py-2 font-semibold text-sm">wp_edu_periods</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">institution_id</td><td>BIGINT</td><td>FK → institutions</td></tr>
+          <tr><td>name</td><td>VARCHAR(50)</td><td>Ej: 2026-2027</td></tr>
+          <tr><td>start_date</td><td>DATE</td><td>Inicio año lectivo</td></tr>
+          <tr><td>end_date</td><td>DATE</td><td>Fin año lectivo</td></tr>
+          <tr><td>is_active</td><td>BOOLEAN</td><td>Solo uno activo</td></tr>
+          <tr><td>num_trimesters</td><td>INT</td><td>Por defecto 3</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-blue-50 px-3 py-2 font-semibold text-sm">wp_edu_trimesters</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">period_id</td><td>BIGINT</td><td>FK → periods</td></tr>
+          <tr><td>number</td><td>TINYINT</td><td>1, 2, 3</td></tr>
+          <tr><td>start_date</td><td>DATE</td><td>—</td></tr>
+          <tr><td>end_date</td><td>DATE</td><td>—</td></tr>
+          <tr><td>is_closed</td><td>BOOLEAN</td><td>Bloquea ediciones</td></tr>
+          <tr><td>closed_at</td><td>DATETIME</td><td>Fecha de cierre</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-blue-50 px-3 py-2 font-semibold text-sm">wp_edu_grades (curso/paralelo)</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">institution_id</td><td>BIGINT</td><td>FK → institutions</td></tr>
+          <tr><td>level</td><td>ENUM</td><td>Inicial/Básica/BGU</td></tr>
+          <tr><td>name</td><td>VARCHAR(50)</td><td>5to EGB</td></tr>
+          <tr><td>paralelo</td><td>CHAR(2)</td><td>A, B, C</td></tr>
+          <tr><td class="fk">tutor_user_id</td><td>BIGINT</td><td>FK → wp_users</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-blue-50 px-3 py-2 font-semibold text-sm">wp_edu_subjects (materias)</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">institution_id</td><td>BIGINT</td><td>FK → institutions</td></tr>
+          <tr><td>name</td><td>VARCHAR(100)</td><td>Matemáticas</td></tr>
+          <tr><td>code</td><td>VARCHAR(20)</td><td>MAT-501</td></tr>
+          <tr><td>area</td><td>VARCHAR(50)</td><td>Ciencias exactas</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-blue-50 px-3 py-2 font-semibold text-sm">wp_edu_grade_subjects (pensum)</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">grade_id</td><td>BIGINT</td><td>FK → grades</td></tr>
+          <tr><td class="fk">subject_id</td><td>BIGINT</td><td>FK → subjects</td></tr>
+          <tr><td>hours_week</td><td>TINYINT</td><td>Horas semanales</td></tr>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Grupo 2: PERSONAS -->
+  <div class="bg-white rounded-lg border overflow-hidden mb-4">
+    <div class="group-title text-white p-4"><h3 class="font-bold">👥 PERSONAS · 5 tablas</h3></div>
+    <div class="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      <div class="border rounded">
+        <div class="bg-yellow-50 px-3 py-2 font-semibold text-sm">wp_edu_teachers</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">user_id</td><td>BIGINT</td><td>FK → wp_users (rol docente)</td></tr>
+          <tr><td>cedula</td><td>VARCHAR(13)</td><td>Cédula EC</td></tr>
+          <tr><td>phone</td><td>VARCHAR(20)</td><td>—</td></tr>
+          <tr><td>title</td><td>VARCHAR(50)</td><td>Lcdo, Ing, MSc</td></tr>
+          <tr><td>hire_date</td><td>DATE</td><td>—</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-yellow-50 px-3 py-2 font-semibold text-sm">wp_edu_students</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">user_id</td><td>BIGINT</td><td>FK → wp_users</td></tr>
+          <tr><td class="fk">grade_id</td><td>BIGINT</td><td>FK → grades (actual)</td></tr>
+          <tr><td>cedula</td><td>VARCHAR(13)</td><td>—</td></tr>
+          <tr><td>birth_date</td><td>DATE</td><td>—</td></tr>
+          <tr><td>enrollment_date</td><td>DATE</td><td>—</td></tr>
+          <tr><td>photo_url</td><td>VARCHAR(255)</td><td>—</td></tr>
+          <tr><td>status</td><td>ENUM</td><td>active/inactive/transferred</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-yellow-50 px-3 py-2 font-semibold text-sm">wp_edu_parents (representantes)</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">user_id</td><td>BIGINT</td><td>FK → wp_users</td></tr>
+          <tr><td>cedula</td><td>VARCHAR(13)</td><td>—</td></tr>
+          <tr><td>phone</td><td>VARCHAR(20)</td><td>Móvil principal</td></tr>
+          <tr><td>whatsapp</td><td>VARCHAR(20)</td><td>WhatsApp</td></tr>
+          <tr><td>occupation</td><td>VARCHAR(100)</td><td>Ocupación</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-yellow-50 px-3 py-2 font-semibold text-sm">wp_edu_parent_student</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">parent_id</td><td>BIGINT</td><td>FK → parents</td></tr>
+          <tr><td class="fk">student_id</td><td>BIGINT</td><td>FK → students</td></tr>
+          <tr><td>relationship</td><td>ENUM</td><td>padre/madre/tutor</td></tr>
+          <tr><td>is_primary</td><td>BOOLEAN</td><td>Representante principal</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-yellow-50 px-3 py-2 font-semibold text-sm">wp_edu_teacher_assignments</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">teacher_id</td><td>BIGINT</td><td>FK → teachers</td></tr>
+          <tr><td class="fk">grade_id</td><td>BIGINT</td><td>FK → grades</td></tr>
+          <tr><td class="fk">subject_id</td><td>BIGINT</td><td>FK → subjects</td></tr>
+          <tr><td class="fk">period_id</td><td>BIGINT</td><td>FK → periods</td></tr>
+          <tr><td>is_active</td><td>BOOLEAN</td><td>—</td></tr>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Grupo 3: ACADÉMICO -->
+  <div class="bg-white rounded-lg border overflow-hidden mb-4">
+    <div class="group-title text-white p-4"><h3 class="font-bold">📚 ACADÉMICO · 11 tablas</h3></div>
+    <div class="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      <div class="border rounded">
+        <div class="bg-emerald-50 px-3 py-2 font-semibold text-sm">wp_edu_assignments (tareas/lecciones)</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">teacher_id</td><td>BIGINT</td><td>FK → teachers</td></tr>
+          <tr><td class="fk">grade_id</td><td>BIGINT</td><td>FK → grades</td></tr>
+          <tr><td class="fk">subject_id</td><td>BIGINT</td><td>FK → subjects</td></tr>
+          <tr><td class="fk">trimester_id</td><td>BIGINT</td><td>FK → trimesters</td></tr>
+          <tr><td>parcial_num</td><td>TINYINT</td><td>1 o 2</td></tr>
+          <tr><td>type</td><td>ENUM</td><td>tarea/leccion/trabajo/examen</td></tr>
+          <tr><td>title</td><td>VARCHAR(200)</td><td>—</td></tr>
+          <tr><td>description</td><td>TEXT</td><td>—</td></tr>
+          <tr><td>due_date</td><td>DATETIME</td><td>Fecha límite</td></tr>
+          <tr><td>max_score</td><td>DECIMAL(4,2)</td><td>Nota máxima</td></tr>
+          <tr><td>status</td><td>ENUM</td><td>draft/published/closed</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-emerald-50 px-3 py-2 font-semibold text-sm">wp_edu_assignment_files</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">assignment_id</td><td>BIGINT</td><td>FK → assignments</td></tr>
+          <tr><td>file_url</td><td>VARCHAR(500)</td><td>Ruta protegida</td></tr>
+          <tr><td>file_name</td><td>VARCHAR(200)</td><td>Nombre original</td></tr>
+          <tr><td>file_type</td><td>VARCHAR(50)</td><td>pdf/docx/jpg/...</td></tr>
+          <tr><td>file_size</td><td>INT</td><td>Bytes</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-emerald-50 px-3 py-2 font-semibold text-sm">wp_edu_submissions (entregas del estudiante)</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">assignment_id</td><td>BIGINT</td><td>FK → assignments</td></tr>
+          <tr><td class="fk">student_id</td><td>BIGINT</td><td>FK → students</td></tr>
+          <tr><td>status</td><td>ENUM</td><td>pending/submitted/graded/returned</td></tr>
+          <tr><td>comment</td><td>TEXT</td><td>Comentario del alumno</td></tr>
+          <tr><td>submitted_at</td><td>DATETIME</td><td>—</td></tr>
+          <tr><td>score</td><td>DECIMAL(4,2)</td><td>Nota asignada</td></tr>
+          <tr><td>feedback</td><td>TEXT</td><td>Retroalimentación</td></tr>
+          <tr><td>graded_at</td><td>DATETIME</td><td>—</td></tr>
+          <tr><td class="fk">graded_by</td><td>BIGINT</td><td>FK → wp_users</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-emerald-50 px-3 py-2 font-semibold text-sm">wp_edu_submission_files</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">submission_id</td><td>BIGINT</td><td>FK → submissions</td></tr>
+          <tr><td>file_url</td><td>VARCHAR(500)</td><td>—</td></tr>
+          <tr><td>file_name</td><td>VARCHAR(200)</td><td>—</td></tr>
+          <tr><td>file_type</td><td>VARCHAR(50)</td><td>—</td></tr>
+          <tr><td>file_size</td><td>INT</td><td>—</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-emerald-50 px-3 py-2 font-semibold text-sm">wp_edu_rubrics (criterios)</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">assignment_id</td><td>BIGINT</td><td>FK → assignments</td></tr>
+          <tr><td>criterion</td><td>VARCHAR(200)</td><td>Ej: Ortografía</td></tr>
+          <tr><td>descriptor</td><td>TEXT</td><td>Qué se evalúa</td></tr>
+          <tr><td>max_score</td><td>DECIMAL(4,2)</td><td>—</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-emerald-50 px-3 py-2 font-semibold text-sm">wp_edu_rubric_scores</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">submission_id</td><td>BIGINT</td><td>FK → submissions</td></tr>
+          <tr><td class="fk">rubric_id</td><td>BIGINT</td><td>FK → rubrics</td></tr>
+          <tr><td>score</td><td>DECIMAL(4,2)</td><td>—</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-emerald-50 px-3 py-2 font-semibold text-sm">wp_edu_grade_components (componentes evaluables)</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">subject_id</td><td>BIGINT</td><td>FK → subjects</td></tr>
+          <tr><td class="fk">trimester_id</td><td>BIGINT</td><td>FK → trimesters</td></tr>
+          <tr><td>parcial_num</td><td>TINYINT</td><td>1 o 2</td></tr>
+          <tr><td>name</td><td>VARCHAR(100)</td><td>Tareas, Lecciones, Prueba…</td></tr>
+          <tr><td>weight</td><td>DECIMAL(4,2)</td><td>Suma debe dar 1.00</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-emerald-50 px-3 py-2 font-semibold text-sm">wp_edu_grades_log (notas individuales)</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">student_id</td><td>BIGINT</td><td>FK → students</td></tr>
+          <tr><td class="fk">component_id</td><td>BIGINT</td><td>FK → grade_components</td></tr>
+          <tr><td class="fk">assignment_id</td><td>BIGINT</td><td>FK → assignments (nullable)</td></tr>
+          <tr><td>score</td><td>DECIMAL(4,2)</td><td>0.00 a 10.00</td></tr>
+          <tr><td>registered_at</td><td>DATETIME</td><td>—</td></tr>
+          <tr><td class="fk">registered_by</td><td>BIGINT</td><td>FK → wp_users</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-emerald-50 px-3 py-2 font-semibold text-sm">wp_edu_parcial_scores</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">student_id</td><td>BIGINT</td><td>FK → students</td></tr>
+          <tr><td class="fk">subject_id</td><td>BIGINT</td><td>FK → subjects</td></tr>
+          <tr><td class="fk">trimester_id</td><td>BIGINT</td><td>FK → trimesters</td></tr>
+          <tr><td>parcial_num</td><td>TINYINT</td><td>1 o 2</td></tr>
+          <tr><td>computed_score</td><td>DECIMAL(4,2)</td><td>Calculado por sistema</td></tr>
+          <tr><td>is_closed</td><td>BOOLEAN</td><td>Bloquea ediciones</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-emerald-50 px-3 py-2 font-semibold text-sm">wp_edu_trimester_scores</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">student_id</td><td>BIGINT</td><td>FK → students</td></tr>
+          <tr><td class="fk">subject_id</td><td>BIGINT</td><td>FK → subjects</td></tr>
+          <tr><td class="fk">trimester_id</td><td>BIGINT</td><td>FK → trimesters</td></tr>
+          <tr><td>parcial1_score</td><td>DECIMAL(4,2)</td><td>—</td></tr>
+          <tr><td>parcial2_score</td><td>DECIMAL(4,2)</td><td>—</td></tr>
+          <tr><td>final_exam_score</td><td>DECIMAL(4,2)</td><td>30% del trimestre</td></tr>
+          <tr><td>recovery_score</td><td>DECIMAL(4,2)</td><td>Recuperación opcional</td></tr>
+          <tr><td>computed_score</td><td>DECIMAL(4,2)</td><td>(P1+P2)/2 × 0.7 + EF × 0.3</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-emerald-50 px-3 py-2 font-semibold text-sm">wp_edu_year_scores</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">student_id</td><td>BIGINT</td><td>FK → students</td></tr>
+          <tr><td class="fk">subject_id</td><td>BIGINT</td><td>FK → subjects</td></tr>
+          <tr><td class="fk">period_id</td><td>BIGINT</td><td>FK → periods</td></tr>
+          <tr><td>trim1</td><td>DECIMAL(4,2)</td><td>—</td></tr>
+          <tr><td>trim2</td><td>DECIMAL(4,2)</td><td>—</td></tr>
+          <tr><td>trim3</td><td>DECIMAL(4,2)</td><td>—</td></tr>
+          <tr><td>average</td><td>DECIMAL(4,2)</td><td>(T1+T2+T3)/3</td></tr>
+          <tr><td>supletorio_score</td><td>DECIMAL(4,2)</td><td>Nullable</td></tr>
+          <tr><td>remedial_score</td><td>DECIMAL(4,2)</td><td>Nullable</td></tr>
+          <tr><td>gracia_score</td><td>DECIMAL(4,2)</td><td>Nullable</td></tr>
+          <tr><td>status</td><td>ENUM</td><td>aprobado/supletorio/remedial/gracia/reprobado</td></tr>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Grupo 4: ASISTENCIA -->
+  <div class="bg-white rounded-lg border overflow-hidden mb-4">
+    <div class="group-title text-white p-4"><h3 class="font-bold">📅 ASISTENCIA · 1 tabla</h3></div>
+    <div class="p-4">
+      <div class="border rounded max-w-2xl">
+        <div class="bg-pink-50 px-3 py-2 font-semibold text-sm">wp_edu_attendance</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">student_id</td><td>BIGINT</td><td>FK → students</td></tr>
+          <tr><td class="fk">subject_id</td><td>BIGINT</td><td>FK → subjects (nullable si es diaria general)</td></tr>
+          <tr><td class="fk">teacher_id</td><td>BIGINT</td><td>FK → teachers</td></tr>
+          <tr><td>date</td><td>DATE</td><td>—</td></tr>
+          <tr><td>status</td><td>ENUM</td><td>presente/atraso/falta_justificada/falta_injustificada</td></tr>
+          <tr><td>justification</td><td>TEXT</td><td>—</td></tr>
+          <tr><td>registered_at</td><td>DATETIME</td><td>—</td></tr>
+        </table>
+        <div class="bg-pink-50 px-3 py-2 text-xs text-pink-900">UNIQUE (student_id, subject_id, date)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grupo 5: COMUNICACIÓN -->
+  <div class="bg-white rounded-lg border overflow-hidden mb-4">
+    <div class="group-title text-white p-4"><h3 class="font-bold">📢 COMUNICACIÓN · 3 tablas</h3></div>
+    <div class="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      <div class="border rounded">
+        <div class="bg-violet-50 px-3 py-2 font-semibold text-sm">wp_edu_announcements</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">sender_user_id</td><td>BIGINT</td><td>FK → wp_users</td></tr>
+          <tr><td>scope</td><td>ENUM</td><td>student/grade/multi_grade/institution</td></tr>
+          <tr><td class="fk">target_grade_id</td><td>BIGINT</td><td>FK → grades (nullable)</td></tr>
+          <tr><td class="fk">target_student_id</td><td>BIGINT</td><td>FK → students (nullable)</td></tr>
+          <tr><td class="fk">template_id</td><td>BIGINT</td><td>FK → templates (nullable)</td></tr>
+          <tr><td>title</td><td>VARCHAR(200)</td><td>—</td></tr>
+          <tr><td>body</td><td>TEXT</td><td>HTML permitido</td></tr>
+          <tr><td>channels</td><td>SET</td><td>email,portal,whatsapp</td></tr>
+          <tr><td>sent_at</td><td>DATETIME</td><td>—</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-violet-50 px-3 py-2 font-semibold text-sm">wp_edu_announcement_recipients</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">announcement_id</td><td>BIGINT</td><td>FK → announcements</td></tr>
+          <tr><td class="fk">user_id</td><td>BIGINT</td><td>FK → wp_users</td></tr>
+          <tr><td>channel</td><td>ENUM</td><td>email/portal/whatsapp</td></tr>
+          <tr><td>sent_at</td><td>DATETIME</td><td>—</td></tr>
+          <tr><td>delivered_at</td><td>DATETIME</td><td>—</td></tr>
+          <tr><td>read_at</td><td>DATETIME</td><td>Acuse de recibo</td></tr>
+        </table>
+      </div>
+
+      <div class="border rounded">
+        <div class="bg-violet-50 px-3 py-2 font-semibold text-sm">wp_edu_announcement_templates</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td>name</td><td>VARCHAR(100)</td><td>Ej: Atraso, Citación</td></tr>
+          <tr><td>subject_template</td><td>VARCHAR(200)</td><td>Con variables {nombre}</td></tr>
+          <tr><td>body_template</td><td>TEXT</td><td>HTML con variables</td></tr>
+          <tr><td>category</td><td>VARCHAR(50)</td><td>—</td></tr>
+          <tr><td class="fk">created_by</td><td>BIGINT</td><td>FK → wp_users</td></tr>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Grupo 6: AUDITORÍA -->
+  <div class="bg-white rounded-lg border overflow-hidden mb-4">
+    <div class="group-title text-white p-4"><h3 class="font-bold">🔒 AUDITORÍA · 1 tabla</h3></div>
+    <div class="p-4">
+      <div class="border rounded max-w-2xl">
+        <div class="bg-red-50 px-3 py-2 font-semibold text-sm">wp_edu_audit</div>
+        <table class="cols w-full">
+          <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+          <tr><td class="pk">id (PK)</td><td>BIGINT</td><td>—</td></tr>
+          <tr><td class="fk">user_id</td><td>BIGINT</td><td>Quién ejecutó</td></tr>
+          <tr><td>action</td><td>VARCHAR(50)</td><td>create/update/delete/login/close</td></tr>
+          <tr><td>entity_type</td><td>VARCHAR(50)</td><td>grade/student/score/etc</td></tr>
+          <tr><td>entity_id</td><td>BIGINT</td><td>ID afectado</td></tr>
+          <tr><td>old_value</td><td>JSON</td><td>Estado anterior</td></tr>
+          <tr><td>new_value</td><td>JSON</td><td>Estado nuevo</td></tr>
+          <tr><td>ip_address</td><td>VARCHAR(45)</td><td>IPv4/IPv6</td></tr>
+          <tr><td>user_agent</td><td>VARCHAR(255)</td><td>—</td></tr>
+          <tr><td>timestamp</td><td>DATETIME</td><td>—</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ TAB RELACIONES ============ -->
+<div id="tab-relaciones" class="tab-content hidden">
+  <div class="bg-white rounded-lg border p-6">
+    <h2 class="text-xl font-bold mb-4">Relaciones clave del modelo</h2>
+    <div class="space-y-4 text-sm">
+      <div class="border-l-4 border-blue-500 pl-4 py-2">
+        <strong>Una institución → muchos períodos → muchos trimestres</strong>
+        <p class="text-gray-600 mt-1">Permite manejar varios años lectivos y consultar histórico. Solo un período es <code class="bg-gray-100 px-1 rounded">is_active = TRUE</code> a la vez.</p>
+      </div>
+      <div class="border-l-4 border-blue-500 pl-4 py-2">
+        <strong>Una institución → muchos grados (con paralelos) → muchos estudiantes</strong>
+        <p class="text-gray-600 mt-1">El estudiante apunta a su grado actual. Para histórico de promociones se crea un registro en <code class="bg-gray-100 px-1 rounded">wp_edu_year_scores</code> por cada año.</p>
+      </div>
+      <div class="border-l-4 border-blue-500 pl-4 py-2">
+        <strong>Pensum: grado ↔ materias (relación N:N)</strong>
+        <p class="text-gray-600 mt-1">A través de <code>wp_edu_grade_subjects</code>. Permite que cada grado tenga su propio set de materias y carga horaria.</p>
+      </div>
+      <div class="border-l-4 border-blue-500 pl-4 py-2">
+        <strong>Docente ↔ grado ↔ materia (asignación trimestral o anual)</strong>
+        <p class="text-gray-600 mt-1"><code>wp_edu_teacher_assignments</code> conecta los tres. Un docente puede dictar la misma materia en varios paralelos.</p>
+      </div>
+      <div class="border-l-4 border-blue-500 pl-4 py-2">
+        <strong>Padre ↔ estudiante (relación N:N)</strong>
+        <p class="text-gray-600 mt-1">Un estudiante puede tener varios representantes (padre + madre + tutor) y un padre puede tener varios hijos en la institución. <code>is_primary</code> marca al receptor principal de comunicados.</p>
+      </div>
+      <div class="border-l-4 border-blue-500 pl-4 py-2">
+        <strong>Tarea → entregas → archivos</strong>
+        <p class="text-gray-600 mt-1">Una tarea recibe N entregas (una por estudiante). Cada entrega puede tener varios archivos adjuntos.</p>
+      </div>
+      <div class="border-l-4 border-blue-500 pl-4 py-2">
+        <strong>Notas: cuatro niveles de agregación</strong>
+        <p class="text-gray-600 mt-1">
+          1. <code>grades_log</code> = notas individuales (cada tarea, lección…)<br>
+          2. <code>parcial_scores</code> = nota del parcial (calculada con pesos)<br>
+          3. <code>trimester_scores</code> = (P1+P2)/2 × 70% + Examen × 30%<br>
+          4. <code>year_scores</code> = promedio de los 3 trimestres + supletorios
+        </p>
+      </div>
+      <div class="border-l-4 border-blue-500 pl-4 py-2">
+        <strong>Comunicado → destinatarios (relación 1:N)</strong>
+        <p class="text-gray-600 mt-1">Al enviar un comunicado a un grado, se crean N filas en <code>announcement_recipients</code> (una por representante) con su <code>read_at</code> individual.</p>
+      </div>
+      <div class="border-l-4 border-red-500 pl-4 py-2">
+        <strong>Auditoría: toda acción crítica queda registrada</strong>
+        <p class="text-gray-600 mt-1">Cambios en notas, cierres de parcial, comunicados masivos, eliminaciones — todos se guardan en <code>wp_edu_audit</code> con valores antes/después en JSON.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TAB FLUJOS ============ -->
+<div id="tab-flujos" class="tab-content hidden">
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="bg-white rounded-lg border p-6">
+      <h3 class="font-bold text-lg mb-3">⚡ Cálculo de la nota del parcial</h3>
+      <p class="text-sm text-gray-600 mb-3">Cuando el docente guarda una nota individual:</p>
+      <ol class="text-sm space-y-2 list-decimal pl-5">
+        <li>Se inserta/actualiza en <code class="bg-gray-100 px-1">grades_log</code></li>
+        <li>Trigger / hook recalcula la nota del componente (ej. promedio de tareas)</li>
+        <li>Se aplica el peso definido en <code class="bg-gray-100 px-1">grade_components</code></li>
+        <li>Se actualiza <code class="bg-gray-100 px-1">parcial_scores.computed_score</code></li>
+      </ol>
+      <div class="bg-blue-50 border border-blue-200 rounded p-3 mt-3 text-xs">
+        <strong>Fórmula del parcial:</strong><br>
+        Σ (promedio_componente × peso) para todos los componentes del parcial.
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg border p-6">
+      <h3 class="font-bold text-lg mb-3">⚡ Cálculo de la nota del trimestre</h3>
+      <p class="text-sm text-gray-600 mb-3">Al cerrar parcial 1, parcial 2 o subir examen final:</p>
+      <ol class="text-sm space-y-2 list-decimal pl-5">
+        <li>Se leen los <code class="bg-gray-100 px-1">parcial_scores</code> del trimestre</li>
+        <li>Se calcula promedio P1 y P2</li>
+        <li>Se aplica fórmula 70/30 con el examen final</li>
+        <li>Se actualiza <code class="bg-gray-100 px-1">trimester_scores.computed_score</code></li>
+      </ol>
+      <div class="bg-emerald-50 border border-emerald-200 rounded p-3 mt-3 text-xs font-mono">
+        Nota_Trim = ((P1 + P2) / 2) × 0.70 + ExamenFinal × 0.30
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg border p-6">
+      <h3 class="font-bold text-lg mb-3">⚡ Estado del año</h3>
+      <p class="text-sm text-gray-600 mb-3">Al cerrar el 3er trimestre:</p>
+      <ol class="text-sm space-y-2 list-decimal pl-5">
+        <li>Se promedian T1, T2, T3 en <code>year_scores.average</code></li>
+        <li>Si <code>average ≥ 7</code> → <strong>aprobado</strong></li>
+        <li>Si <code>5 ≤ average &lt; 7</code> → <strong>supletorio</strong></li>
+        <li>Si reprueba supletorio → <strong>remedial</strong></li>
+        <li>Si reprueba remedial → <strong>gracia</strong></li>
+        <li>Si reprueba gracia → <strong>reprobado</strong></li>
+      </ol>
+    </div>
+
+    <div class="bg-white rounded-lg border p-6">
+      <h3 class="font-bold text-lg mb-3">⚡ Envío de comunicado masivo</h3>
+      <ol class="text-sm space-y-2 list-decimal pl-5">
+        <li>Docente crea en <code class="bg-gray-100 px-1">announcements</code> con scope = "grade"</li>
+        <li>Sistema obtiene todos los representantes (<code>is_primary = TRUE</code>) de ese grado</li>
+        <li>Se crean N filas en <code class="bg-gray-100 px-1">announcement_recipients</code></li>
+        <li>Cola asíncrona envía por email (WP Cron o Action Scheduler)</li>
+        <li>Cuando el padre abre el comunicado, se registra <code>read_at</code></li>
+        <li>Docente ve en tiempo real: X de Y leídos</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4 text-sm">
+    💡 <strong>Recomendación de implementación:</strong> usar <strong>WordPress Action Hooks</strong> (do_action / add_action) para que el cálculo de notas dispare las actualizaciones encadenadas. Así se mantiene la lógica desacoplada y se puede probar por unidad.
+  </div>
+</div>
+
+<!-- ============ TAB SQL ============ -->
+<div id="tab-sql" class="tab-content hidden">
+  <div class="bg-white rounded-lg border p-6 mb-4">
+    <h2 class="text-xl font-bold mb-2">Script SQL completo</h2>
+    <p class="text-sm text-gray-600 mb-3">Listo para ejecutar en MySQL/MariaDB. El archivo está disponible por separado para descargar e importar.</p>
+    <div class="flex gap-2 mb-3">
+      <span class="badge b-core">InnoDB</span>
+      <span class="badge b-people">utf8mb4_unicode_ci</span>
+      <span class="badge b-academic">Foreign keys activadas</span>
+    </div>
+    <p class="text-sm text-amber-700 bg-amber-50 p-3 rounded">📌 En Claude Code, este script se ejecuta dentro del método <code>activate()</code> del plugin usando <code>dbDelta()</code> de WordPress para que se cree y actualice automáticamente.</p>
+  </div>
+
+<pre id="sql-preview">-- =====================================================
+-- Sistema Educativo Integral · Esquema MySQL
+-- WordPress Plugin · Versión 1.0
+-- =====================================================
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ========== CORE INSTITUCIONAL ==========
+
+CREATE TABLE IF NOT EXISTS `wp_edu_institutions` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(200) NOT NULL,
+  `ruc` VARCHAR(13) UNIQUE,
+  `address` TEXT,
+  `phone` VARCHAR(20),
+  `email` VARCHAR(100),
+  `logo_url` VARCHAR(255),
+  `regime` ENUM('sierra','costa') DEFAULT 'sierra',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_periods` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `institution_id` BIGINT UNSIGNED NOT NULL,
+  `name` VARCHAR(50) NOT NULL,
+  `start_date` DATE NOT NULL,
+  `end_date` DATE NOT NULL,
+  `is_active` BOOLEAN DEFAULT FALSE,
+  `num_trimesters` TINYINT DEFAULT 3,
+  FOREIGN KEY (`institution_id`) REFERENCES `wp_edu_institutions`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_trimesters` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `period_id` BIGINT UNSIGNED NOT NULL,
+  `number` TINYINT NOT NULL,
+  `start_date` DATE NOT NULL,
+  `end_date` DATE NOT NULL,
+  `is_closed` BOOLEAN DEFAULT FALSE,
+  `closed_at` DATETIME NULL,
+  FOREIGN KEY (`period_id`) REFERENCES `wp_edu_periods`(`id`) ON DELETE CASCADE,
+  UNIQUE KEY (`period_id`,`number`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_grades` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `institution_id` BIGINT UNSIGNED NOT NULL,
+  `level` ENUM('inicial','basica','bgu') NOT NULL,
+  `name` VARCHAR(50) NOT NULL,
+  `paralelo` CHAR(2) NOT NULL,
+  `tutor_user_id` BIGINT UNSIGNED NULL,
+  FOREIGN KEY (`institution_id`) REFERENCES `wp_edu_institutions`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_subjects` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `institution_id` BIGINT UNSIGNED NOT NULL,
+  `name` VARCHAR(100) NOT NULL,
+  `code` VARCHAR(20),
+  `area` VARCHAR(50),
+  FOREIGN KEY (`institution_id`) REFERENCES `wp_edu_institutions`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_grade_subjects` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `grade_id` BIGINT UNSIGNED NOT NULL,
+  `subject_id` BIGINT UNSIGNED NOT NULL,
+  `hours_week` TINYINT DEFAULT 5,
+  FOREIGN KEY (`grade_id`) REFERENCES `wp_edu_grades`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`subject_id`) REFERENCES `wp_edu_subjects`(`id`) ON DELETE CASCADE,
+  UNIQUE KEY (`grade_id`,`subject_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ========== PERSONAS ==========
+
+CREATE TABLE IF NOT EXISTS `wp_edu_teachers` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id` BIGINT UNSIGNED NOT NULL UNIQUE,
+  `cedula` VARCHAR(13) UNIQUE,
+  `phone` VARCHAR(20),
+  `title` VARCHAR(50),
+  `hire_date` DATE,
+  `is_active` BOOLEAN DEFAULT TRUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_students` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id` BIGINT UNSIGNED NOT NULL UNIQUE,
+  `grade_id` BIGINT UNSIGNED NOT NULL,
+  `cedula` VARCHAR(13) UNIQUE,
+  `birth_date` DATE,
+  `enrollment_date` DATE,
+  `photo_url` VARCHAR(255),
+  `status` ENUM('active','inactive','transferred','graduated') DEFAULT 'active',
+  FOREIGN KEY (`grade_id`) REFERENCES `wp_edu_grades`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_parents` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id` BIGINT UNSIGNED NOT NULL UNIQUE,
+  `cedula` VARCHAR(13) UNIQUE,
+  `phone` VARCHAR(20),
+  `whatsapp` VARCHAR(20),
+  `occupation` VARCHAR(100)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_parent_student` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `parent_id` BIGINT UNSIGNED NOT NULL,
+  `student_id` BIGINT UNSIGNED NOT NULL,
+  `relationship` ENUM('padre','madre','tutor','otro') NOT NULL,
+  `is_primary` BOOLEAN DEFAULT FALSE,
+  FOREIGN KEY (`parent_id`) REFERENCES `wp_edu_parents`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`student_id`) REFERENCES `wp_edu_students`(`id`) ON DELETE CASCADE,
+  UNIQUE KEY (`parent_id`,`student_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_teacher_assignments` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `teacher_id` BIGINT UNSIGNED NOT NULL,
+  `grade_id` BIGINT UNSIGNED NOT NULL,
+  `subject_id` BIGINT UNSIGNED NOT NULL,
+  `period_id` BIGINT UNSIGNED NOT NULL,
+  `is_active` BOOLEAN DEFAULT TRUE,
+  FOREIGN KEY (`teacher_id`) REFERENCES `wp_edu_teachers`(`id`),
+  FOREIGN KEY (`grade_id`) REFERENCES `wp_edu_grades`(`id`),
+  FOREIGN KEY (`subject_id`) REFERENCES `wp_edu_subjects`(`id`),
+  FOREIGN KEY (`period_id`) REFERENCES `wp_edu_periods`(`id`),
+  UNIQUE KEY (`teacher_id`,`grade_id`,`subject_id`,`period_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ========== ACADÉMICO ==========
+
+CREATE TABLE IF NOT EXISTS `wp_edu_assignments` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `teacher_id` BIGINT UNSIGNED NOT NULL,
+  `grade_id` BIGINT UNSIGNED NOT NULL,
+  `subject_id` BIGINT UNSIGNED NOT NULL,
+  `trimester_id` BIGINT UNSIGNED NOT NULL,
+  `parcial_num` TINYINT NOT NULL DEFAULT 1,
+  `type` ENUM('tarea','leccion','trabajo','deber','examen','correccion') NOT NULL,
+  `title` VARCHAR(200) NOT NULL,
+  `description` TEXT,
+  `due_date` DATETIME,
+  `max_score` DECIMAL(4,2) DEFAULT 10.00,
+  `weight` DECIMAL(4,2) DEFAULT 1.00,
+  `status` ENUM('draft','published','closed') DEFAULT 'draft',
+  `notify_parents` BOOLEAN DEFAULT TRUE,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`teacher_id`) REFERENCES `wp_edu_teachers`(`id`),
+  FOREIGN KEY (`grade_id`) REFERENCES `wp_edu_grades`(`id`),
+  FOREIGN KEY (`subject_id`) REFERENCES `wp_edu_subjects`(`id`),
+  FOREIGN KEY (`trimester_id`) REFERENCES `wp_edu_trimesters`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_assignment_files` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `assignment_id` BIGINT UNSIGNED NOT NULL,
+  `file_url` VARCHAR(500) NOT NULL,
+  `file_name` VARCHAR(200),
+  `file_type` VARCHAR(50),
+  `file_size` INT,
+  FOREIGN KEY (`assignment_id`) REFERENCES `wp_edu_assignments`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_submissions` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `assignment_id` BIGINT UNSIGNED NOT NULL,
+  `student_id` BIGINT UNSIGNED NOT NULL,
+  `status` ENUM('pending','submitted','graded','returned','late') DEFAULT 'pending',
+  `comment` TEXT,
+  `submitted_at` DATETIME NULL,
+  `score` DECIMAL(4,2) NULL,
+  `feedback` TEXT,
+  `graded_at` DATETIME NULL,
+  `graded_by` BIGINT UNSIGNED NULL,
+  FOREIGN KEY (`assignment_id`) REFERENCES `wp_edu_assignments`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`student_id`) REFERENCES `wp_edu_students`(`id`),
+  UNIQUE KEY (`assignment_id`,`student_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_submission_files` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `submission_id` BIGINT UNSIGNED NOT NULL,
+  `file_url` VARCHAR(500) NOT NULL,
+  `file_name` VARCHAR(200),
+  `file_type` VARCHAR(50),
+  `file_size` INT,
+  FOREIGN KEY (`submission_id`) REFERENCES `wp_edu_submissions`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_rubrics` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `assignment_id` BIGINT UNSIGNED NOT NULL,
+  `criterion` VARCHAR(200) NOT NULL,
+  `descriptor` TEXT,
+  `max_score` DECIMAL(4,2) DEFAULT 10.00,
+  FOREIGN KEY (`assignment_id`) REFERENCES `wp_edu_assignments`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_rubric_scores` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `submission_id` BIGINT UNSIGNED NOT NULL,
+  `rubric_id` BIGINT UNSIGNED NOT NULL,
+  `score` DECIMAL(4,2) NOT NULL,
+  FOREIGN KEY (`submission_id`) REFERENCES `wp_edu_submissions`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`rubric_id`) REFERENCES `wp_edu_rubrics`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_grade_components` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `subject_id` BIGINT UNSIGNED NOT NULL,
+  `trimester_id` BIGINT UNSIGNED NOT NULL,
+  `parcial_num` TINYINT NOT NULL,
+  `name` VARCHAR(100) NOT NULL,
+  `weight` DECIMAL(4,2) NOT NULL,
+  FOREIGN KEY (`subject_id`) REFERENCES `wp_edu_subjects`(`id`),
+  FOREIGN KEY (`trimester_id`) REFERENCES `wp_edu_trimesters`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_grades_log` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `student_id` BIGINT UNSIGNED NOT NULL,
+  `component_id` BIGINT UNSIGNED NOT NULL,
+  `assignment_id` BIGINT UNSIGNED NULL,
+  `score` DECIMAL(4,2) NOT NULL,
+  `registered_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `registered_by` BIGINT UNSIGNED NOT NULL,
+  FOREIGN KEY (`student_id`) REFERENCES `wp_edu_students`(`id`),
+  FOREIGN KEY (`component_id`) REFERENCES `wp_edu_grade_components`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_parcial_scores` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `student_id` BIGINT UNSIGNED NOT NULL,
+  `subject_id` BIGINT UNSIGNED NOT NULL,
+  `trimester_id` BIGINT UNSIGNED NOT NULL,
+  `parcial_num` TINYINT NOT NULL,
+  `computed_score` DECIMAL(4,2) DEFAULT 0,
+  `is_closed` BOOLEAN DEFAULT FALSE,
+  `updated_at` DATETIME ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`student_id`) REFERENCES `wp_edu_students`(`id`),
+  FOREIGN KEY (`subject_id`) REFERENCES `wp_edu_subjects`(`id`),
+  FOREIGN KEY (`trimester_id`) REFERENCES `wp_edu_trimesters`(`id`),
+  UNIQUE KEY (`student_id`,`subject_id`,`trimester_id`,`parcial_num`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_trimester_scores` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `student_id` BIGINT UNSIGNED NOT NULL,
+  `subject_id` BIGINT UNSIGNED NOT NULL,
+  `trimester_id` BIGINT UNSIGNED NOT NULL,
+  `parcial1_score` DECIMAL(4,2) DEFAULT 0,
+  `parcial2_score` DECIMAL(4,2) DEFAULT 0,
+  `final_exam_score` DECIMAL(4,2) DEFAULT 0,
+  `recovery_score` DECIMAL(4,2) NULL,
+  `computed_score` DECIMAL(4,2) DEFAULT 0,
+  `is_closed` BOOLEAN DEFAULT FALSE,
+  FOREIGN KEY (`student_id`) REFERENCES `wp_edu_students`(`id`),
+  FOREIGN KEY (`subject_id`) REFERENCES `wp_edu_subjects`(`id`),
+  FOREIGN KEY (`trimester_id`) REFERENCES `wp_edu_trimesters`(`id`),
+  UNIQUE KEY (`student_id`,`subject_id`,`trimester_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_year_scores` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `student_id` BIGINT UNSIGNED NOT NULL,
+  `subject_id` BIGINT UNSIGNED NOT NULL,
+  `period_id` BIGINT UNSIGNED NOT NULL,
+  `trim1` DECIMAL(4,2) DEFAULT 0,
+  `trim2` DECIMAL(4,2) DEFAULT 0,
+  `trim3` DECIMAL(4,2) DEFAULT 0,
+  `average` DECIMAL(4,2) DEFAULT 0,
+  `supletorio_score` DECIMAL(4,2) NULL,
+  `remedial_score` DECIMAL(4,2) NULL,
+  `gracia_score` DECIMAL(4,2) NULL,
+  `status` ENUM('en_curso','aprobado','supletorio','remedial','gracia','reprobado') DEFAULT 'en_curso',
+  FOREIGN KEY (`student_id`) REFERENCES `wp_edu_students`(`id`),
+  FOREIGN KEY (`subject_id`) REFERENCES `wp_edu_subjects`(`id`),
+  FOREIGN KEY (`period_id`) REFERENCES `wp_edu_periods`(`id`),
+  UNIQUE KEY (`student_id`,`subject_id`,`period_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ========== ASISTENCIA ==========
+
+CREATE TABLE IF NOT EXISTS `wp_edu_attendance` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `student_id` BIGINT UNSIGNED NOT NULL,
+  `subject_id` BIGINT UNSIGNED NULL,
+  `teacher_id` BIGINT UNSIGNED NOT NULL,
+  `date` DATE NOT NULL,
+  `status` ENUM('presente','atraso','falta_justificada','falta_injustificada') NOT NULL,
+  `justification` TEXT,
+  `registered_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`student_id`) REFERENCES `wp_edu_students`(`id`),
+  FOREIGN KEY (`subject_id`) REFERENCES `wp_edu_subjects`(`id`),
+  FOREIGN KEY (`teacher_id`) REFERENCES `wp_edu_teachers`(`id`),
+  UNIQUE KEY (`student_id`,`subject_id`,`date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ========== COMUNICACIÓN ==========
+
+CREATE TABLE IF NOT EXISTS `wp_edu_announcement_templates` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(100) NOT NULL,
+  `subject_template` VARCHAR(200),
+  `body_template` TEXT,
+  `category` VARCHAR(50),
+  `created_by` BIGINT UNSIGNED NOT NULL,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_announcements` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `sender_user_id` BIGINT UNSIGNED NOT NULL,
+  `scope` ENUM('student','grade','multi_grade','institution') NOT NULL,
+  `target_grade_id` BIGINT UNSIGNED NULL,
+  `target_student_id` BIGINT UNSIGNED NULL,
+  `template_id` BIGINT UNSIGNED NULL,
+  `title` VARCHAR(200) NOT NULL,
+  `body` TEXT,
+  `channels` SET('email','portal','whatsapp') DEFAULT 'email,portal',
+  `sent_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`template_id`) REFERENCES `wp_edu_announcement_templates`(`id`),
+  FOREIGN KEY (`target_grade_id`) REFERENCES `wp_edu_grades`(`id`),
+  FOREIGN KEY (`target_student_id`) REFERENCES `wp_edu_students`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `wp_edu_announcement_recipients` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `announcement_id` BIGINT UNSIGNED NOT NULL,
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `channel` ENUM('email','portal','whatsapp') NOT NULL,
+  `sent_at` DATETIME NULL,
+  `delivered_at` DATETIME NULL,
+  `read_at` DATETIME NULL,
+  FOREIGN KEY (`announcement_id`) REFERENCES `wp_edu_announcements`(`id`) ON DELETE CASCADE,
+  INDEX (`user_id`,`read_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ========== AUDITORÍA ==========
+
+CREATE TABLE IF NOT EXISTS `wp_edu_audit` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `action` VARCHAR(50) NOT NULL,
+  `entity_type` VARCHAR(50) NOT NULL,
+  `entity_id` BIGINT UNSIGNED,
+  `old_value` JSON,
+  `new_value` JSON,
+  `ip_address` VARCHAR(45),
+  `user_agent` VARCHAR(255),
+  `timestamp` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX (`entity_type`,`entity_id`),
+  INDEX (`user_id`,`timestamp`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- =====================================================
+-- Total: 27 tablas
+-- =====================================================</pre>
+</div>
+
+<!-- Footer -->
+<div class="max-w-7xl mx-auto p-4 text-center text-xs text-gray-400 mt-8">
+  Modelo de Base de Datos · Sistema Educativo Integral · Mayo 2026
+</div>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
+
+  function showTab(name) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+    document.getElementById('tab-' + name).classList.remove('hidden');
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.remove('active','border-blue-700','text-blue-700');
+      b.classList.add('border-transparent','text-gray-600');
+    });
+    event.target.classList.add('active','border-blue-700','text-blue-700');
+    event.target.classList.remove('border-transparent','text-gray-600');
+  }
+</script>
+</body>
+</html>
