@@ -4,6 +4,18 @@
  *
  * Tabs: inicio | notas | tareas | asistencia | comunicados
  *
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * CONGELADO — 12 de agosto de 2026
+ *
+ * Este portal está en mantenimiento correctivo: se corrigen errores, no se
+ * agregan funciones. Todo lo nuevo va a la SPA de la Fase 2, que consume la
+ * API `edu/v1` y terminará reemplazando a este shortcode.
+ *
+ * Si vas a añadir una función aquí, para: probablemente corresponde a la SPA.
+ * Contexto en docs/BITACORA.md y docs/API_CONTRATO_V1.md.
+ * ─────────────────────────────────────────────────────────────────────────
+ *
  * @package SistemaEducativo
  */
 

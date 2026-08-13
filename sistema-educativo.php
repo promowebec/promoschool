@@ -35,6 +35,7 @@ require_once EDU_PLUGIN_DIR . 'includes/class-edu-context.php';
 require_once EDU_PLUGIN_DIR . 'includes/class-edu-activator.php';
 require_once EDU_PLUGIN_DIR . 'includes/class-edu-audit.php';
 require_once EDU_PLUGIN_DIR . 'includes/class-edu-pwa.php';
+require_once EDU_PLUGIN_DIR . 'includes/class-edu-spa.php';
 require_once EDU_PLUGIN_DIR . 'includes/class-edu-deactivator.php';
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-institution-controller.php';
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-period-controller.php';
@@ -256,6 +257,9 @@ function edu_bootstrap() {
 	Edu_Shortcode_Docente::register();
 	Edu_Shortcode_Estudiante::register();
 	Edu_Shortcode_Padre::register();
+
+	// App propia (Fase 2): shortcode [edu_app].
+	Edu_Spa::register();
 
 	// Hooks de cálculo en cadena.
 	$loader->add_action( 'edu_grade_logged', 'Edu_Grade_Calculator', 'on_grade_logged', 10, 3 );
