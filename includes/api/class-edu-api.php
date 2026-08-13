@@ -60,6 +60,8 @@ class Edu_Api {
 		Edu_Api_Catalog_Routes::register_routes();
 		Edu_Api_Gradebook_Routes::register_routes();
 		Edu_Api_Activity_Routes::register_routes();
+		Edu_Api_Write_Routes::register_routes();
+		Edu_Api_Report_Routes::register_routes();
 	}
 
 	/* ─────────────────────────────────────────────────────────────────────

@@ -54,6 +54,13 @@ require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-catalog-service.php';
 require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-people-service.php';
 require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-gradebook-service.php';
 require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-activity-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-file-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-assignment-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-submission-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-attendance-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-announcement-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-payment-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-report-service.php';
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-teacher-controller.php';
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-student-controller.php';
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-assignment-controller.php';
@@ -92,6 +99,8 @@ require_once EDU_PLUGIN_DIR . 'includes/api/routes/class-edu-api-me-routes.php';
 require_once EDU_PLUGIN_DIR . 'includes/api/routes/class-edu-api-catalog-routes.php';
 require_once EDU_PLUGIN_DIR . 'includes/api/routes/class-edu-api-gradebook-routes.php';
 require_once EDU_PLUGIN_DIR . 'includes/api/routes/class-edu-api-activity-routes.php';
+require_once EDU_PLUGIN_DIR . 'includes/api/routes/class-edu-api-write-routes.php';
+require_once EDU_PLUGIN_DIR . 'includes/api/routes/class-edu-api-report-routes.php';
 
 if ( is_admin() ) {
 	require_once EDU_PLUGIN_DIR . 'admin/class-edu-admin.php';

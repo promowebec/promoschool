@@ -281,6 +281,9 @@ class Edu_Announcement_Service {
 			}
 		}
 
+		// Los destinatarios se borran a mano: dbDelta() descarta las FOREIGN
+		// KEY del esquema, así que el ON DELETE CASCADE no llega a existir.
+		$wpdb->delete( $wpdb->prefix . 'edu_announcement_recipients', array( 'announcement_id' => $announcement_id ), array( '%d' ) );
 		$wpdb->delete( $ta, array( 'id' => $announcement_id ), array( '%d' ) );
 
 		return array(

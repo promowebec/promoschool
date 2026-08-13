@@ -295,6 +295,9 @@ class Edu_Grade_Controller {
 		if ( ! $exists ) {
 			self::redirect( array( 'status' => 'error', 'code' => 'not_found' ) );
 		}
+		// El pensum del grado se borra a mano: dbDelta() descarta las FOREIGN
+		// KEY, así que el ON DELETE CASCADE del esquema no existe en la base.
+		$wpdb->delete( $wpdb->prefix . 'edu_grade_subjects', array( 'grade_id' => $id ), array( '%d' ) );
 		$wpdb->delete( $t, array( 'id' => $id ), array( '%d' ) );
 
 		self::redirect( array( 'status' => 'deleted' ) );
