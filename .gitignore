@@ -1,0 +1,36 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Sistema Educativo Integral (PromoSchool)
+#
+# Nota sobre vendor/: SÍ se versiona a propósito. El plugin se distribuye como
+# ZIP para wp-admin y los servidores de las instituciones no tienen Composer,
+# así que mPDF tiene que viajar dentro del repo. Lo único que se excluye son
+# los repos internos de cada paquete (Composer instaló con --prefer-source) y
+# la caché de runtime de mPDF.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Configuración local de Claude Code (contiene settings.local.json)
+.claude/
+
+# Repos internos de los paquetes de Composer
+vendor/**/.git/
+
+# Caché de runtime de mPDF (se regenera sola)
+vendor/mpdf/mpdf/tmp/*
+!vendor/mpdf/mpdf/tmp/.gitignore
+
+# Semilla de demostración: nunca debe llegar a producción
+demo-seed.php
+
+# Temporales, respaldos y basura del sistema
+*.log
+*.bak
+*.tmp
+*~
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editores
+.idea/
+.vscode/
+*.sublime-*
