@@ -15,3 +15,26 @@
 *.woff2 binary
 *.zip  binary
 *.mo   binary
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ZIP de distribución. Se genera con:
+#
+#   git archive --format=zip --prefix=sistema-educativo/ \
+#       -o sistema-educativo-X.Y.Z.zip vX.Y.Z
+#
+# Todo lo marcado export-ignore queda fuera: es documentación interna y
+# herramientas de desarrollo que no le sirven a la institución que instala.
+#
+# Se genera con git archive y NO copiando la carpeta, porque las rutas de mPDF
+# superan el límite de 260 caracteres de Windows y una copia a disco pierde
+# archivos en silencio (se perdieron 549 en el primer intento).
+# ─────────────────────────────────────────────────────────────────────────────
+/docs                    export-ignore
+/CLAUDE.md               export-ignore
+/HANDOVER.md             export-ignore
+/PROGRESS.md             export-ignore
+/DECISIONS.md            export-ignore
+/INTEGRATION-FLIPBOOK.md export-ignore
+/composer.lock           export-ignore
+/.gitignore              export-ignore
+/.gitattributes          export-ignore
