@@ -216,7 +216,13 @@ Cadena de recálculo: `edu_grade_logged` → parcial · `edu_partial_closed` →
 - `dbDelta()` **ignora las FOREIGN KEY**: la integridad se aplica desde PHP.
 - La versión vive en `wp_options.edu_db_version`. **Al cambiar el esquema hay que subir
   `EDU_DB_VERSION`**, o la migración no corre.
-- `wp_edu_grades_log` es un **log append-only**: cada nota es una fila nueva. No se edita.
+- `wp_edu_grades_log` guarda **una fila por nota**, y varias filas del mismo componente se
+  promedian. No es del todo append-only: hay dos reemplazos deliberados, ambos acotados y
+  auditados. Recalificar una entrega borra la fila de **esa misma tarea** antes de insertar
+  (`Edu_Submission_Service::log_component_score()`), y guardar la grilla borra las notas
+  **manuales** previas de esa celda (`Edu_Score_Service`), porque la grilla tiene un solo input
+  por componente y si no, corregir un 6.00 a 8.00 dejaría al estudiante con 7.00. Las notas de
+  tareas nunca se borran desde la grilla.
 
 ### Trampas conocidas del esquema
 
@@ -303,7 +309,8 @@ portal: si algo falla, se vuelve a poner el shortcode.
 
 - ❌ Cambiar el modelo académico (70/30, subniveles, escala cualitativa) sin decisión explícita:
   afecta boletines oficiales.
-- ❌ Borrar o editar filas de `wp_edu_grades_log`. Es histórico append-only.
+- ❌ Borrar filas de `wp_edu_grades_log` fuera de los dos reemplazos ya previstos (recalificar
+  una entrega y guardar la grilla, ambos auditados). Nunca borrar notas de tareas desde la grilla.
 - ❌ Duplicar en JavaScript el cálculo de notas o la escala cualitativa.
 - ❌ Escribir lógica de negocio en un controller o en una vista.
 - ❌ Enviar emails o WhatsApp masivos de forma síncrona. Encolar en cron y responder

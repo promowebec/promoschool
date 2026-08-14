@@ -152,6 +152,63 @@ Vista de supervisión para el rector: por asignación académica muestra compone
 
 ## 2.bis · Entradas de bitácora
 
+### 2026-08-14 — Desglose de las notas de cada componente, y el bug que destapó
+
+**Qué se hizo.** La celda de un componente es el **promedio** de sus filas de `grades_log`, y
+no había forma de ver de qué estaba hecha: cuando un representante reclamaba una nota, nadie
+podía responder sin entrar a la base de datos.
+
+- `Edu_Gradebook_Service::component_breakdown()` — por componente del parcial devuelve su
+  promedio, cuántas notas lo forman y el detalle de cada una. Las que vienen de una tarea
+  traen su título; las escritas a mano se marcan `manual`. Solo lectura.
+- `GET /students/{id}/component-breakdown` — `edu/v1` pasa de 59 a **60 rutas**.
+- `/gradebook` agrega `score_counts` junto a `scores`, con un `COUNT(*)` en la misma consulta.
+- Interfaz en las **tres** pantallas: notas del estudiante y representante (celdas de P1 y P2),
+  grilla del docente ("N notas" bajo cada celda) y tabla de cierres del rector.
+
+**El bug que se me escapó y cómo.** La primera versión usaba `can_view_grade_subject()`, que
+exige asignación docente: **al estudiante y al representante los rechazaba siempre** con "Este
+recurso está fuera de tu alcance", en todas sus materias. Pasó porque la primera prueba corrió
+**solo como administrador**. Ahora hay una matriz de permisos con un usuario real de cada
+perfil; administrador, estudiante, representante y docente de la materia pasan, y el docente
+ajeno y el representante ajeno reciben `out_of_scope`.
+
+> Lección: en este proyecto el nivel 3 es donde han aparecido casi todos los agujeros. Probar
+> un endpoint con un solo perfil no es probarlo.
+
+**El bug de datos que destapó la función.** Con datos reales aparecieron **50 filas
+duplicadas** en `grades_log` y **una celda donde una corrección había quedado promediada con
+la nota equivocada** (tres valores entre 6.00 y 8.00, promedio 7.00).
+
+Causa: la grilla tiene **un input por componente**, pero `Edu_Score_Service` hacía `INSERT` en
+cada guardado, nunca reemplazaba. Guardar dos veces duplicaba; corregir un 6.00 a 8.00 dejaba
+al estudiante con 7.00. El camino de las tareas ya lo resolvía bien.
+
+Corregido: la grilla borra las notas **manuales** previas de esa celda antes de insertar. Las
+notas de tareas **no se tocan** —varias tareas en un mismo componente se siguen promediando,
+que es el modelo—. La sustitución se audita (`notas_sustituidas`) y se devuelve en `replaced`.
+
+**Archivos tocados.** `includes/services/class-edu-gradebook-service.php`,
+`includes/services/class-edu-score-service.php`,
+`includes/api/routes/class-edu-api-gradebook-routes.php`, `public/spa/js/views/notas.js`,
+`public/spa/js/views/docente/calificaciones.js`, `public/spa/js/views/rector/cierres.js`,
+`public/spa/css/app.css`, `tools/limpiar-notas-duplicadas.php` (nuevo).
+
+**Cambios de esquema.** Ninguno.
+
+**Riesgos / notas de despliegue.** `tools/limpiar-notas-duplicadas.php` **simula por defecto**;
+hay que pasar `--aplicar`. Conserva la nota más reciente de cada celda, recalcula los parciales
+afectados y deja constancia en `wp_edu_audit`. Avisa en pantalla de cada celda donde la nota
+vigente cambia. **Correr primero la simulación en producción y revisar esas líneas**, porque
+son notas de estudiantes reales.
+
+**Documentación corregida.** Dos cosas que decían lo contrario del código:
+- `CLAUDE.md` afirmaba que `grades_log` es append-only y que nunca se borran filas. Hay dos
+  reemplazos deliberados y acotados; queda descrito.
+- `INTEGRATION-FLIPBOOK.md` documentaba 7 funciones públicas y 7 hooks como obligatorios.
+  **Ninguno de los 14 existe.** Se le antepuso un aviso: es el diseño previsto, no el estado
+  actual.
+
 ### 2026-08-14 — Entrega de tareas en la app del estudiante
 
 **Qué se hizo.** La vista de tareas del estudiante en la SPA era **solo de lectura**: listaba
