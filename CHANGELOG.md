@@ -21,6 +21,46 @@ _(Sin cambios pendientes de tag.)_
 
 ---
 
+## [1.10.0] — 2026-08-14
+
+Sin migración de base de datos: `EDU_DB_VERSION` sigue en 1.0.9.
+
+### Added
+- **Entrega de tareas en la app del estudiante.** La vista era solo de lectura: el
+  endpoint `POST /assignments/{id}/submissions` existía desde la Fase 1 sin que nadie
+  lo llamara. Ahora hay bloque "Mi entrega" con comentario y archivos múltiples.
+  Reenviar reemplaza la entrega; una entrega ya calificada no admite cambios; entregar
+  fuera de plazo se permite avisando que quedará como atrasada. El representante no
+  entrega por su hijo.
+- **Desglose de las notas que forman cada componente.** La celda de un componente es
+  el *promedio* de sus notas y no había forma de ver de qué estaba hecha. Nuevo
+  `GET /students/{id}/component-breakdown` (`edu/v1` pasa a **60 rutas**), disponible
+  en las tres pantallas: notas del estudiante y representante, grilla del docente y
+  tabla de cierres del rector. Las notas que vienen de una tarea muestran su título.
+- `GET /gradebook` devuelve `score_counts` junto a `scores`.
+- `tools/limpiar-notas-duplicadas.php` — simula por defecto; `--aplicar` para ejecutar.
+
+### Fixed
+- **La grilla de calificaciones acumulaba en vez de reemplazar.** Tiene un input por
+  componente, pero cada guardado hacía `INSERT`: guardar dos veces duplicaba la nota y
+  corregir un 6.00 a 8.00 dejaba al estudiante con **7.00**, el promedio de ambas.
+  Ahora se borran las notas manuales previas de la celda antes de insertar. Las notas
+  de tareas no se tocan: varias tareas en un componente se siguen promediando.
+- El desglose rechazaba al estudiante y al representante con "fuera de tu alcance" en
+  todas sus materias, por usar un helper que exige asignación docente.
+
+### Security
+- La sustitución de notas manuales se audita (`notas_sustituidas`), por ser una
+  eliminación de calificaciones.
+
+### Docs
+- `CLAUDE.md` afirmaba que `grades_log` es append-only y que nunca se borran filas. Hay
+  dos reemplazos deliberados y acotados; queda descrito.
+- `INTEGRATION-FLIPBOOK.md` documentaba 7 funciones públicas y 7 hooks como
+  obligatorios. **Ninguno de los 14 existe**; lleva ahora un aviso al inicio.
+
+---
+
 ## [1.9.0] — 2026-08-13
 
 Primera versión que incorpora la plataforma propia: la API `edu/v1` completa
