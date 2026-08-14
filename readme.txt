@@ -4,7 +4,7 @@ Tags: education, gradebook, students, teachers, school, ecuador
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.2
-Stable tag: 1.9.0
+Stable tag: 1.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,14 @@ El catálogo Mineduc se precarga, pero cada institución puede registrar materia
 
 == Changelog ==
 
+= 1.10.0 =
+* Entrega de tareas desde la app del estudiante: comentario y archivos, con reemplazo de la entrega anterior.
+* Desglose de las notas que forman cada componente, en las notas del estudiante y representante, la grilla del docente y la tabla de cierres del rector.
+* Corregido: la grilla de calificaciones acumulaba notas en vez de reemplazarlas. Corregir un 6.00 a 8.00 dejaba al estudiante con 7.00, el promedio de ambas.
+* Corregido: el desglose rechazaba al estudiante y al representante en todas sus materias.
+* Incluye `tools/limpiar-notas-duplicadas.php` para depurar las notas duplicadas ya registradas.
+* Sin cambios de esquema: no hay migración de base de datos.
+
 = 1.9.0 =
 * App propia: nuevo shortcode `[edu_app]` que monta una aplicación de Vue 3 sin paso de build, cubriendo los cuatro portales (estudiante, representante, docente y rector).
 * API REST `edu/v1` completa sus rutas de escritura: 17 de mutación y 11 de reportes. El namespace queda en 59 rutas.
@@ -66,6 +74,9 @@ El catálogo Mineduc se precarga, pero cada institución puede registrar materia
 * Fase 0: scaffolding del plugin — esquema de 28 tablas, catálogo Mineduc precargado, 4 roles personalizados, sistema de hooks centralizado.
 
 == Upgrade Notice ==
+
+= 1.10.0 =
+Sin migración de base de datos. Corrige un fallo por el que corregir una nota en la grilla la promediaba con la equivocada en vez de reemplazarla. Tras actualizar, ejecuta `php tools/limpiar-notas-duplicadas.php` (simula) para ver si tu base tiene notas duplicadas de antes.
 
 = 1.9.0 =
 Actualización aditiva y sin migración de base de datos. Los portales existentes siguen funcionando igual. Para estrenar la app nueva, crea una página con el shortcode `[edu_app]`.

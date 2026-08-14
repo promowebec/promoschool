@@ -19,6 +19,11 @@
  *   php tools/limpiar-notas-duplicadas.php              → simula, no borra nada
  *   php tools/limpiar-notas-duplicadas.php --aplicar    → borra de verdad
  *
+ * En un entorno Local hay que apuntar la base a mano, porque wp-config trae un
+ * host que no resuelve desde la linea de comandos:
+ *   php tools/limpiar-notas-duplicadas.php --db-host=127.0.0.1:10004
+ * En un servidor normal no hace falta.
+ *
  * Recalcula los parciales afectados y deja constancia en wp_edu_audit.
  *
  * @package SistemaEducativo
@@ -29,6 +34,14 @@ if ( PHP_SAPI !== 'cli' ) {
 }
 
 $aplicar = in_array( '--aplicar', $argv, true );
+
+// DB_HOST tiene que definirse ANTES de wp-load para que wp-config no gane.
+foreach ( $argv as $arg ) {
+	if ( 0 === strpos( $arg, '--db-host=' ) ) {
+		define( 'DB_HOST', substr( $arg, 10 ) );
+		break;
+	}
+}
 
 // wp-load.php sube desde la raiz del sitio: plugin → plugins → wp-content → raiz.
 $raiz = dirname( __DIR__, 4 );
@@ -80,23 +93,45 @@ foreach ( $celdas as $c ) {
 
 	$sobrantes += count( $borrar );
 
-	// Si habia notas distintas, el promedio actual NO era la nota vigente:
-	// esas son las correcciones que quedaron promediadas con el error.
-	if ( $c->distintas > 1 ) {
-		$con_cambio++;
-		$avg = (float) $wpdb->get_var(
+	/*
+	 * Solo importa avisar cuando la nota que ve el estudiante cambia de verdad.
+	 * Con filas duplicadas identicas el promedio ya coincide con la que se
+	 * conserva, asi que limpiarlas no altera ninguna calificacion.
+	 */
+	$avg_actual = round(
+		(float) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT AVG(score) FROM {$tl} WHERE student_id = %d AND component_id = %d",
 				$c->student_id,
 				$c->component_id
 			)
-		);
+		),
+		2
+	);
+
+	// Promedio que quedara: la fila conservada mas las notas de tareas.
+	$avg_futuro = round(
+		(float) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT AVG(score) FROM {$tl}
+				 WHERE student_id = %d AND component_id = %d
+				   AND (assignment_id IS NOT NULL OR id = %d)",
+				$c->student_id,
+				$c->component_id,
+				$conservar->id
+			)
+		),
+		2
+	);
+
+	if ( abs( $avg_actual - $avg_futuro ) >= 0.005 ) {
+		$con_cambio++;
 		printf(
-			"  CAMBIA NOTA · estudiante %d · componente %d: %.2f → %.2f (%d filas, %d valores distintos)\n",
+			"  CAMBIA LA NOTA · estudiante %d · componente %d: %.2f → %.2f (%d filas, %d valores distintos)\n",
 			$c->student_id,
 			$c->component_id,
-			round( $avg, 2 ),
-			(float) $conservar->score,
+			$avg_actual,
+			$avg_futuro,
 			(int) $c->n,
 			(int) $c->distintas
 		);
@@ -114,7 +149,10 @@ printf( "\nFilas sobrantes: %d\n", $sobrantes );
 printf( "Celdas donde la nota vigente CAMBIA: %d\n", $con_cambio );
 
 if ( ! $aplicar ) {
-	echo "\nSimulacion terminada. Revisa las lineas 'CAMBIA NOTA' antes de aplicar.\n";
+	echo "\n";
+	echo $con_cambio
+		? "Simulacion terminada. Revisa arriba las lineas 'CAMBIA LA NOTA': son\ncalificaciones de estudiantes reales que van a variar.\n"
+		: "Simulacion terminada. Ninguna calificacion cambia: las filas sobrantes son\nduplicados identicos, asi que limpiarlas no altera ninguna nota.\n";
 	return;
 }
 
