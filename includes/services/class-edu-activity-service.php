@@ -252,10 +252,58 @@ class Edu_Activity_Service {
 				'score'        => Edu_Api::decimal( $row->score ),
 				'feedback'     => $row->feedback,
 				'graded_at'    => Edu_Api::date( $row->graded_at ),
+				'files'        => array(),
 			);
 		}
 
-		return $out;
+		return self::attach_submission_files( $out );
+	}
+
+	/**
+	 * Cuelga de cada entrega la lista de sus archivos.
+	 *
+	 * Una sola consulta para todas: la pantalla de calificar abre la tarea
+	 * completa y una consulta por entrega se notaba con un curso entero.
+	 *
+	 * @param array $submissions Entregas ya filtradas por alcance.
+	 * @return array
+	 */
+	private static function attach_submission_files( array $submissions ) {
+		if ( ! $submissions ) {
+			return $submissions;
+		}
+
+		global $wpdb;
+
+		$ids          = wp_list_pluck( $submissions, 'id' );
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, submission_id, file_name, file_type, file_size
+				 FROM {$wpdb->prefix}edu_submission_files
+				 WHERE submission_id IN ($placeholders)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$ids
+			)
+		);
+
+		$por_entrega = array();
+		foreach ( (array) $rows as $row ) {
+			// Nunca se devuelve file_url: las descargas van por URL firmada (§10).
+			$por_entrega[ (int) $row->submission_id ][] = array(
+				'id'        => (int) $row->id,
+				'file_name' => $row->file_name,
+				'file_type' => $row->file_type,
+				'file_size' => (int) $row->file_size,
+			);
+		}
+
+		foreach ( $submissions as &$sub ) {
+			$sub['files'] = $por_entrega[ $sub['id'] ] ?? array();
+		}
+
+		return $submissions;
 	}
 
 	/* ─────────────────────────────────────────────────────────────────────

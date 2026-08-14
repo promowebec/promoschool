@@ -317,7 +317,28 @@ class Edu_Assignment_Service {
 			Edu_File_Service::delete_physical( $file->file_url );
 		}
 
-		// assignment_files cae por FOREIGN KEY ON DELETE CASCADE del esquema.
+		/*
+		 * Las filas hijas se borran a mano. El esquema declara ON DELETE
+		 * CASCADE, pero dbDelta() descarta las FOREIGN KEY, así que en la base
+		 * real no existe ninguna: confiar en el cascade dejaba los adjuntos y
+		 * las entregas apuntando a una tarea inexistente.
+		 */
+		$entregas = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}edu_submissions WHERE assignment_id = %d", $id ) );
+
+		if ( $entregas ) {
+			$ids = implode( ',', array_map( 'absint', $entregas ) );
+
+			foreach ( (array) $wpdb->get_results( "SELECT file_url FROM {$wpdb->prefix}edu_submission_files WHERE submission_id IN ($ids)" ) as $file ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				Edu_File_Service::delete_physical( $file->file_url );
+			}
+
+			$wpdb->query( "DELETE FROM {$wpdb->prefix}edu_submission_files WHERE submission_id IN ($ids)" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( "DELETE FROM {$wpdb->prefix}edu_rubric_scores WHERE submission_id IN ($ids)" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
+
+		$wpdb->delete( $wpdb->prefix . 'edu_submissions', array( 'assignment_id' => $id ), array( '%d' ) );
+		$wpdb->delete( $wpdb->prefix . 'edu_rubrics', array( 'assignment_id' => $id ), array( '%d' ) );
+		$wpdb->delete( $taf, array( 'assignment_id' => $id ), array( '%d' ) );
 		$wpdb->delete( $wpdb->prefix . 'edu_assignments', array( 'id' => $id ), array( '%d' ) );
 
 		Edu_Audit::log( Edu_Audit::TAREA_ELIMINADA, 'assignment', $id );

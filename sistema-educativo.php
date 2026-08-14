@@ -3,7 +3,7 @@
  * Plugin Name:       Sistema Educativo Integral
  * Plugin URI:        https://example.com/sistema-educativo
  * Description:       Gestión académica integral para unidades educativas en Ecuador: calificaciones (3 trimestres × 2 parciales 70% + examen 30%), tareas, lecciones, comunicados padres-docentes, asistencia, boletines y dashboard institucional.
- * Version:           1.4.0
+ * Version:           1.9.0
  * Requires at least: 6.0
  * Requires PHP:      8.2
  * Author:            Cowork
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EDU_VERSION', '1.4.0' );
+define( 'EDU_VERSION', '1.9.0' );
 define( 'EDU_DB_VERSION', '1.0.9' );
 
 define( 'EDU_PLUGIN_FILE', __FILE__ );
@@ -35,6 +35,7 @@ require_once EDU_PLUGIN_DIR . 'includes/class-edu-context.php';
 require_once EDU_PLUGIN_DIR . 'includes/class-edu-activator.php';
 require_once EDU_PLUGIN_DIR . 'includes/class-edu-audit.php';
 require_once EDU_PLUGIN_DIR . 'includes/class-edu-pwa.php';
+require_once EDU_PLUGIN_DIR . 'includes/class-edu-spa.php';
 require_once EDU_PLUGIN_DIR . 'includes/class-edu-deactivator.php';
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-institution-controller.php';
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-period-controller.php';
@@ -54,6 +55,13 @@ require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-catalog-service.php';
 require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-people-service.php';
 require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-gradebook-service.php';
 require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-activity-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-file-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-assignment-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-submission-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-attendance-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-announcement-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-payment-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-report-service.php';
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-teacher-controller.php';
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-student-controller.php';
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-assignment-controller.php';
@@ -92,6 +100,8 @@ require_once EDU_PLUGIN_DIR . 'includes/api/routes/class-edu-api-me-routes.php';
 require_once EDU_PLUGIN_DIR . 'includes/api/routes/class-edu-api-catalog-routes.php';
 require_once EDU_PLUGIN_DIR . 'includes/api/routes/class-edu-api-gradebook-routes.php';
 require_once EDU_PLUGIN_DIR . 'includes/api/routes/class-edu-api-activity-routes.php';
+require_once EDU_PLUGIN_DIR . 'includes/api/routes/class-edu-api-write-routes.php';
+require_once EDU_PLUGIN_DIR . 'includes/api/routes/class-edu-api-report-routes.php';
 
 if ( is_admin() ) {
 	require_once EDU_PLUGIN_DIR . 'admin/class-edu-admin.php';
@@ -247,6 +257,9 @@ function edu_bootstrap() {
 	Edu_Shortcode_Docente::register();
 	Edu_Shortcode_Estudiante::register();
 	Edu_Shortcode_Padre::register();
+
+	// App propia (Fase 2): shortcode [edu_app].
+	Edu_Spa::register();
 
 	// Hooks de cálculo en cadena.
 	$loader->add_action( 'edu_grade_logged', 'Edu_Grade_Calculator', 'on_grade_logged', 10, 3 );

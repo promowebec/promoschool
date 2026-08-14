@@ -484,7 +484,7 @@ duplica** — devuelve `200` con el existente y `"reused": true` en vez de `201`
 | PUT | `/assignments/{id}/recovery-settings` 🔒 | `edu_create_assignment` |
 | POST | `/submissions/{id}/recovery` 🔒 | `edu_submit_assignment` |
 | PUT | `/submissions/{id}/recovery-grade` 🔒 | `edu_grade_students` |
-| GET | `/files/{id}/download-url` 🔒 | según propiedad — devuelve URL firmada, §10 |
+| GET | `/files/{id}/link` 🔒 | según el padre (tarea o entrega) — devuelve URL firmada, §10 |
 
 `POST /assignments` acepta el campo unificado de v1.1.0:
 
@@ -766,17 +766,31 @@ desplegar dos veces y abriría la puerta a que app y boletín PDF muestren notas
   Exceso → **413 `edu_file_too_large`**; extensión no permitida → **400 `edu_file_type`**.
 - **Almacenamiento:** sigue siendo `wp-content/uploads/edu-privado/`, fuera del árbol público.
   La API **no** devuelve nunca la ruta física ni una URL directa.
-- **Descarga:** `GET /files/{id}/download-url` valida propiedad y devuelve
+- **Descarga:** `GET /files/{id}/link?type=assignment|submission` valida el permiso y devuelve
 
   ```json
-  { "url": "https://.../wp-json/edu/v1/files/88/download?token=...", "expires_at": "2026-08-11T15:05:00-05:00" }
+  { "url": "https://.../wp-json/edu/v1/files/download?token=...&_wpnonce=...", "expires_at": "2026-08-11T15:05:00-05:00" }
   ```
 
-  El token es HMAC de `(file_id, user_id, exp)` con `edu_api_secret`, **válido 5 minutos**.
+  El token es HMAC de `(kind, args, user_id, exp)` con `edu_api_secret`, **válido 5 minutos**.
   Así el navegador puede abrir la descarga en una pestaña sin poder mandar la cabecera
   `Authorization`, y el enlace no sirve compartido ni caduca en el historial.
+- **El nonce va dentro de la URL, y es necesario.** Una navegación normal no puede añadir la
+  cabecera `X-WP-Nonce`, y sin nonce WordPress descarta la cookie en REST
+  (`rest_cookie_check_errors` hace `wp_set_current_user( 0 )`): la petición llega anónima y la
+  comprobación de identidad del token falla con 401. Llevarlo en la URL conserva la garantía de
+  que el enlace es personal —sin la cookie de quien lo pidió, el usuario sigue siendo 0—.
+- **El permiso se decide por el padre, no por el archivo.** `Edu_File_Service::locate_attachment()`
+  sube a la tarea o a la entrega y aplica `Edu_Assignment_Service::can_access()` o
+  `Edu_Submission_Service::can_download()`. Se revalida al descargar, porque entre la emisión del
+  enlace y su uso el alcance del usuario pudo cambiar.
+- Mismo mecanismo para los binarios generados: `kind` vale `attachment`, `boletin` o `mineduc`.
 - La verificación de propiedad es la misma del hardening: el estudiante solo sus entregas, el
   docente solo las de sus asignaciones, el representante solo las de sus hijos.
+
+> **Multipart y `PUT`.** PHP solo parsea `multipart/form-data` en POST. Los envíos con archivos
+> van siempre como POST y piden el método real con `X-HTTP-Method-Override: PUT`, que WP REST
+> interpreta. Un `PUT` multipart directo llega con `$_POST` y `$_FILES` vacíos.
 
 ---
 
@@ -841,8 +855,8 @@ entregable y probable por separado:
 | **1a ✅** | Infraestructura: `includes/api/` con `Edu_Api`, autenticación por token, CORS, `GET /me`, gate de módulos, mapeo `WP_Error` → HTTP | Sin esto no se puede probar ningún otro endpoint |
 | **1b ✅** | Extracción del servicio de **calificaciones** (`Edu_Score_Service`, `Edu_Trimester_Score_Service`, `Edu_Curriculum_Service`) + refactor de los controllers a adaptadores | Es el dominio crítico y el que valida que el patrón funciona sin romper wp-admin |
 | **1c ✅** | Endpoints de lectura de todos los dominios (los `GET`) | Permite empezar la SPA de la Fase 2 en paralelo, sin riesgo de escritura |
-| **1d** | Servicios y endpoints de escritura de tareas, asistencia y comunicados | Los tres módulos que usan a diario docentes y representantes |
-| **1e** | Pagos, boletines, exportes, auditoría y dashboards | Los de menor frecuencia de uso |
+| **1d ✅** | Servicios y endpoints de escritura de tareas, asistencia y comunicados | Los tres módulos que usan a diario docentes y representantes |
+| **1e ✅** | Pagos, boletines, exportes, auditoría y dashboards | Los de menor frecuencia de uso |
 
 **Criterio de aceptación transversal:** después de cada etapa, **las pantallas de wp-admin
 deben seguir funcionando exactamente igual**. El refactor a servicios no puede tener regresiones;
@@ -975,8 +989,16 @@ Pendientes de confirmación antes de escribir código:
 
 1. **Vida del access token.** Se propone 15 min + refresh de 30 días. Más corto es más seguro
    y más chatty; más largo alarga la ventana de un token robado.
-2. **Dominio del frontend.** Hace falta el origen definitivo para la lista blanca de CORS
-   (y para decidir si conviene servir la SPA bajo el mismo dominio, lo que simplificaría todo).
+2. ~~**Dominio del frontend.**~~ **✅ Resuelto (12 ago 2026): la SPA se sirve desde el mismo
+   dominio que WordPress.** Consecuencias, todas a favor:
+   - **No hay que configurar CORS.** `Edu_Api::is_origin_allowed()` ya autoriza siempre al
+     propio sitio; el campo "Dominios autorizados" de Ajustes queda vacío y sin uso. El
+     mecanismo se mantiene por si algún día hace falta otro origen.
+   - **Desaparece el gotcha de Apache** con la cabecera `Authorization`: al ser mismo origen,
+     la SPA puede autenticarse con la cookie de WordPress + `X-WP-Nonce` (§4.3) y dejar el
+     token Bearer para la app instalada y las integraciones.
+   - La PWA existente sigue sirviendo tal cual: mismo origen, mismo service worker.
+   - El token Bearer **no se retira**: es lo que permitirá una app nativa el día que se quiera.
 3. **¿La SPA reemplaza los portales shortcode o convive con ellos?** Si conviven, los 4
    shortcodes se mantienen y el trabajo se duplica en cada feature nueva. Recomiendo declarar
    la SPA como reemplazo y congelar los portales una vez alcanzada la paridad.
@@ -985,3 +1007,173 @@ Pendientes de confirmación antes de escribir código:
 5. **`GET /dashboard/*`.** Hoy cada dashboard es una vista con muchas queries. Definir si la API
    devuelve el bloque ya armado (rápido de construir, poco flexible) o métricas atómicas que la
    SPA compone (más trabajo, más reutilizable).
+
+### 13.4 Etapa 1d — entregada (v1.5.0, 12 ago 2026)
+
+Los cuatro dominios que faltaban salieron de sus controllers, y con ellos llegaron **15
+endpoints de escritura**. El namespace queda en **44 rutas**.
+
+| Servicio nuevo | Contenido |
+|---|---|
+| `Edu_File_Service` | Almacenamiento privado compartido: constantes de tamaño y extensiones, `ensure_protected_dir()`, `store_uploads()`, `url_to_path()`, `delete_physical()`, `download_url()`, `stream()` |
+| `Edu_Assignment_Service` | `save()`, `publish()`, `close()`, `delete()`, `attach_files()`, `remove_files()`, `derive_type()`, `load_for_manage()`, `can_access()` |
+| `Edu_Submission_Service` | `submit()`, `grade()`, `save_recovery_settings()`, `submit_recovery()`, `grade_recovery()`, `can_download()` |
+| `Edu_Attendance_Service` | `save()`, `flatten_matrix()` |
+| `Edu_Announcement_Service` | `send()`, `acknowledge()`, `delete()` |
+
+Endpoints en `includes/api/routes/class-edu-api-write-routes.php`:
+
+```
+POST   /assignments                        PUT/PATCH /assignments/{id}
+DELETE /assignments/{id}                   POST      /assignments/{id}/publish
+POST   /assignments/{id}/close             PUT       /assignments/{id}/recovery-settings
+POST   /assignments/{id}/submissions       POST      /assignments/{id}/recovery
+PUT    /submissions/{id}/grade             PUT       /submissions/{id}/recovery-grade
+PUT    /attendance
+POST   /announcements                      DELETE    /announcements/{id}
+POST   /announcements/{id}/acknowledge
+```
+
+**Semántica de `PUT /attendance`.** Guarda el día completo del grado: los estudiantes que no
+vengan en la petición quedan **presente**. Es lo que ya hacía el formulario de wp-admin (los
+radios sin marcar no se envían) y lo que corresponde a un PUT. Para tocar solo a algunos
+estudiantes hay que mandar la lista completa.
+
+**Adjuntos.** Viajan como `multipart/form-data` en el campo `files[]`, la misma validación de
+siempre (10 MB y lista blanca de extensiones). Las respuestas de lectura **nunca** incluyen
+`file_url`: las descargas van por enlace firmado.
+
+**Hardening incluido.**
+
+1. `DELETE /announcements/{id}` y el borrado desde wp-admin no comprobaban nada más que la
+   capability: cualquiera con `edu_grade_students` podía borrar el comunicado de otro con solo
+   saber el ID. Ahora quien no ve toda la institución solo borra lo que él envió, y el rector
+   solo dentro de su institución.
+2. El acuse de recibo no verificaba que el comunicado fuese para uno: ahora exige ser
+   destinatario.
+3. La configuración de la mejora y la calificación de entregas pasan por
+   `can_view_grade_subject()`: un docente ya no puede calificar entregas de materias ajenas.
+
+**Corrección menor.** `handle_save_recovery_settings()` pasaba `'NULL'` como formato de `$wpdb`
+(los válidos son `%s`, `%d`, `%f`). Ahora usa `%s`, que es lo correcto para guardar un valor
+nulo.
+
+**Verificación.** 46 pruebas por HTTP real que recorren el circuito completo —crear tarea con
+componente al vuelo, publicar, entregar, calificar con normalización a 0–10, comprobar que la
+nota aparece en el gradebook, cerrar, habilitar la mejora, entregarla y calificarla conservando
+la mejor de las dos notas—, más asistencia, comunicados con acuse de recibo y los accesos
+cruzados que deben fallar. Y 13 pruebas de adaptadores que comprueban que las nueve pantallas
+de wp-admin siguen redirigiendo exactamente igual. Las suites anteriores (14 + 39 + 41 + 60)
+siguen en verde.
+
+### 13.5 Etapa 1e — entregada (v1.6.0, 12 ago 2026). **Fase 1 completa.**
+
+Últimos 12 endpoints. El namespace queda en **56 rutas** y la API cubre los seis dominios del
+§1: la app de la Fase 2 ya puede construirse entera sin ninguna pantalla de WordPress.
+
+| Servicio nuevo | Contenido |
+|---|---|
+| `Edu_Payment_Service` | `get_config()`, `save_config()`, `generate_monthly()`, `register_manual()`, `waive()`, `generate_link()`, `suspend_overdue()` |
+| `Edu_Report_Service` | `dashboard_rector()`, `dashboard_docente()`, `teacher_panel()`, `boletin_url()`, `mineduc_url()` |
+
+```
+GET/PUT /payment-config                POST /payments/generate-monthly
+POST    /payments/{id}/manual          POST /payments/{id}/waive
+POST    /payments/{id}/link            POST /payments/suspend-overdue
+GET     /reports/boletin               GET  /reports/mineduc/{tipo}
+GET     /dashboard/rector              GET  /dashboard/docente
+GET     /dashboard/teacher-panel       GET  /files/download
+```
+
+**Descargas firmadas (§10), ya implementadas.** `GET /reports/boletin` y
+`GET /reports/mineduc/{tipo}` **no devuelven el binario**: validan el permiso y responden
+`{url, expires_at}` con un token HMAC de **5 minutos** atado al usuario que lo pidió. El
+navegador abre esa URL en una pestaña —sin poder mandar `Authorization`— y `GET /files/download`
+verifica firma, vencimiento y titular, **revalida el permiso** (el alcance pudo cambiar desde
+que se emitió) y recién entonces sirve el PDF o el .xlsx con los generadores de siempre.
+Compartir el enlace no sirve de nada: emitido para otra cuenta, responde 403.
+
+**Decisión 5 del §14, resuelta.** Los dashboards se entregan **ya armados**, no como métricas
+atómicas: son pantallas concretas y componerlas en el cliente costaría media docena de llamadas
+por carga. `/dashboard/rector` incluye métricas, rendimiento por grado con cualitativa, alertas
+de asistencia y resumen de cobranza; los bloques de módulos apagados simplemente no vienen.
+
+**Qué NO se tocó a propósito.** El circuito de Payphone —inicio del pago, retorno del navegador
+y webhook— sigue en `Edu_Payment_Controller`: son redirecciones y llamadas de la pasarela, no
+operaciones de negocio. La invariante del hardening v1.0.9 queda intacta: **un pago solo se
+marca como pagado desde `confirm_and_mark_paid()`**, con confirmación server-side. La única
+excepción sigue siendo el registro manual, que exige `edu_view_all` y ahora además queda
+auditado.
+
+**Hardening.** `waive`, `register_manual` y `generate_link` solo comprobaban la capability:
+con el ID bastaba para exonerar o marcar pagada una cuota **de otra institución**. Ahora todas
+pasan por `load_payment()`, que valida pertenencia. `suspend_overdue` tampoco validaba el
+período ni acotaba por institución: podía suspender cuentas de otra. Corregido. Se añadió
+auditoría a exonerar, registrar pago manual y suspender morosos, que antes no dejaban rastro.
+
+**Verificación.** 40 pruebas por HTTP real: los tres dashboards con sus cifras comprobadas
+(promedio 8.40 → cualitativa B+, alerta de asistencia al 25%), el ciclo completo de pagos
+(configurar, generar cuotas, emitir link, registrar manual, rechazar el doble cobro, exonerar
+un pago ya cobrado, suspender morosos) y las URLs firmadas, incluyendo que un token emitido
+para otra cuenta y uno manipulado se rechazan. Las cinco suites anteriores (14 + 39 + 41 + 60 +
+46) siguen en verde, y los 13 adaptadores de wp-admin devuelven las mismas URLs de siempre.
+
+### 13.6 Corrección: las escrituras de calificaciones faltaban (v1.8.0, 12 ago 2026)
+
+Al construir la grilla del docente en la Fase 2 se descubrió que **los endpoints de escritura
+del dominio de calificaciones nunca se habían registrado**. Los servicios existían desde la
+etapa 1b, pero al repartir el trabajo la 1d cubrió tareas, asistencia y comunicados, y la 1e
+pagos y reportes: los de notas se quedaron entre las dos.
+
+Añadidos en `class-edu-api-write-routes.php`:
+
+```
+POST /gradebook/scores                     captura batch de notas (§8.2)
+POST /components                           crear al vuelo; 200 + reused:true si ya existía
+PUT  /components                           guardado en bloque del set
+PUT  /trimester-scores                     examen final y proyecto
+POST /trimester-scores/close-parcial
+POST /trimester-scores/close-trimester
+PUT  /grades/{id}/pensum
+```
+
+El namespace queda en **59 rutas**. Con esto la afirmación de la §13.5 —que la API cubre los
+seis dominios— es cierta también para la escritura de calificaciones, que era el hueco.
+
+**Lección para el resto del proyecto:** tener el servicio no significa tener el endpoint. Al
+cerrar una etapa conviene contrastar el catálogo del §7 contra las rutas realmente
+registradas, no contra los servicios escritos.
+
+---
+
+### 13.7 Fase 2 completa: el circuito de archivos (v1.9.0, 12 ago 2026)
+
+Al construir el portal del rector se probaron por fin las descargas **desde el navegador**, y
+aparecieron tres cosas que ninguna prueba por HTTP con `Authorization` podía ver.
+
+**1. Ninguna descarga funcionaba.** El enlace firmado se abre con `window.open`, y una
+navegación no puede añadir `X-WP-Nonce`. Sin nonce, WordPress descarta la cookie en REST y la
+petición llega anónima, así que la comprobación de `uid` del token respondía 401 — en las cinco
+descargas: boletín y los cuatro exportes Mineduc. Se corrigió incluyendo el nonce en la URL
+firmada (§10). Se descartó recuperar la identidad desde el token: habría convertido el enlace
+en una credencial portátil, y tratándose de datos de menores la garantía de "enlace personal"
+pesa más.
+
+**2. `PUT` con `multipart/form-data` llegaba vacío.** PHP solo parsea multipart en POST. Editar
+una tarea adjuntando un archivo perdía todos los campos. Los envíos con archivos van ahora como
+POST con `X-HTTP-Method-Override` (§10).
+
+**3. Faltaba la descarga de adjuntos.** El §10 la describía y el código la mencionaba, pero el
+tipo `attachment` nunca se implementó: la app veía el nombre del archivo y nada más. Se añadió
+`GET /files/{id}/link?type=assignment|submission` — **la ruta 59** — y el caso `attachment` en
+`/files/download`. Además `GET /assignments/{id}/submissions` incluye ahora los archivos de cada
+entrega, en una sola consulta, para que el docente pueda abrir lo que le entregaron.
+
+**Integridad referencial.** Se verificó contra `information_schema` que **no existe ni una sola
+FOREIGN KEY** en las tablas `wp_edu_*`: `dbDelta()` las descarta, tal como advierte el CLAUDE.md.
+Tres sitios confiaban en el `ON DELETE CASCADE` del esquema y dejaban filas huérfanas al borrar
+—tareas, comunicados y grados—; ahora borran los hijos explícitamente.
+
+**Lección, en la misma línea que la §13.6:** un endpoint probado solo con `Authorization` no
+está probado para el navegador. La cookie de WordPress en REST se comporta distinto, y es el
+camino que usa la app.

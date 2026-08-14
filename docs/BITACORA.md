@@ -4,9 +4,9 @@ Registro de todo lo construido en el plugin, desde el scaffolding hasta la versi
 Documento vivo: agregar una entrada nueva por cada fase o cambio relevante.
 
 - **Plugin:** Sistema Educativo Integral
-- **Versión actual:** 1.4.0 (`EDU_VERSION`); esquema en 1.0.9 (`EDU_DB_VERSION`)
+- **Versión actual:** 1.9.0 (`EDU_VERSION`); esquema en 1.0.9 (`EDU_DB_VERSION`)
 - **Stack:** WordPress 6.x · PHP 8.2+ · MySQL 8 / MariaDB 10.6+ · mPDF · sin dependencias JS de build
-- **Última actualización de esta bitácora:** 11 de agosto de 2026
+- **Última actualización de esta bitácora:** 13 de agosto de 2026
 
 ---
 
@@ -16,13 +16,14 @@ Documento vivo: agregar una entrada nueva por cada fase o cambio relevante.
 |---|---|
 | Tablas propias en base de datos | **30** (prefijo `wp_edu_`) |
 | Pantallas del backend WordPress | **25** ítems de menú + 1 subvista (`tareas-detalle`) |
-| Portales frontend (shortcodes) | **4** portales + **2** shortcodes sueltos |
+| Portales frontend (shortcodes) | **4** portales (CONGELADOS) + **2** shortcodes sueltos |
+| App propia (SPA) | `[edu_app]` · Vue 3 sin build · **los 4 portales** · 23 módulos JS |
 | Pestañas dentro de los portales | **30** |
 | Roles personalizados | **4** (`edu_rector`, `edu_docente`, `edu_estudiante`, `edu_padre`) |
 | Capabilities propias | **17** |
 | Controllers (capa de escritura) | **21** clases |
-| Servicios (lógica sin HTTP) | **8** clases (`includes/services/`) |
-| Clases de la API REST `edu/v1` | **8** (`includes/api/`) · **36** rutas |
+| Servicios (lógica sin HTTP) | **15** clases (`includes/services/`) |
+| Clases de la API REST `edu/v1` | **10** (`includes/api/`) · **59** rutas (índice de `/wp-json/edu/v1`) |
 | Módulos de dominio | **6** (calificaciones, boletines, pagos, reportes, whatsapp, PWA) |
 | Módulos activables/desactivables | **10** desde Ajustes |
 | Handlers `admin_post_*` registrados | **60+** |
@@ -150,6 +151,382 @@ Vista de supervisión para el rector: por asignación académica muestra compone
 ---
 
 ## 2.bis · Entradas de bitácora
+
+### 2026-08-13 — Repositorio publicable y preparación del despliegue (v1.9.0)
+
+**Qué se hizo.** Hasta hoy todo el trabajo de las fases 1 y 2 vivía sin commitear: el
+repositorio `promowebec/promoschool` tenía un único commit (`0182f25`, snapshot inicial) con
+la versión 1.4.0. Se llevó el árbol a un estado publicable y se dejó listo el despliegue.
+
+**El bug que bloqueaba todo.** El snapshot inicial había commiteado los 8 paquetes de Composer
+como **gitlinks (submódulos) sin `.gitmodules`**, porque se instalaron con `--prefer-source` y
+cada uno arrastraba su propio `.git`. Efecto real: quien clonara el repositorio recibía
+`vendor/mpdf/mpdf` **vacío** y los boletines PDF reventaban con class-not-found. Se eliminaron
+los `.git` internos y se versionó el árbol de archivos tal cual corre hoy.
+
+No se reinstaló con Composer a propósito: `composer.lock` está desfasado de `composer.json` y
+el PHP del PATH no trae `ext-gd`, así que reinstalar arriesgaba mover la versión de mPDF sin
+ninguna necesidad. `vendor/` pasó de 237 MB a 132 MB — los 106 MB de diferencia eran los `.git`
+internos.
+
+**Decisión: `vendor/` se versiona.** El plugin se distribuye como ZIP para wp-admin y los
+servidores de las instituciones no tienen Composer, así que mPDF tiene que viajar dentro.
+
+**Archivos tocados.**
+- `.gitignore` (nuevo) — excluye `.claude/`, la caché `tmp/` de mPDF y `demo-seed.php`.
+- `.gitattributes` (nuevo) — marca `.ttf`/`.otf` como binarios; sin esto la normalización de
+  finales de línea corrompería las fuentes de mPDF.
+- `sistema-educativo.php`, `readme.txt` — versión 1.4.0 → 1.9.0.
+- `CHANGELOG.md` — solo tenía la plantilla; se abre el registro formal en la 1.9.0.
+- `readme.txt` — el `== Changelog ==` llegaba a 1.0.0 con `Stable tag: 1.9.0`; se agrega la
+  entrada 1.9.0 y una sección `== Upgrade Notice ==`.
+- `docs/BITACORA.md` §5 — el inventario decía 8 servicios y 36 rutas cuando el §1 ya decía 15 y
+  59. Corregido contra el código.
+
+**Cambios de esquema.** Ninguno. `EDU_DB_VERSION` sigue en 1.0.9 y la BD ya está en 1.0.9: no
+hay migración pendiente.
+
+**Verificación ejecutada.**
+- `vendor/autoload.php` carga; `Mpdf\Mpdf` y el `PdfParser` de fpdi resuelven; una generación
+  de PDF de prueba devuelve 28 KB con cabecera `%PDF-`.
+- Los 16 archivos PHP tocados pasan `php -l`.
+- Cargando WordPress 7.0.4 completo: el plugin arranca **sin fatales**, `rest_get_server()`
+  devuelve 60 patrones bajo `/edu/v1` (el índice del namespace + las 59 rutas), los 7
+  shortcodes se registran —`edu_app` incluido— y `Edu_Spa`, `Edu_Submission_Service`,
+  `Edu_Payment_Service`, `Edu_Report_Service`, `Edu_Attendance_Service`, `Edu_Api_Write_Routes`
+  y `Edu_Api_Report_Routes` existen.
+
+**Riesgos / notas de despliegue.**
+- **La actualización es aditiva.** Sin migración, y la SPA solo aparece si se crea una página
+  con `[edu_app]`. Los cuatro portales shortcode siguen registrados sirviendo sus mismas URLs:
+  actualizar el plugin no cambia nada de lo que ven hoy docentes ni familias.
+- **Lo que sí toca código vivo** son los refactors de `Edu_Submission_Controller` (−734 líneas)
+  y `Edu_Payment_Controller`. Los handlers públicos conservan nombre y firma, pero **falta
+  correr los 21 escenarios de adaptadores de wp-admin** comparando URLs de redirección antes de
+  subir a producción. Es el pendiente que separa "el código está" de "sé que no rompí las
+  entregas ni los pagos".
+- **No hay auto-updater.** WordPress no va a ofrecer la actualización solo; hay que subir el
+  ZIP por wp-admin o hacer `git pull` en el servidor. Un update checker contra GitHub Releases
+  queda como trabajo posterior.
+- Recordar la regla de Nginx para `uploads/edu-privado/`, que el `.htaccess` no cubre.
+
+### 2026-08-12 — Fase 2 completa: portal del rector y adjuntos en la app (v1.9.0)
+
+**Qué se hizo.** La app propia cubre ya los **cuatro portales**. Se sumó el del rector
+—panel institucional, avance de docentes, cierres, comunicados, pagos y reportes— y se cerró
+el circuito de archivos, que era el único trozo del negocio que la API no sabía servir.
+El namespace REST suma una ruta (`GET /files/{id}/link`) y queda en **59**, contadas sobre el
+índice de `/wp-json/edu/v1`: el "59" de la entrada anterior salía de otro conteo que incluía
+la raíz del namespace.
+
+**El rector, en seis pantallas.** Panel con KPIs y rendimiento por grado con su equivalencia
+cualitativa; avance por asignación de cada docente; cierres de parcial y trimestre;
+comunicados con alcance institucional; pensiones con registro manual, exoneración y enlace de
+cobro; y reportes (boletines PDF y los cuatro exportes Mineduc).
+
+En **Cierres**, cada botón pide una segunda confirmación en la propia fila en vez de abrir un
+`confirm()` del navegador, porque el cierre no se deshace desde la app. El botón de trimestre
+queda deshabilitado mientras los dos parciales sigan abiertos.
+
+**Tres fallos reales que salieron al probar, no al leer.**
+
+1. **Ninguna descarga funcionaba en el navegador.** El enlace firmado se abre con
+   `window.open`, y una navegación normal no puede poner la cabecera `X-WP-Nonce`. Sin nonce,
+   WordPress descarta la cookie en REST (`rest_cookie_check_errors` hace
+   `wp_set_current_user( 0 )`), así que la comprobación de identidad del token fallaba y las
+   cinco descargas —boletín y los cuatro exportes— respondían **401**. Se arregla incluyendo
+   el nonce dentro de la URL firmada. Se descartó la alternativa de recuperar la identidad
+   desde el token: habría convertido el enlace en una credencial portátil, y la garantía de
+   que el enlace es personal importa tratándose de datos de menores. Con el nonce dentro, un
+   tercero sin la cookie sigue recibiendo 401.
+
+2. **`PUT` con adjuntos llegaba vacío.** PHP solo parsea `multipart/form-data` en POST: editar
+   una tarea adjuntando un archivo perdía todos los campos y el servidor respondía "falta el
+   título". `eduApi.postForm()` ahora envía siempre POST y pide el método real con
+   `X-HTTP-Method-Override`, que WP REST ya interpreta.
+
+3. **Borrar una tarea dejaba filas huérfanas.** El código confiaba en el `ON DELETE CASCADE`
+   del esquema, pero `dbDelta()` descarta las FOREIGN KEY: en la base real **no existe ni una**
+   (verificado contra `information_schema`). Se borran a mano los hijos en tres sitios:
+   tareas (adjuntos, entregas, archivos de entrega, rúbricas), comunicados (destinatarios) y
+   grados (pensum). Se limpiaron además **47 filas huérfanas** ya acumuladas: 1 adjunto,
+   44 destinatarios de comunicados borrados y 2 filas de pensum de un grado inexistente.
+
+**Descarga de adjuntos, que no existía.** El comentario del servicio decía "las descargas van
+por URL firmada (§10)", pero el tipo `attachment` nunca se implementó: la app mostraba el
+nombre del archivo y nada más. Ahora `GET /files/{id}/link?type=assignment|submission` emite el
+enlace y `Edu_File_Service::locate_attachment()` decide el permiso a partir del padre —la tarea
+o la entrega—, no del archivo suelto, y lo revalida al descargar. Las entregas del alumno
+incluyen sus archivos (una sola consulta para todas), así que el docente por fin puede abrir lo
+que le entregaron.
+
+**Un cambio que se probó y se deshizo.** Se endureció el cierre de trimestre para exigir dos
+parciales cerrados por estudiante. La suite de servicios lo rechazó: cerrar un parcial sin
+notas es una vía válida y deliberada, y estaba cubierta por una prueba. Se revirtió.
+
+**Archivos nuevos.** `public/spa/js/views/rector/` con `inicio.js`, `docentes.js`,
+`cierres.js`, `pagos.js`, `reportes.js` y `comunicados.js`.
+
+**Archivos modificados.** `includes/services/class-edu-file-service.php` (nonce en la URL
+firmada, `locate_attachment()`, `attachment_link()`),
+`includes/api/routes/class-edu-api-report-routes.php` (ruta del enlace y caso `attachment`),
+`includes/services/class-edu-activity-service.php` (archivos de cada entrega),
+`includes/services/class-edu-assignment-service.php` y
+`includes/services/class-edu-announcement-service.php` (borrado explícito de hijos),
+`includes/controllers/class-edu-grade-controller.php` (ídem para el pensum),
+`public/spa/js/api.js` (`abrirAdjunto`, override de método), `public/spa/js/app.js`
+(rutas del rector), `public/spa/js/views/tareas.js` y `views/docente/tareas.js` (adjuntos),
+`public/spa/css/app.css`.
+
+**Cambios de esquema.** Ninguno. `EDU_DB_VERSION` sigue en 1.0.9.
+
+**Verificación.** 261 pruebas automatizadas en verde (JWT 14, API 39, servicios 41,
+lecturas 60, escrituras 46, reportes 40, más los 21 escenarios de adaptadores con las mismas
+URLs de redirección de wp-admin) y 23 módulos JS sin errores. En Chrome, con un rector y un
+docente reales: las seis pantallas del rector renderizan con datos; las cinco descargas
+devuelven binarios válidos (`PK` en los .xlsx, `%PDF` en el boletín) y siguen rechazando el
+acceso sin cookie (401), con nonce alterado (403) y con firma alterada (403); un adjunto se
+sube, se descarga con su contenido exacto, se reemplaza al editar y desaparece al borrar la
+tarea, sin dejar filas ni archivos sueltos. La base queda en 14 filas ↔ 14 archivos y **cero
+huérfanas** en las nueve comprobaciones de integridad.
+
+**Pendiente.** Retirar los portales shortcode cuando se confirme la paridad en producción.
+
+
+### 2026-08-12 — Fase 2: portal del docente en la app (v1.8.0)
+
+**Qué se hizo.** La app propia cubre ahora el portal del docente, el más complejo de los
+cuatro: inicio, grilla de calificaciones, tareas con calificación de entregas, toma de
+asistencia y comunicados. El namespace REST pasa de 56 a **59 rutas**.
+
+**Hueco de la API que salió a la luz.** Al construir la grilla apareció que **las escrituras
+de calificaciones nunca se habían expuesto**. Los servicios existían desde la etapa 1b, pero
+la 1d expuso solo tareas, asistencia y comunicados, y la 1e pagos y reportes: las de notas se
+quedaron sin endpoint. Se añadieron los siete que faltaban:
+
+```
+POST /gradebook/scores            POST /components        PUT /components
+PUT  /trimester-scores            POST /trimester-scores/close-parcial
+POST /trimester-scores/close-trimester                    PUT /grades/{id}/pensum
+```
+
+Con esto la API sí cubre los seis dominios completos, lectura y escritura.
+
+**La grilla de calificaciones** respeta las reglas del negocio al pie de la letra: una celda
+vacía es *sin calificar*, no cero; solo se envían las celdas que el docente tocó; una celda
+inválida no tumba el guardado —el servidor guarda el resto y devuelve el detalle—; y la fila de
+un estudiante con el parcial cerrado queda bloqueada. Incluye crear un componente evaluable al
+vuelo sin salir de la pantalla.
+
+**Los selectores no cuestan llamadas.** Grado, materia y trimestre salen de `GET /me`, que ya
+trae las asignaciones del docente y los trimestres del período activo.
+
+**Cache de módulos, resuelto.** Los módulos ES se importan por URL y esas URLs no llevaban
+versión: al actualizar un archivo, el navegador seguía sirviendo el anterior de su caché. Ahora
+`Edu_Spa::print_import_map()` genera un *import map* con la fecha de modificación de cada
+archivo, y los imports usan especificadores `@edu/...`. Es el equivalente sin compilación al
+hash de un bundler. Va en `wp_footer` con prioridad 5, porque `wp_head` ya se imprimió cuando
+el shortcode se renderiza.
+
+**Dos correcciones de la primera entrega de la Fase 2.**
+1. `GET /me` devuelve el tipo de perfil en inglés (`teacher`), y el mapeo a portal solo
+   traducía `student` y `parent`: al docente le salía "esta parte todavía no está en la app".
+2. Un enlace directo a una ruta del docente caía en Inicio, porque el hash se leía antes de
+   saber qué portal era. Ahora se relee al cargar el perfil.
+
+**Archivos nuevos.** `public/spa/js/views/docente/` con `selector.js`, `inicio.js`,
+`calificaciones.js`, `tareas.js`, `asistencia.js` y `comunicados.js`.
+
+**Archivos modificados.** `includes/class-edu-spa.php` (import map),
+`includes/api/routes/class-edu-api-write-routes.php` (7 endpoints),
+`public/spa/js/app.js` (rutas por portal), `public/spa/js/store.js` (mapeo de perfil),
+`public/spa/css/app.css`, `readme.txt`. Todos los módulos JS pasaron a importar con `@edu/`.
+
+**Cambios de esquema.** Ninguno. `EDU_DB_VERSION` sigue en 1.0.9.
+
+**Verificación.** Probado en Chrome con un docente real: se creó un componente evaluable desde
+la grilla, se cargó una nota escrita con coma ("8,5") y el servidor devolvió el parcial
+calculado 8.50 con su cualitativa A-; se marcó un atraso y la asistencia quedó registrada. Se
+comprobó además el rechazo de una nota fuera de rango: el campo se marca en rojo, el servidor
+responde "Se guardaron 0 nota(s). 1 celda(s) no se pudieron guardar" y **la nota anterior se
+conserva**. 226 pruebas automatizadas en verde y 17 módulos JS sin errores de sintaxis.
+
+**Pendiente.** El portal del rector. Y en la SPA del docente faltan los adjuntos de tarea
+(subida de archivos) y los cierres de parcial y trimestre, que ya tienen endpoint.
+
+
+### 2026-08-12 — Fase 2 arranca: app propia para estudiante y representante (v1.7.0)
+
+**Qué se hizo.** Primera entrega de la aplicación propia, que consume la API `edu/v1`.
+Cubre los portales de **estudiante** y **representante**, los dos más simples y los que casi
+solo consultan datos.
+
+**Decisiones de arranque.**
+- **Vue 3 sin compilación.** Se empaqueta `vue.global.prod.js` (154 KB) en el plugin y los
+  componentes son objetos JS planos con la plantilla en una cadena. **No hay npm, ni Vite, ni
+  paso de build**: desplegar es copiar archivos, igual que el resto del plugin. Los módulos ES
+  nativos (`type="module"`) dan `import`/`export` sin compilar nada.
+- **Mismo dominio que WordPress**, así que la app se autentica con la cookie de sesión más
+  `X-WP-Nonce`. Sin CORS y sin guardar tokens en el navegador. El token Bearer de la API sigue
+  disponible para una app instalada o integraciones.
+- **Se reutiliza `public/css/portales.css` tal cual**: mismo lenguaje visual que los portales
+  que va a reemplazar. `spa/css/app.css` solo añade lo que faltaba (estados de carga, chips,
+  badges, listas).
+
+**Cómo se monta.** Shortcode `[edu_app]` en cualquier página. `Edu_Spa` encola los assets,
+pasa los datos mínimos de arranque y renderiza `<div id="edu-app">`. Si el visitante no tiene
+sesión, muestra un aviso con enlace al login del sitio (respeta Ultimate Member).
+
+**Estructura.**
+
+```
+public/spa/
+├── vendor/vue.global.prod.js
+├── css/app.css
+└── js/
+    ├── api.js          cliente REST con nonce y errores normalizados
+    ├── store.js        estado compartido y formateadores
+    ├── components.js   piezas reutilizables (tarjeta, métrica, nota, badge)
+    ├── app.js          layout, menú, router por hash y arranque
+    └── views/          inicio · notas · tareas · asistencia · comunicados · pagos · boletines
+```
+
+Las vistas de notas, tareas y asistencia **sirven a los dos portales**: lo único que cambia es
+qué `student_id` hay en el store. El representante con más de un hijo ve un selector que
+recarga todas las vistas al cambiar.
+
+**Portales congelados.** Los 4 shortcodes pasan a mantenimiento correctivo: se corrigen
+errores, no se agregan funciones. Llevan un aviso en la cabecera del archivo. Motivo: mantener
+dos interfaces vivas obliga a construir y depurar cada pantalla dos veces, y mientras se les
+sigan añadiendo funciones la paridad nunca llega. **No afecta a wp-admin.**
+
+**Cambios de esquema.** Ninguno. `EDU_DB_VERSION` sigue en 1.0.9.
+
+**Verificación.** Probada en Chrome contra el sitio real, con una institución de demostración
+y dos sesiones (estudiante y representante):
+- El promedio, la asistencia y las cualitativas coinciden con los datos cargados (8.68 · 90.91%
+  · A-/B+), y la fórmula sumativa se detecta por el subnivel del grado.
+- El acuse de recibo de un comunicado funciona de punta a punta: el contador baja y queda
+  registrada la fecha de confirmación.
+- El selector de hijo recarga todas las vistas (al pasar a un hijo con 6.30 aparece C+ naranja
+  y la asistencia queda vacía, que es lo correcto).
+- Los menús de Pagos y Boletines solo aparecen para el representante; las secciones de módulos
+  apagados no se muestran.
+- Sin errores en la consola del navegador. Sintaxis de los 11 módulos JS verificada con Node.
+
+**Pendiente conocido.** El ancho de la app lo limita la plantilla del tema; conviene usar una
+plantilla a ancho completo en la página que la aloje. Faltan los portales de docente y rector.
+
+
+### 2026-08-12 — API `edu/v1` etapa 1e: pagos, reportes y dashboards (v1.6.0) · **Fase 1 completa**
+
+**Qué se hizo.** Los últimos 12 endpoints. El namespace queda en **56 rutas** y la API cubre
+los seis dominios: calificaciones, tareas, asistencia, comunicados, pagos y boletines/reportes.
+Con esto el frontend propio (Fase 2) puede construirse entero sin ninguna pantalla de WordPress.
+
+| Servicio nuevo | Contenido |
+|---|---|
+| `Edu_Payment_Service` | configuración, generación de cuotas, pago manual, exoneración, links de pago y suspensión de morosos |
+| `Edu_Report_Service` | dashboard del rector, del docente, panel de docentes y autorización de binarios |
+
+```
+GET/PUT /payment-config          POST /payments/generate-monthly
+POST    /payments/{id}/manual    POST /payments/{id}/waive
+POST    /payments/{id}/link      POST /payments/suspend-overdue
+GET     /reports/boletin         GET  /reports/mineduc/{tipo}
+GET     /dashboard/rector        GET  /dashboard/docente
+GET     /dashboard/teacher-panel GET  /files/download
+```
+
+`GET /dashboard/teacher-panel` cierra la **deuda técnica #3**: el panel de docentes existía
+solo en wp-admin y ahora la app lo tiene igual.
+
+**Descargas firmadas.** Los reportes no devuelven el binario: validan permiso y responden
+`{url, expires_at}` con un token HMAC de 5 minutos atado al usuario. El navegador abre esa URL
+—donde no puede mandar la cabecera `Authorization`— y `/files/download` verifica firma,
+vencimiento y titular, **revalida el permiso** y recién entonces sirve el PDF o el .xlsx con
+los generadores de siempre (mPDF y `Edu_Xlsx_Writer`). Compartir el enlace no sirve: emitido
+para otra cuenta responde 403.
+
+**Lo que NO se tocó, a propósito.** El circuito de Payphone (inicio, retorno del navegador y
+webhook) sigue en el controller: son redirecciones y llamadas de la pasarela. La invariante del
+hardening v1.0.9 sigue intacta: **un pago solo se marca pagado desde
+`confirm_and_mark_paid()`**, con confirmación server-side.
+
+**Hardening.** `waive`, `register_manual` y `generate_link` solo miraban la capability: con el
+ID bastaba para exonerar o marcar pagada una cuota **de otra institución**. Ahora todas validan
+pertenencia. `suspend_overdue` tampoco validaba el período ni acotaba por institución: podía
+suspender cuentas ajenas. Corregido. Y se añadió auditoría a exonerar, registrar pago manual y
+suspender morosos, que antes no dejaban rastro — algo llamativo tratándose de dinero.
+
+**Cambios de esquema.** Ninguno. `EDU_DB_VERSION` sigue en 1.0.9 desde hace seis versiones.
+
+**Verificación.** 40 pruebas por HTTP real: los tres dashboards con cifras comprobadas
+(promedio 8.40 con su cualitativa B+, alerta de asistencia al 25%), el ciclo completo de pagos
+y las URLs firmadas, incluido el rechazo de un token emitido para otra cuenta y de uno
+manipulado. Total acumulado de la Fase 1: **253 pruebas en verde** (14 JWT + 39 API + 41
+servicios + 60 lecturas + 46 escrituras + 40 reportes + 13 adaptadores de wp-admin).
+
+
+### 2026-08-12 — API `edu/v1` etapa 1d: escrituras de tareas, asistencia y comunicados (v1.5.0)
+
+**Qué se hizo.** Los cuatro dominios que quedaban salieron de sus controllers, y con ellos
+llegaron **15 endpoints de escritura**. El namespace pasa de 36 a **44 rutas**. Con esto la
+app puede operar el día a día del docente y del estudiante, no solo consultarlo.
+
+| Servicio nuevo | Contenido |
+|---|---|
+| `Edu_File_Service` | Almacenamiento privado compartido por tareas y entregas: tamaño y extensiones permitidas, `ensure_protected_dir()`, `store_uploads()`, `url_to_path()`, `delete_physical()`, `download_url()`, `stream()` |
+| `Edu_Assignment_Service` | `save()`, `publish()`, `close()`, `delete()`, adjuntos, `derive_type()`, `load_for_manage()`, `can_access()` |
+| `Edu_Submission_Service` | `submit()`, `grade()`, `save_recovery_settings()`, `submit_recovery()`, `grade_recovery()`, `can_download()` |
+| `Edu_Attendance_Service` | `save()`, `flatten_matrix()` |
+| `Edu_Announcement_Service` | `send()`, `acknowledge()`, `delete()` |
+
+Los cuatro controllers correspondientes quedaron como adaptadores. Se conservan como
+envoltorios delegantes `Edu_Assignment_Task_Controller::ensure_protected_dir()`,
+`::get_download_url()`, `::derive_type()`, `::handle_file_uploads()` y sus constantes, porque
+los usan el activator, las vistas y los portales.
+
+**Endpoints nuevos.**
+
+```
+POST   /assignments                      PUT/PATCH /assignments/{id}
+DELETE /assignments/{id}                 POST      /assignments/{id}/publish
+POST   /assignments/{id}/close           PUT       /assignments/{id}/recovery-settings
+POST   /assignments/{id}/submissions     POST      /assignments/{id}/recovery
+PUT    /submissions/{id}/grade           PUT       /submissions/{id}/recovery-grade
+PUT    /attendance
+POST   /announcements                    DELETE    /announcements/{id}
+POST   /announcements/{id}/acknowledge
+```
+
+**Hardening.** Tres huecos que la extraccion dejo a la vista:
+
+1. **Borrado de comunicados sin dueno.** `handle_delete()` solo miraba la capability:
+   cualquiera con `edu_grade_students` podia borrar el comunicado de otro sabiendo el ID.
+   Ahora quien no ve toda la institucion solo borra lo que el envio, y el rector solo dentro
+   de su institucion.
+2. **Acuse de recibo sin verificar destinatario.** Se podia marcar como leido un comunicado
+   ajeno. Ahora se exige ser destinatario.
+3. **Calificacion de entregas ajenas.** Calificar y configurar la mejora no comprobaban la
+   materia: un docente podia calificar entregas de una materia que no dicta. Ahora pasan por
+   `can_view_grade_subject()`.
+
+**Correccion menor.** `handle_save_recovery_settings()` pasaba `'NULL'` como formato de
+`$wpdb->update()` (los validos son `%s`, `%d`, `%f`). Ahora usa `%s`.
+
+**Cambios de esquema.** Ninguno. `EDU_DB_VERSION` sigue en 1.0.9.
+
+**Verificacion.** 46 pruebas por HTTP real que recorren el circuito completo: crear tarea con
+componente al vuelo (el tipo se deduce solo: "Lecciones" da `leccion`), publicar, entregar,
+calificar 16/20 con normalizacion a 8.00, comprobar que la nota aparece en el gradebook,
+recalificar sin duplicar filas, cerrar, habilitar la mejora, entregarla y calificarla
+conservando la MEJOR de las dos notas. Mas asistencia (incluido que guardar el dia sin
+novedades marca presente), comunicados con destinatarios, bandeja y acuse de recibo, y todos
+los accesos cruzados que deben fallar. Y 13 pruebas de adaptadores que confirman que las nueve
+pantallas de wp-admin siguen redirigiendo exactamente igual. Las suites anteriores siguen en
+verde: 14 del JWT, 39 de la 1a, 41 de la 1b y 60 de la 1c.
+
 
 ### 2026-08-11 — API `edu/v1` etapa 1c: endpoints de lectura (v1.4.0)
 
@@ -435,6 +812,11 @@ Las migraciones incrementales viven en `Edu_Activator::run_incremental_migration
 | 1.2.0 | (sin cambio de esquema) | API `edu/v1` etapa 1a: autenticación por token y `GET /me` |
 | 1.3.0 | (sin cambio de esquema) | API `edu/v1` etapa 1b: capa de servicios de calificaciones |
 | 1.4.0 | (sin cambio de esquema) | API `edu/v1` etapa 1c: 27 endpoints de lectura |
+| 1.5.0 | (sin cambio de esquema) | API `edu/v1` etapa 1d: 15 endpoints de escritura |
+| 1.6.0 | (sin cambio de esquema) | API `edu/v1` etapa 1e: pagos, reportes y dashboards — Fase 1 completa |
+| 1.7.0 | (sin cambio de esquema) | Fase 2: app propia (Vue 3 sin build) para estudiante y representante |
+| 1.8.0 | (sin cambio de esquema) | Fase 2: portal del docente + escrituras de calificaciones en la API |
+| 1.9.0 | (sin cambio de esquema) | Fase 2 completa: portal del rector, descarga de adjuntos y arreglo de las descargas firmadas |
 
 ---
 
@@ -458,16 +840,26 @@ Las migraciones incrementales viven en `Edu_Activator::run_incremental_migration
 
 ## 5. Inventario de código
 
-### Servicios — `includes/services/` (8)
-Escritura: `Edu_Service` (base), `Edu_Score_Service`, `Edu_Trimester_Score_Service`, `Edu_Curriculum_Service`.
-Lectura: `Edu_Catalog_Service`, `Edu_People_Service`, `Edu_Gradebook_Service`, `Edu_Activity_Service`.
+### Servicios — `includes/services/` (15)
+Base: `Edu_Service` (capabilities, `check_scope()`, alcance personal).
+Escritura: `Edu_Score_Service`, `Edu_Trimester_Score_Service`, `Edu_Curriculum_Service`,
+`Edu_Assignment_Service`, `Edu_Submission_Service`, `Edu_Attendance_Service`,
+`Edu_Announcement_Service`, `Edu_Payment_Service`, `Edu_File_Service`.
+Lectura: `Edu_Catalog_Service`, `Edu_People_Service`, `Edu_Gradebook_Service`,
+`Edu_Activity_Service`, `Edu_Report_Service`.
 Lógica de negocio sin HTTP, compartida por los controllers y la API REST.
 
-### API REST — `includes/api/` (8)
-`Edu_Api_Jwt`, `Edu_Api_Auth`, `Edu_Api` + rutas `auth`, `me`, `catalog`, `gradebook` y `activity`. Namespace `edu/v1`, 36 rutas.
+### API REST — `includes/api/` (10)
+`Edu_Api_Jwt`, `Edu_Api_Auth`, `Edu_Api` + rutas `auth`, `me`, `catalog`, `gradebook`,
+`activity`, `write` (mutaciones) y `report` (reportes). Namespace `edu/v1`, **59 rutas**.
 
-### Controllers — `includes/controllers/` (21)
-`institution`, `period`, `grade`, `subject`, `teacher`, `student`, `parent`, `curriculum` (pensum + componentes), `assignment`, `assignment-task`, `submission`, `score`, `trimester-score`, `year-score`, `attendance`, `announcement`, `boletin`, `account`, `payment`, `settings`, más el helper de import.
+> Cómo se cuentan: `rest_get_server()->get_routes()` devuelve 60 patrones bajo
+> `/edu/v1`, de los cuales uno es el índice del propio namespace que registra
+> WordPress. Contar `register_rest_route` da menos (42) porque varias rutas
+> declaran más de un método en la misma llamada.
+
+### Controllers — `includes/controllers/` (20)
+`institution`, `period`, `grade`, `subject`, `teacher`, `student`, `parent`, `curriculum` (pensum + componentes), `assignment`, `assignment-task`, `submission`, `score`, `trimester-score`, `year-score`, `attendance`, `announcement`, `boletin`, `account`, `payment`, `settings`. El helper de import vive en `includes/helpers/`.
 
 ### Helpers — `includes/helpers/` (3)
 `Edu_Import_Helper` (CSV), `Edu_Qualitativa_Helper` (equivalencias A+/E-), `Edu_Modules` (módulos activables).
@@ -545,7 +937,7 @@ apply_filters( 'edu_module_active', bool $activo, string $modulo );
 |---|---|---|
 | 1 | ~~Componente al vuelo~~ | ✅ Resuelto en v1.1.0. |
 | 2 | Integración Flipbook | Hoy es solo visual: el tab "Mis textos" ejecuta `do_shortcode('[mis_textos]')`. No existe puente para que una asignación creada desde Flipbook genere una tarea con componente en el sistema educativo. |
-| 3 | Panel de docentes en portal | Existe solo como pantalla del wp-admin; el portal del rector no lo tiene como tab. |
+| 3 | ~~Panel de docentes en portal~~ | ✅ Resuelto en v1.6.0: `GET /dashboard/teacher-panel`. |
 | 4 | Perfil "solo calificaciones" | Los módulos ya se apagan uno por uno, pero no hay un preset de un clic para una institución que solo quiere notas + asistencia. |
 | 5 | Reportes por componente | No hay exporte/visual analítico por componente para presentar a instituciones. |
 | 6 | Nginx | La protección de `edu-privado` con `.htaccess` no aplica; requiere regla manual en el server block. |

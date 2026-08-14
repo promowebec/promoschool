@@ -177,6 +177,202 @@ class Edu_File_Service {
 		);
 	}
 
+	/* ─────────────────────────────────────────────────────────────────────
+	 * URLs firmadas para descargas desde la app (contrato §10)
+	 *
+	 * El navegador no puede enviar la cabecera Authorization al abrir una
+	 * descarga en una pestaña nueva, así que la API entrega una URL con un
+	 * token HMAC de vida corta atado al usuario que la pidió.
+	 * ────────────────────────────────────────────────────────────────── */
+
+	/** Vida de una URL firmada, en segundos. */
+	const SIGNED_TTL = 300;
+
+	/**
+	 * Emite una URL firmada para un recurso binario.
+	 *
+	 * @param string $kind    Tipo de recurso: 'boletin', 'boletines-zip', 'mineduc', 'attachment'.
+	 * @param array  $payload Parámetros del recurso (IDs ya validados).
+	 * @return array{url:string, expires_at:string}
+	 */
+	public static function signed_url( $kind, array $payload ) {
+		$expires = time() + self::SIGNED_TTL;
+
+		$claims = array(
+			'kind' => (string) $kind,
+			'args' => $payload,
+			'uid'  => get_current_user_id(),
+			'exp'  => $expires,
+		);
+
+		$data  = Edu_Api_Jwt::b64url_encode( (string) wp_json_encode( $claims ) );
+		$token = $data . '.' . Edu_Api_Jwt::b64url_encode( self::sign_payload( $data ) );
+
+		/*
+		 * El nonce viaja en la URL a propósito. El enlace se abre en una
+		 * pestaña nueva (window.open), y una navegación normal no puede poner
+		 * la cabecera X-WP-Nonce: sin nonce, WordPress descarta la cookie en
+		 * REST (rest_cookie_check_errors hace wp_set_current_user( 0 )) y toda
+		 * descarga respondía 401 aunque la sesión estuviera abierta.
+		 *
+		 * Llevarlo aquí mantiene la garantía de que el enlace es personal: sin
+		 * la cookie de quien lo pidió el usuario sigue siendo 0 y la
+		 * comprobación de uid de verify_signed_url() falla igual.
+		 */
+		return array(
+			'url'        => add_query_arg(
+				array(
+					'token'    => $token,
+					'_wpnonce' => wp_create_nonce( 'wp_rest' ),
+				),
+				rest_url( Edu_Api::API_NAMESPACE . '/files/download' )
+			),
+			'expires_at' => Edu_Api::date( $expires ),
+		);
+	}
+
+	/**
+	 * Localiza un adjunto y decide si el usuario actual puede bajarlo.
+	 *
+	 * Un solo sitio para las dos familias de adjuntos, porque el permiso lo
+	 * decide el padre —la tarea o la entrega—, nunca el archivo suelto. Lo usan
+	 * tanto la emisión del enlace como la descarga: el alcance del usuario
+	 * puede haber cambiado entre una cosa y la otra.
+	 *
+	 * @param string $type    'assignment' o 'submission'.
+	 * @param int    $file_id ID del archivo.
+	 * @return array{path:string, file_name:string}|WP_Error
+	 */
+	public static function locate_attachment( $type, $file_id ) {
+		global $wpdb;
+
+		$p       = $wpdb->prefix . 'edu_';
+		$type    = (string) $type;
+		$file_id = (int) $file_id;
+
+		if ( ! in_array( $type, array( 'assignment', 'submission' ), true ) ) {
+			return Edu_Service::error( 'invalid_scope', __( 'Tipo de adjunto desconocido.', 'sistema-educativo' ), 400 );
+		}
+
+		if ( 'assignment' === $type ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$file = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$p}assignment_files WHERE id = %d", $file_id ) );
+
+			if ( ! $file ) {
+				return Edu_Service::not_found( __( 'El archivo no existe.', 'sistema-educativo' ) );
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$parent = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$p}assignments WHERE id = %d", (int) $file->assignment_id ) );
+
+			$permitido = $parent && Edu_Assignment_Service::can_access( $parent );
+		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$file = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$p}submission_files WHERE id = %d", $file_id ) );
+
+			if ( ! $file ) {
+				return Edu_Service::not_found( __( 'El archivo no existe.', 'sistema-educativo' ) );
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$parent = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT s.student_id, a.id AS assignment_id, a.teacher_id, a.grade_id, a.subject_id
+					 FROM {$p}submissions s
+					 INNER JOIN {$p}assignments a ON a.id = s.assignment_id
+					 WHERE s.id = %d",
+					(int) $file->submission_id
+				)
+			);
+
+			$permitido = $parent && Edu_Submission_Service::can_download( $parent );
+		}
+
+		if ( ! $permitido ) {
+			return Edu_Service::error( 'forbidden', __( 'Sin permiso para descargar este archivo.', 'sistema-educativo' ), 403 );
+		}
+
+		$path = self::url_to_path( $file->file_url );
+
+		if ( ! $path || ! file_exists( $path ) ) {
+			return Edu_Service::not_found( __( 'El archivo ya no está disponible.', 'sistema-educativo' ) );
+		}
+
+		return array(
+			'path'      => $path,
+			'file_name' => (string) $file->file_name,
+		);
+	}
+
+	/**
+	 * Emite el enlace de descarga de un adjunto, tras validar el permiso.
+	 *
+	 * @param string $type    'assignment' o 'submission'.
+	 * @param int    $file_id ID del archivo.
+	 * @return array|WP_Error
+	 */
+	public static function attachment_link( $type, $file_id ) {
+		$found = self::locate_attachment( $type, $file_id );
+
+		if ( is_wp_error( $found ) ) {
+			return $found;
+		}
+
+		return self::signed_url(
+			'attachment',
+			array(
+				'type'    => (string) $type,
+				'file_id' => (int) $file_id,
+			)
+		);
+	}
+
+	/**
+	 * Verifica un token de descarga y devuelve sus claims.
+	 *
+	 * El token identifica a quien lo pidió: se comprueba que sea el mismo
+	 * usuario, de modo que compartir el enlace no sirve de nada.
+	 *
+	 * @param string $token Token recibido.
+	 * @return array|WP_Error
+	 */
+	public static function verify_signed_url( $token ) {
+		$parts = explode( '.', (string) $token );
+
+		if ( 2 !== count( $parts ) ) {
+			return Edu_Service::error( 'invalid_token', __( 'Enlace de descarga inválido.', 'sistema-educativo' ), 403 );
+		}
+
+		list( $data, $signature ) = $parts;
+
+		$expected = self::sign_payload( $data );
+		$given    = Edu_Api_Jwt::b64url_decode( $signature );
+
+		if ( ! is_string( $given ) || ! hash_equals( $expected, $given ) ) {
+			return Edu_Service::error( 'invalid_token', __( 'Enlace de descarga inválido.', 'sistema-educativo' ), 403 );
+		}
+
+		$claims = json_decode( (string) Edu_Api_Jwt::b64url_decode( $data ), true );
+
+		if ( ! is_array( $claims ) || empty( $claims['exp'] ) ) {
+			return Edu_Service::error( 'invalid_token', __( 'Enlace de descarga inválido.', 'sistema-educativo' ), 403 );
+		}
+
+		if ( (int) $claims['exp'] < time() ) {
+			return Edu_Service::error( 'expired_token', __( 'El enlace de descarga expiró.', 'sistema-educativo' ), 403 );
+		}
+
+		if ( (int) $claims['uid'] !== get_current_user_id() ) {
+			return Edu_Service::error( 'invalid_token', __( 'Este enlace fue emitido para otra cuenta.', 'sistema-educativo' ), 403 );
+		}
+
+		return $claims;
+	}
+
+	private static function sign_payload( $data ) {
+		return hash_hmac( 'sha256', 'edu-download|' . $data, Edu_Api_Jwt::secret(), true );
+	}
+
 	/**
 	 * Envía el archivo al navegador. Termina la ejecución.
 	 *

@@ -337,6 +337,11 @@ class Edu_Trimester_Score_Service {
 		$tts    = $wpdb->prefix . 'edu_trimester_scores';
 		$sid_in = implode( ',', $student_ids );
 
+		/*
+		 * Se cuentan las filas abiertas, no los estudiantes. Un parcial sin
+		 * notas no deja fila en parcial_scores, y cerrarlo así es válido: el
+		 * rector cierra el parcial aunque no se haya evaluado nada.
+		 */
 		$open = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM $tps

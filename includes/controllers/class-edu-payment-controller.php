@@ -46,57 +46,36 @@ class Edu_Payment_Controller {
 	public static function handle_save_config(): void {
 		check_admin_referer( 'edu_save_payment_config' );
 
-		if ( ! Edu_Context::can( 'edu_view_all' ) ) {
-			wp_die( esc_html__( 'Sin permiso.', 'sistema-educativo' ) );
-		}
+		$period_id = isset( $_POST['config_period_id'] ) ? (int) $_POST['config_period_id'] : 0;
+		$config    = array();
 
-		global $wpdb;
-		$p              = $wpdb->prefix . 'edu_';
-		$institution_id = Edu_Context::current_institution_id();
-		$period_id      = isset( $_POST['config_period_id'] ) ? (int) $_POST['config_period_id'] : 0;
-
-		if ( $institution_id && $period_id && ! empty( $_POST['cfg'] ) && is_array( $_POST['cfg'] ) ) {
-			foreach ( $_POST['cfg'] as $grade_key => $vals ) {
-				$grade_id      = ( 'all' === $grade_key ) ? null : (int) $grade_key;
-				$monthly       = round( (float) ( $vals['monthly_amount'] ?? 0 ), 2 );
-				$matricula     = round( (float) ( $vals['matricula_amount'] ?? 0 ), 2 );
-				$due_day       = max( 1, min( 28, (int) ( $vals['due_day'] ?? 5 ) ) );
-				$grace_days    = max( 0, min( 30, (int) ( $vals['grace_days'] ?? 5 ) ) );
-
-				// Buscar fila existente.
-				if ( null === $grade_id ) {
-					$existing_id = (int) $wpdb->get_var( $wpdb->prepare(
-						"SELECT id FROM {$p}payment_config
-						 WHERE institution_id = %d AND period_id = %d AND grade_id IS NULL",
-						$institution_id, $period_id
-					) );
-				} else {
-					$existing_id = (int) $wpdb->get_var( $wpdb->prepare(
-						"SELECT id FROM {$p}payment_config
-						 WHERE institution_id = %d AND period_id = %d AND grade_id = %d",
-						$institution_id, $period_id, $grade_id
-					) );
+		if ( ! empty( $_POST['cfg'] ) && is_array( $_POST['cfg'] ) ) {
+			foreach ( wp_unslash( $_POST['cfg'] ) as $grade_key => $vals ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- el servicio castea cada campo.
+				if ( ! is_array( $vals ) ) {
+					continue;
 				}
-
-				$data = array(
-					'institution_id'   => $institution_id,
-					'period_id'        => $period_id,
-					'grade_id'         => $grade_id,
-					'monthly_amount'   => $monthly,
-					'matricula_amount' => $matricula,
-					'due_day'          => $due_day,
-					'grace_days'       => $grace_days,
+				$config[] = array(
+					'grade_id'         => ( 'all' === $grade_key ) ? null : (int) $grade_key,
+					'monthly_amount'   => $vals['monthly_amount'] ?? 0,
+					'matricula_amount' => $vals['matricula_amount'] ?? 0,
+					'due_day'          => $vals['due_day'] ?? 5,
+					'grace_days'       => $vals['grace_days'] ?? 5,
 				);
-
-				if ( $existing_id ) {
-					$wpdb->update( "{$p}payment_config", $data, array( 'id' => $existing_id ) );
-				} else {
-					$wpdb->insert( "{$p}payment_config", $data );
-				}
 			}
 		}
 
-		// Credenciales Payphone (autoload=no: no cargarlas en memoria en cada request).
+		$result = Edu_Payment_Service::save_config(
+			array(
+				'period_id' => $period_id,
+				'config'    => $config,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			self::service_error( $result );
+		}
+
+		// Credenciales Payphone (autoload=no: no cargarlas en cada request).
 		if ( isset( $_POST['edu_payphone_token'] ) ) {
 			update_option( 'edu_payphone_token', sanitize_text_field( wp_unslash( $_POST['edu_payphone_token'] ) ), false );
 		}
@@ -108,6 +87,26 @@ class Edu_Payment_Controller {
 			'pago_sub'    => 'config',
 			'status'      => 'updated',
 			'pago_period' => $period_id,
+		), self::return_base( 'admin.php?page=edu-pagos' ) ) );
+		exit;
+	}
+
+	/**
+	 * Traduce un error del servicio: los de permiso cortan, el resto vuelve
+	 * a la pantalla de pagos con su código.
+	 *
+	 * @param WP_Error $error Error del servicio.
+	 */
+	private static function service_error( WP_Error $error ): void {
+		$code = $error->get_error_code();
+
+		if ( in_array( $code, array( 'forbidden', 'no_institution' ), true ) ) {
+			wp_die( esc_html( $error->get_error_message() ) );
+		}
+
+		wp_safe_redirect( add_query_arg( array(
+			'status' => 'error',
+			'code'   => $code,
 		), self::return_base( 'admin.php?page=edu-pagos' ) ) );
 		exit;
 	}
@@ -140,15 +139,12 @@ class Edu_Payment_Controller {
 	public static function handle_generate_monthly(): void {
 		check_admin_referer( 'edu_generate_monthly_payments' );
 
-		if ( ! Edu_Context::can( 'edu_view_all' ) ) {
-			wp_die( esc_html__( 'Sin permiso.', 'sistema-educativo' ) );
-		}
+		$result = Edu_Payment_Service::generate_monthly(
+			isset( $_POST['period_id'] ) ? (int) $_POST['period_id'] : 0
+		);
 
-		$period_id      = isset( $_POST['period_id'] ) ? (int) $_POST['period_id'] : 0;
-		$institution_id = Edu_Context::current_institution_id();
-
-		if ( $period_id && $institution_id ) {
-			Edu_Payment_Manager::generate_monthly_payments( $period_id, $institution_id );
+		if ( is_wp_error( $result ) ) {
+			self::service_error( $result );
 		}
 
 		wp_safe_redirect( add_query_arg( 'status', 'updated', self::return_base( 'admin.php?page=edu-pagos' ) ) );
@@ -420,22 +416,19 @@ class Edu_Payment_Controller {
 	public static function handle_register_manual(): void {
 		check_admin_referer( 'edu_register_manual_payment' );
 
-		if ( ! Edu_Context::can( 'edu_view_all' ) ) {
-			wp_die( esc_html__( 'Sin permiso.', 'sistema-educativo' ) );
+		$result = Edu_Payment_Service::register_manual(
+			array(
+				'payment_id'     => isset( $_POST['payment_id'] ) ? (int) $_POST['payment_id'] : 0,
+				'payment_method' => isset( $_POST['payment_method'] ) ? sanitize_key( wp_unslash( $_POST['payment_method'] ) ) : 'manual',
+				'payment_ref'    => isset( $_POST['payment_ref'] ) ? sanitize_text_field( wp_unslash( $_POST['payment_ref'] ) ) : '',
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			self::service_error( $result );
 		}
 
-		$payment_id = isset( $_POST['payment_id'] ) ? (int) $_POST['payment_id'] : 0;
-		$method     = sanitize_key( wp_unslash( $_POST['payment_method'] ?? 'manual' ) );
-		$ref        = sanitize_text_field( wp_unslash( $_POST['payment_ref'] ?? '' ) );
-
-		if ( ! $payment_id ) {
-			wp_safe_redirect( add_query_arg( 'status', 'error', self::return_base( 'admin.php?page=edu-pagos' ) ) );
-			exit;
-		}
-
-		$result = Edu_Payment_Manager::mark_paid( $payment_id, $method, $ref, '', get_current_user_id() );
-
-		wp_safe_redirect( add_query_arg( 'status', $result ? 'paid' : 'error', self::return_base( 'admin.php?page=edu-pagos' ) ) );
+		wp_safe_redirect( add_query_arg( 'status', 'paid', self::return_base( 'admin.php?page=edu-pagos' ) ) );
 		exit;
 	}
 
@@ -446,22 +439,17 @@ class Edu_Payment_Controller {
 	public static function handle_generate_link(): void {
 		check_admin_referer( 'edu_generate_payment_link' );
 
-		if ( ! Edu_Context::can( 'edu_view_all' ) ) {
-			wp_die( esc_html__( 'Sin permiso.', 'sistema-educativo' ) );
-		}
+		$result = Edu_Payment_Service::generate_link(
+			isset( $_POST['payment_id'] ) ? (int) $_POST['payment_id'] : 0
+		);
 
-		$payment_id = isset( $_POST['payment_id'] ) ? (int) $_POST['payment_id'] : 0;
-		if ( ! $payment_id ) {
-			wp_safe_redirect( self::return_base( 'admin.php?page=edu-pagos' ) );
-			exit;
+		if ( is_wp_error( $result ) ) {
+			self::service_error( $result );
 		}
-
-		$token    = Edu_Payment_Manager::generate_payment_token( $payment_id );
-		$link_url = add_query_arg( 'edu_pago_token', rawurlencode( $token ), home_url( '/' ) );
 
 		wp_safe_redirect( add_query_arg( array(
 			'status'   => 'link_ok',
-			'pay_link' => rawurlencode( $link_url ),
+			'pay_link' => rawurlencode( $result['url'] ),
 		), self::return_base( 'admin.php?page=edu-pagos' ) ) );
 		exit;
 	}
@@ -473,18 +461,13 @@ class Edu_Payment_Controller {
 	public static function handle_waive(): void {
 		check_admin_referer( 'edu_waive_payment' );
 
-		if ( ! Edu_Context::can( 'edu_view_all' ) ) {
-			wp_die( esc_html__( 'Sin permiso.', 'sistema-educativo' ) );
-		}
+		$result = Edu_Payment_Service::waive(
+			isset( $_POST['payment_id'] ) ? (int) $_POST['payment_id'] : 0
+		);
 
-		$payment_id = isset( $_POST['payment_id'] ) ? (int) $_POST['payment_id'] : 0;
-		if ( ! $payment_id ) {
-			wp_safe_redirect( self::return_base( 'admin.php?page=edu-pagos' ) );
-			exit;
+		if ( is_wp_error( $result ) ) {
+			self::service_error( $result );
 		}
-
-		global $wpdb;
-		$wpdb->update( $wpdb->prefix . 'edu_payments', array( 'status' => 'waived' ), array( 'id' => $payment_id ) );
 
 		wp_safe_redirect( add_query_arg( 'status', 'waived', self::return_base( 'admin.php?page=edu-pagos' ) ) );
 		exit;
@@ -497,41 +480,20 @@ class Edu_Payment_Controller {
 	public static function handle_suspend_overdue(): void {
 		check_admin_referer( 'edu_suspend_overdue_payments' );
 
-		if ( ! Edu_Context::can( 'edu_view_all' ) ) {
-			wp_die( esc_html__( 'Sin permiso.', 'sistema-educativo' ) );
-		}
+		$result = Edu_Payment_Service::suspend_overdue(
+			array(
+				'period_id'      => isset( $_POST['period_id'] ) ? (int) $_POST['period_id'] : 0,
+				'days_threshold' => isset( $_POST['days_threshold'] ) ? (int) $_POST['days_threshold'] : 30,
+			)
+		);
 
-		global $wpdb;
-		$p              = $wpdb->prefix . 'edu_';
-		$period_id      = isset( $_POST['period_id'] ) ? (int) $_POST['period_id'] : 0;
-		$days_threshold = max( 1, (int) ( $_POST['days_threshold'] ?? 30 ) );
-		$today          = gmdate( 'Y-m-d' );
-
-		if ( ! $period_id ) {
-			wp_safe_redirect( add_query_arg( 'status', 'error', self::return_base( 'admin.php?page=edu-pagos' ) ) );
-			exit;
-		}
-
-		$student_ids = $wpdb->get_col( $wpdb->prepare(
-			"SELECT DISTINCT student_id FROM {$p}payments
-			 WHERE period_id = %d AND status = 'overdue'
-			   AND DATEDIFF(%s, due_date) >= %d",
-			$period_id, $today, $days_threshold
-		) );
-
-		$changed = 0;
-		foreach ( $student_ids as $sid ) {
-			$user_id = (int) $wpdb->get_var( $wpdb->prepare(
-				"SELECT user_id FROM {$p}students WHERE id = %d", (int) $sid
-			) );
-			if ( $user_id && Edu_Account_Controller::set_status( $user_id, 'suspended' ) ) {
-				$changed++;
-			}
+		if ( is_wp_error( $result ) ) {
+			self::service_error( $result );
 		}
 
 		wp_safe_redirect( add_query_arg( array(
 			'status'  => 'suspended',
-			'changed' => $changed,
+			'changed' => $result['suspended'],
 		), self::return_base( 'admin.php?page=edu-pagos' ) ) );
 		exit;
 	}
