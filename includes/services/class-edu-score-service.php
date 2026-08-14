@@ -98,6 +98,7 @@ class Edu_Score_Service {
 
 		$registered_by = get_current_user_id();
 		$saved         = 0;
+		$replaced      = 0;
 		$skipped       = 0;
 		$errors        = array();
 		$to_recalc     = array();
@@ -142,6 +143,31 @@ class Edu_Score_Service {
 				$skipped++;
 				$errors[] = self::cell_error( $sid, $cid, 'out_of_range', __( 'La nota debe estar entre 0 y 10.', 'sistema-educativo' ) );
 				continue;
+			}
+
+			/*
+			 * La grilla tiene UN input por componente, así que lo que se
+			 * escribe ahí reemplaza a lo que había, no se suma.
+			 *
+			 * Sin esto, cada guardado insertaba una fila más: guardar dos veces
+			 * duplicaba la nota, y —lo grave— corregir un 6.00 a 8.00 dejaba al
+			 * estudiante con 7.00, el promedio de las dos. El camino de las
+			 * tareas ya lo resolvía así (`Edu_Submission_Service`).
+			 *
+			 * Se borran SOLO las notas manuales (assignment_id IS NULL). Las que
+			 * vienen de una tarea son de otro origen y varias tareas en un mismo
+			 * componente deben seguir promediándose, que es el modelo.
+			 */
+			$reemplazadas = (int) $wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM $tl WHERE student_id = %d AND component_id = %d AND assignment_id IS NULL",
+					$sid,
+					$cid
+				)
+			);
+
+			if ( $reemplazadas > 0 ) {
+				$replaced += $reemplazadas;
 			}
 
 			$wpdb->insert(
@@ -191,12 +217,16 @@ class Edu_Score_Service {
 					'trimestre_id'    => $trimester_id,
 					'parcial'         => $parcial_num,
 					'notas_guardadas' => $saved,
+					// Cuántas notas manuales previas se reemplazaron. Queda en
+					// la auditoría porque es una eliminación de notas.
+					'notas_sustituidas' => $replaced,
 				)
 			);
 		}
 
 		return array(
 			'saved'        => $saved,
+			'replaced'     => $replaced,
 			'skipped'      => $skipped,
 			'errors'       => $errors,
 			'recalculated' => $recalculated,

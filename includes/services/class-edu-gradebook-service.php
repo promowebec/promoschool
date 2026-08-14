@@ -138,15 +138,42 @@ class Edu_Gradebook_Service {
 			return Edu_Service::not_found( __( 'El estudiante no existe.', 'sistema-educativo' ) );
 		}
 
-		// Y la materia debe ser de su institución y del alcance del docente.
-		$scope = Edu_Service::can_view_grade_subject( $grade_id, $subject_id );
+		// Nivel 2: grado, materia y trimestre de la institución activa.
+		$scope = Edu_Service::check_scope(
+			array(
+				'grade_id'     => $grade_id,
+				'subject_id'   => $subject_id,
+				'trimester_id' => $trimester_id,
+			)
+		);
 		if ( is_wp_error( $scope ) ) {
 			return $scope;
 		}
 
-		$scope = Edu_Service::check_scope( array( 'trimester_id' => $trimester_id ) );
-		if ( is_wp_error( $scope ) ) {
-			return $scope;
+		/*
+		 * Nivel 3, la parte que hay que hilar fino.
+		 *
+		 * No sirve `can_view_grade_subject()`: exige asignación docente, así que
+		 * al estudiante y al representante los rechaza siempre — el desglose les
+		 * respondía "fuera de tu alcance" en todas sus materias.
+		 *
+		 * Quién ve las notas de una materia de ESTE estudiante:
+		 *   · rector y superadmin  → toda su institución;
+		 *   · el propio estudiante → sus materias;
+		 *   · su representante     → las de sus hijos;
+		 *   · el docente           → solo si dicta esa materia en ese grado.
+		 *
+		 * `can_view_student()` ya autorizó al estudiante y al representante; lo
+		 * que falta es acotar al docente, que puede ver al estudiante sin dictar
+		 * la materia por la que pregunta.
+		 */
+		$identity = Edu_Service::identity();
+		$es_suya  = (int) $identity['student_id'] === $student_id
+			|| in_array( $student_id, Edu_Service::own_children_ids(), true );
+
+		if ( ! Edu_Service::sees_whole_institution() && ! $es_suya
+			&& ! Edu_Service::teacher_has_assignment( $subject_id, $grade_id ) ) {
+			return Edu_Service::out_of_scope();
 		}
 
 		$componentes = $wpdb->get_results(
