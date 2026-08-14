@@ -1,8 +1,24 @@
 # INTEGRATION-FLIPBOOK — Contrato con el plugin Flipbook
 
-> Este documento define los puntos de contacto entre PromoSchool y el plugin Flipbook.
-> **Cualquier cambio en las tablas o hooks listados aquí es breaking para Flipbook.**
-> Al modificar `wp_edu_*` revisar este archivo y avisar en el CHANGELOG con sección `Compat`.
+> ## ⚠️ ESTE CONTRATO NO ESTÁ IMPLEMENTADO (verificado el 14 de agosto de 2026)
+>
+> Las **7 funciones públicas de la §3** (`edu_is_active()`, `edu_grades_log_insert()`,
+> `edu_get_student()`, …) y los **7 hooks de la §4** (`edu/grade/registered`,
+> `edu/student/enrolled`, …) **no existen en el código**. Se comprobaron una por una:
+> 0 de 14. El documento describe una API que nunca se escribió.
+>
+> Los hooks reales del plugin son otros y se llaman distinto —`edu_grade_logged`,
+> `edu_partial_closed`, `edu_trimester_closed`…, con guiones bajos— y están listados en
+> `CLAUDE.md`.
+>
+> **Léelo como el diseño previsto, no como el estado actual.** Antes de que Flipbook pueda
+> llamar a nada, hay que construir esa capa pública. Es la deuda técnica #2 de la bitácora.
+>
+> Las secciones §1, §2 y §5 sí describen tablas que existen; el riesgo de romperlas es real.
+
+Este documento define los puntos de contacto entre PromoSchool y el plugin Flipbook.
+**Cualquier cambio en las tablas o hooks listados aquí es breaking para Flipbook.**
+Al modificar `wp_edu_*` revisar este archivo y avisar en el CHANGELOG con sección `Compat`.
 
 ## Principio
 

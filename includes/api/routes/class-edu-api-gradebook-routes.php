@@ -90,6 +90,22 @@ class Edu_Api_Gradebook_Routes {
 				),
 			)
 		);
+
+		// Desglose de las notas que forman cada componente de un parcial.
+		register_rest_route(
+			$ns,
+			'/students/(?P<id>\d+)/component-breakdown',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( __CLASS__, 'component_breakdown' ),
+				'permission_callback' => array( 'Edu_Api', 'require_login' ),
+				'args'                => array(
+					'subject_id'   => array( 'type' => 'integer', 'required' => true, 'sanitize_callback' => 'absint' ),
+					'trimester_id' => array( 'type' => 'integer', 'required' => true, 'sanitize_callback' => 'absint' ),
+					'parcial_num'  => array( 'type' => 'integer', 'required' => true, 'sanitize_callback' => 'absint' ),
+				),
+			)
+		);
 	}
 
 	/* ─── Callbacks ─────────────────────────────────────────────────────── */
@@ -171,6 +187,24 @@ class Edu_Api_Gradebook_Routes {
 
 		return Edu_Api::from_service(
 			Edu_Gradebook_Service::student_scores( (int) $request['id'], (int) $request->get_param( 'period_id' ) )
+		);
+	}
+
+	public static function component_breakdown( WP_REST_Request $request ) {
+		$scope = Edu_Api::resolve_institution( $request );
+		if ( is_wp_error( $scope ) ) {
+			return $scope;
+		}
+
+		return Edu_Api::from_service(
+			Edu_Gradebook_Service::component_breakdown(
+				array(
+					'student_id'   => (int) $request['id'],
+					'subject_id'   => (int) $request->get_param( 'subject_id' ),
+					'trimester_id' => (int) $request->get_param( 'trimester_id' ),
+					'parcial_num'  => (int) $request->get_param( 'parcial_num' ),
+				)
+			)
 		);
 	}
 }

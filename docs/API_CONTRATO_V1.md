@@ -463,6 +463,13 @@ parcial es un resultado legítimo:
 | GET | `/year-scores` | `edu_view_all` \| `edu_view_own_grades` 🔒 | resumen anual |
 | PUT | `/year-scores/{id}/recovery` | `edu_close_partial` | supletorio/remedial/gracia |
 | GET | `/students/{id}/scores` 🔒 | `edu_view_own_grades` \| `edu_view_child_grades` | boleta en JSON |
+| GET | `/students/{id}/component-breakdown` 🔒 | sesión iniciada | de qué está hecha cada nota, ver §8.3 |
+
+**Alcance de `/students/{id}/component-breakdown`.** No basta con una capability: quién puede
+pedirlo depende del vínculo con **ese** estudiante. Rector y superadmin, toda su institución;
+el propio estudiante, sus materias; el representante, las de sus hijos; el docente, solo las
+materias que dicta en ese grado. Cuidado al tocarlo: usar `can_view_grade_subject()` aquí
+rebota al estudiante y al representante, porque ese helper exige asignación docente.
 
 `POST /components` replica la lógica de v1.1.0: peso por defecto **1.00**, y si ya existe un
 componente con el mismo nombre en el mismo `(subject_id, trimester_id, parcial_num)` **no
@@ -668,6 +675,50 @@ Reglas:
 - El recálculo del parcial corre **una sola vez por estudiante** al final del lote, como hoy.
 - La respuesta devuelve el `computed_score` recalculado para que la SPA actualice la columna
   sin volver a pedir el gradebook.
+- **La grilla reemplaza, no acumula.** Tiene un input por componente, así que al guardar se
+  borran las notas manuales previas de esa celda y se inserta la nueva. Las notas que vienen
+  de una tarea (`assignment_id` no nulo) **no se tocan**: varias tareas en un mismo componente
+  se siguen promediando, que es el modelo académico. Antes cada guardado insertaba una fila
+  más, así que corregir un 6.00 a 8.00 dejaba al estudiante con 7.00. La sustitución se audita
+  y se devuelve en `replaced`.
+
+### 8.3 `GET /students/{id}/component-breakdown` — de qué está hecha cada nota
+
+```
+GET /students/77/component-breakdown?subject_id=12&trimester_id=2&parcial_num=1
+```
+
+```json
+{
+  "student_id": 77, "subject_id": 12, "trimester_id": 2, "parcial_num": 1,
+  "components": [
+    {
+      "component_id": 31, "name": "Tareas", "weight": 1.00,
+      "average": 7.83, "count": 3,
+      "entries": [
+        { "id": 551, "score": 8.00, "registered_at": "2026-08-12T10:04:00",
+          "origin": "assignment", "assignment_id": 21,
+          "assignment_title": "Deber de fracciones", "assignment_type": "deber" },
+        { "id": 549, "score": 8.00, "registered_at": "2026-08-05T09:12:00",
+          "origin": "manual", "assignment_id": null,
+          "assignment_title": null, "assignment_type": null }
+      ]
+    }
+  ]
+}
+```
+
+- La celda de un componente es el **promedio** de sus filas de `grades_log`. Sin este endpoint
+  nadie puede explicar de dónde sale ese número, que es justo lo que preguntan los
+  representantes cuando reclaman una nota.
+- `origin` ∈ `assignment` | `manual`. Solo las notas puestas **calificando una entrega** llevan
+  tarea; las escritas en la grilla no tienen ninguna que atribuir, porque la grilla no sabe a
+  qué tarea corresponden.
+- `average` se recalcula sobre las mismas filas que se listan, para que el número y su
+  desglose no puedan discrepar nunca.
+- `count` viaja también en `/gradebook`, como `score_counts`, para que la grilla pueda avisar
+  de cuántas notas hay detrás de cada celda sin pedir el detalle.
+- Solo lectura: no toca el cálculo ni los cierres.
 
 ---
 
