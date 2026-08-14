@@ -7,13 +7,23 @@
  */
 
 import { eduApi } from '@edu/api.js';
-import { store, currentStudent, formatScore } from '@edu/store.js';
+import { store, currentStudent, formatScore, formatDate } from '@edu/store.js';
 
 export const VistaNotas = {
 	data: () => ( {
 		cargando: true,
 		error: null,
 		datos: null,
+
+		/*
+		 * Desglose de un parcial. La celda de un componente es el PROMEDIO de
+		 * sus notas, así que sin esto nadie puede explicar de dónde sale.
+		 * Se pide al abrir y se cachea por materia-trimestre-parcial.
+		 */
+		abierto: null,
+		desgloses: {},
+		cargandoDesglose: false,
+		errorDesglose: null,
 	} ),
 
 	computed: {
@@ -80,6 +90,54 @@ export const VistaNotas = {
 			return ( materia.trimesters || [] ).find( ( t ) => t.number === numero ) || null;
 		},
 
+		claveDesglose( materia, t, parcial ) {
+			return `${ materia.subject_id }-${ t.trimester_id }-${ parcial }`;
+		},
+
+		/** Despliega el desglose de un parcial; segundo clic lo cierra. */
+		async abrirDesglose( materia, t, parcial ) {
+			const clave = this.claveDesglose( materia, t, parcial );
+
+			if ( this.abierto === clave ) {
+				this.abierto = null;
+				return;
+			}
+
+			this.abierto = clave;
+			this.errorDesglose = null;
+
+			if ( this.desgloses[ clave ] ) return; // Ya cacheado.
+
+			this.cargandoDesglose = true;
+
+			try {
+				this.desgloses[ clave ] = await eduApi.get(
+					`/students/${ store.studentId }/component-breakdown`,
+					{
+						subject_id: materia.subject_id,
+						trimester_id: t.trimester_id,
+						parcial_num: parcial,
+					}
+				);
+			} catch ( e ) {
+				// Se deja abierto a propósito: si se cierra, el clic parece no
+				// haber hecho nada y el usuario no sabe que falló.
+				this.errorDesglose = e;
+			} finally {
+				this.cargandoDesglose = false;
+			}
+		},
+
+		componentesDe( clave ) {
+			return this.desgloses[ clave ]?.components || [];
+		},
+
+		origenTexto( entrada ) {
+			return 'assignment' === entrada.origin
+				? entrada.assignment_title || 'Tarea'
+				: 'Nota registrada por el docente';
+		},
+
 		estadoTono( estado ) {
 			return {
 				aprobado: 'ok',
@@ -103,6 +161,7 @@ export const VistaNotas = {
 		},
 
 		formatScore,
+		formatDate,
 	},
 
 	template: `
@@ -183,17 +242,80 @@ export const VistaNotas = {
 						</thead>
 						<tbody>
 							<template v-for="m in materias" :key="m.subject_id">
-								<tr v-for="t in m.trimesters" :key="m.subject_id + '-' + t.trimester_id">
+								<template v-for="t in m.trimesters" :key="m.subject_id + '-' + t.trimester_id">
+								<tr>
 									<td>{{ m.subject_name }}</td>
 									<td>{{ t.number }}</td>
-									<td class="edu-td-num">{{ formatScore(t.parcial1_score) }}</td>
-									<td class="edu-td-num">{{ formatScore(t.parcial2_score) }}</td>
+									<td v-for="p in [1, 2]" :key="p" class="edu-td-num">
+										<button class="edu-enlace edu-celda-parcial"
+										        :class="{ 'is-open': abierto === claveDesglose(m, t, p) }"
+										        @click="abrirDesglose(m, t, p)"
+										        :title="'Ver de dónde sale la nota del parcial ' + p">
+											{{ formatScore(p === 1 ? t.parcial1_score : t.parcial2_score) }}
+											<span class="edu-caret">▸</span>
+										</button>
+									</td>
 									<td class="edu-td-num">{{ formatScore(t.final_exam_score) }}</td>
 									<td v-if="usaProyecto" class="edu-td-num">{{ formatScore(t.proyecto_score) }}</td>
 									<td class="edu-td-num">
 										<edu-nota :score="t.computed_score" :cualitativa="t.cualitativa" />
 									</td>
 								</tr>
+
+								<tr v-for="p in [1, 2]" :key="'d-' + p"
+								    v-show="abierto === claveDesglose(m, t, p)">
+									<td :colspan="usaProyecto ? 7 : 6">
+										<div class="edu-desglose">
+											<h4 class="edu-desglose-titulo">
+												{{ m.subject_name }} · Trimestre {{ t.number }} · Parcial {{ p }}
+											</h4>
+
+											<div v-if="cargandoDesglose && !desgloses[claveDesglose(m, t, p)]"
+											     class="edu-muted edu-small">Cargando desglose…</div>
+
+											<div v-else-if="errorDesglose" class="edu-texto-error edu-small">
+												{{ errorDesglose.message || 'No se pudo cargar el desglose.' }}
+											</div>
+
+											<template v-else>
+												<p v-if="!componentesDe(claveDesglose(m, t, p)).length"
+												   class="edu-muted edu-small">
+													Este parcial todavía no tiene componentes evaluables.
+												</p>
+
+												<div v-for="c in componentesDe(claveDesglose(m, t, p))"
+												     :key="c.component_id" class="edu-desglose-comp">
+													<div class="edu-desglose-cab">
+														<strong>{{ c.name }}</strong>
+														<span class="edu-muted edu-small">peso {{ c.weight }}</span>
+														<span class="edu-desglose-prom">
+															{{ c.average === null ? '—' : formatScore(c.average) }}
+															<span class="edu-muted">({{ c.count }})</span>
+														</span>
+													</div>
+
+													<ul v-if="c.entries.length" class="edu-lista edu-small">
+														<li v-for="e in c.entries" :key="e.id">
+															<span>
+																{{ origenTexto(e) }}
+																<span class="edu-muted"> · {{ formatDate(e.registered_at) }}</span>
+															</span>
+															<strong>{{ formatScore(e.score) }}</strong>
+														</li>
+													</ul>
+													<p v-else class="edu-muted edu-small">Sin notas todavía.</p>
+												</div>
+
+												<p class="edu-nota-formula">
+													La nota de cada componente es el promedio de sus notas. Los
+													componentes sin calificar no cuentan: sus pesos se reparten
+													entre los que sí tienen nota.
+												</p>
+											</template>
+										</div>
+									</td>
+								</tr>
+								</template>
 							</template>
 						</tbody>
 					</table>

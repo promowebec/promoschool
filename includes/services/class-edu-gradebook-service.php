@@ -93,6 +93,144 @@ class Edu_Gradebook_Service {
 	}
 
 	/* ─────────────────────────────────────────────────────────────────────
+	 * Desglose de un componente
+	 * ────────────────────────────────────────────────────────────────── */
+
+	/**
+	 * Desglose de las notas que forman cada componente de un parcial.
+	 *
+	 * La celda de un componente es el PROMEDIO de sus filas de `grades_log`, así
+	 * que sin este detalle nadie puede explicar de dónde sale ese número. Aquí
+	 * se devuelven las filas una a una, con la tarea que las originó cuando la
+	 * hay: las notas escritas desde la grilla dejan `assignment_id` en NULL —
+	 * `Edu_Score_Service` no la rellena— y se marcan como `manual`.
+	 *
+	 * Solo lectura: no toca el cálculo ni los cierres.
+	 *
+	 * @param array $args student_id, subject_id, trimester_id, parcial_num.
+	 * @return array|WP_Error
+	 */
+	public static function component_breakdown( array $args ) {
+		$student_id   = (int) ( $args['student_id'] ?? 0 );
+		$subject_id   = (int) ( $args['subject_id'] ?? 0 );
+		$trimester_id = (int) ( $args['trimester_id'] ?? 0 );
+		$parcial_num  = (int) ( $args['parcial_num'] ?? 0 );
+
+		$valid = Edu_Service::validate_parcial( $parcial_num );
+		if ( is_wp_error( $valid ) ) {
+			return $valid;
+		}
+
+		// Nivel 3: el estudiante debe estar al alcance de quien pregunta.
+		$allowed = Edu_Service::can_view_student( $student_id );
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+
+		global $wpdb;
+		$p = $wpdb->prefix . 'edu_';
+
+		$grade_id = (int) $wpdb->get_var(
+			$wpdb->prepare( "SELECT grade_id FROM {$p}students WHERE id = %d", $student_id )
+		);
+
+		if ( ! $grade_id ) {
+			return Edu_Service::not_found( __( 'El estudiante no existe.', 'sistema-educativo' ) );
+		}
+
+		// Y la materia debe ser de su institución y del alcance del docente.
+		$scope = Edu_Service::can_view_grade_subject( $grade_id, $subject_id );
+		if ( is_wp_error( $scope ) ) {
+			return $scope;
+		}
+
+		$scope = Edu_Service::check_scope( array( 'trimester_id' => $trimester_id ) );
+		if ( is_wp_error( $scope ) ) {
+			return $scope;
+		}
+
+		$componentes = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, name, weight
+				 FROM {$p}grade_components
+				 WHERE subject_id = %d AND trimester_id = %d AND parcial_num = %d
+				 ORDER BY id",
+				$subject_id,
+				$trimester_id,
+				$parcial_num
+			)
+		);
+
+		if ( empty( $componentes ) ) {
+			return array(
+				'student_id'   => $student_id,
+				'subject_id'   => $subject_id,
+				'trimester_id' => $trimester_id,
+				'parcial_num'  => $parcial_num,
+				'components'   => array(),
+			);
+		}
+
+		$cid_in = implode( ',', array_map( 'intval', wp_list_pluck( $componentes, 'id' ) ) );
+
+		// Una sola consulta para todas las notas del parcial. El LEFT JOIN deja
+		// pasar las filas sin tarea en vez de descartarlas.
+		$notas = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT gl.id, gl.component_id, gl.score, gl.registered_at,
+				        gl.assignment_id, a.title AS assignment_title, a.type AS assignment_type
+				 FROM {$p}grades_log gl
+				 LEFT JOIN {$p}assignments a ON a.id = gl.assignment_id
+				 WHERE gl.student_id = %d AND gl.component_id IN ($cid_in)
+				 ORDER BY gl.registered_at DESC, gl.id DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- IDs pasados por intval arriba.
+				$student_id
+			)
+		);
+
+		$por_componente = array();
+		foreach ( (array) $notas as $n ) {
+			$por_componente[ (int) $n->component_id ][] = array(
+				'id'               => (int) $n->id,
+				'score'            => Edu_Api::decimal( $n->score ),
+				'registered_at'    => Edu_Api::date( $n->registered_at ),
+				'origin'           => $n->assignment_id ? 'assignment' : 'manual',
+				'assignment_id'    => $n->assignment_id ? (int) $n->assignment_id : null,
+				'assignment_title' => $n->assignment_title,
+				'assignment_type'  => $n->assignment_type,
+			);
+		}
+
+		$salida = array();
+		foreach ( (array) $componentes as $c ) {
+			$entradas = $por_componente[ (int) $c->id ] ?? array();
+			$suma     = 0.0;
+
+			foreach ( $entradas as $e ) {
+				$suma += (float) $e['score'];
+			}
+
+			$salida[] = array(
+				'component_id' => (int) $c->id,
+				'name'         => $c->name,
+				'weight'       => Edu_Api::decimal( $c->weight ),
+				'count'        => count( $entradas ),
+				// El promedio se recalcula aquí sobre las mismas filas que se
+				// listan, para que el número y su desglose no puedan discrepar.
+				'average'      => $entradas ? Edu_Api::decimal( round( $suma / count( $entradas ), 2 ) ) : null,
+				'entries'      => $entradas,
+			);
+		}
+
+		return array(
+			'student_id'   => $student_id,
+			'subject_id'   => $subject_id,
+			'trimester_id' => $trimester_id,
+			'parcial_num'  => $parcial_num,
+			'components'   => $salida,
+		);
+	}
+
+	/* ─────────────────────────────────────────────────────────────────────
 	 * Matriz de notas
 	 * ────────────────────────────────────────────────────────────────── */
 
@@ -142,12 +280,15 @@ class Edu_Gradebook_Service {
 
 		// Notas promediadas por (estudiante, componente).
 		$scores_map = array();
+		$counts_map = array();
 		if ( ! empty( $students ) && ! empty( $component_ids ) ) {
 			$sid_in = implode( ',', array_map( 'intval', wp_list_pluck( $students, 'student_id' ) ) );
 			$cid_in = implode( ',', array_map( 'intval', $component_ids ) );
 
+			// El COUNT viaja junto al promedio para que la grilla pueda avisar de
+			// cuántas notas hay detrás de cada celda sin una segunda consulta.
 			$rows = $wpdb->get_results(
-				"SELECT student_id, component_id, AVG(score) AS score
+				"SELECT student_id, component_id, AVG(score) AS score, COUNT(*) AS n
 				 FROM {$p}grades_log
 				 WHERE student_id IN ($sid_in) AND component_id IN ($cid_in)
 				 GROUP BY student_id, component_id" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -155,6 +296,7 @@ class Edu_Gradebook_Service {
 
 			foreach ( (array) $rows as $row ) {
 				$scores_map[ (int) $row->student_id ][ (int) $row->component_id ] = round( (float) $row->score, 2 );
+				$counts_map[ (int) $row->student_id ][ (int) $row->component_id ] = (int) $row->n;
 			}
 		}
 
@@ -185,11 +327,13 @@ class Edu_Gradebook_Service {
 		foreach ( $students as $student ) {
 			$sid = $student['student_id'];
 
-			$cells = array();
+			$cells  = array();
+			$counts = array();
 			foreach ( $component_ids as $cid ) {
 				// null = sin calificar. El cálculo lo excluye y renormaliza;
 				// no es lo mismo que un cero.
-				$cells[ (string) $cid ] = $scores_map[ $sid ][ $cid ] ?? null;
+				$cells[ (string) $cid ]  = $scores_map[ $sid ][ $cid ] ?? null;
+				$counts[ (string) $cid ] = $counts_map[ $sid ][ $cid ] ?? 0;
 			}
 
 			$row       = $parcial_map[ $sid ] ?? null;
@@ -205,6 +349,7 @@ class Edu_Gradebook_Service {
 				'nombres'        => $student['nombres'],
 				'apellidos'      => $student['apellidos'],
 				'scores'         => $cells,
+				'score_counts'   => $counts,
 				'computed_score' => $computed,
 				'cualitativa'    => self::cualitativa( $computed ),
 				'is_closed'      => $is_closed,

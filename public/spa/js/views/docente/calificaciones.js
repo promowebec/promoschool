@@ -12,7 +12,7 @@
  */
 
 import { eduApi } from '@edu/api.js';
-import { formatScore } from '@edu/store.js';
+import { formatScore, formatDate } from '@edu/store.js';
 import { EduSelectorCurso } from '@edu/views/docente/selector.js';
 
 export const VistaDocenteCalificaciones = {
@@ -31,6 +31,16 @@ export const VistaDocenteCalificaciones = {
 		resultado: null,
 		nuevoComponente: '',
 		creando: false,
+
+		/*
+		 * Desglose de una celda. La nota que se ve es el PROMEDIO de todas las
+		 * notas de ese componente, así que antes de cerrar un parcial conviene
+		 * poder ver de qué está hecha.
+		 */
+		celdaAbierta: null,
+		desgloseCelda: null,
+		cargandoCelda: false,
+		errorCelda: null,
 	} ),
 
 	computed: {
@@ -85,6 +95,50 @@ export const VistaDocenteCalificaciones = {
 
 		clave( studentId, componentId ) {
 			return studentId + ':' + componentId;
+		},
+
+		/** Cuántas notas hay detrás de una celda. */
+		cuantas( estudiante, componenteId ) {
+			return estudiante.score_counts?.[ String( componenteId ) ] || 0;
+		},
+
+		/** Despliega el desglose de una celda; segundo clic lo cierra. */
+		async abrirCelda( estudiante, componenteId ) {
+			const k = this.clave( estudiante.student_id, componenteId );
+
+			if ( this.celdaAbierta === k ) {
+				this.celdaAbierta = null;
+				return;
+			}
+
+			this.celdaAbierta = k;
+			this.desgloseCelda = null;
+			this.errorCelda = null;
+			this.cargandoCelda = true;
+
+			try {
+				const r = await eduApi.get(
+					`/students/${ estudiante.student_id }/component-breakdown`,
+					{
+						subject_id: this.curso.subject_id,
+						trimester_id: this.curso.trimester_id,
+						parcial_num: this.curso.parcial_num,
+					}
+				);
+
+				this.desgloseCelda =
+					( r.components || [] ).find( ( c ) => c.component_id === Number( componenteId ) ) || null;
+			} catch ( e ) {
+				this.errorCelda = e;
+			} finally {
+				this.cargandoCelda = false;
+			}
+		},
+
+		origenTexto( entrada ) {
+			return 'assignment' === entrada.origin
+				? entrada.assignment_title || 'Tarea'
+				: 'Nota registrada a mano';
 		},
 
 		/** Valor a mostrar: lo editado si existe, si no lo guardado. */
@@ -181,6 +235,7 @@ export const VistaDocenteCalificaciones = {
 		},
 
 		formatScore,
+		formatDate,
 	},
 
 	template: `
@@ -219,8 +274,8 @@ export const VistaDocenteCalificaciones = {
 							</tr>
 						</thead>
 						<tbody>
-							<tr v-for="e in estudiantes" :key="e.student_id"
-							    :class="{ 'edu-fila-cerrada': e.is_closed }">
+							<template v-for="e in estudiantes" :key="e.student_id">
+							<tr :class="{ 'edu-fila-cerrada': e.is_closed }">
 								<td class="edu-col-alumno">
 									{{ e.apellidos }} {{ e.nombres }}
 									<span v-if="e.is_closed" class="edu-muted edu-small"> · cerrado</span>
@@ -232,11 +287,52 @@ export const VistaDocenteCalificaciones = {
 									       :disabled="e.is_closed || cerrado"
 									       :value="valor(e, c.id)"
 									       @input="editar(e, c.id, $event)">
+									<button v-if="cuantas(e, c.id)"
+									        class="edu-enlace edu-conteo-celda"
+									        :class="{ 'is-open': celdaAbierta === clave(e.student_id, c.id) }"
+									        @click="abrirCelda(e, c.id)"
+									        :title="'Ver las ' + cuantas(e, c.id) + ' nota(s) que promedian esta celda'">
+										{{ cuantas(e, c.id) }} nota<span v-if="cuantas(e, c.id) > 1">s</span>
+									</button>
 								</td>
 								<td class="edu-td-num">
 									<edu-nota :score="e.computed_score" :cualitativa="e.cualitativa" />
 								</td>
 							</tr>
+
+							<tr v-if="celdaAbierta && celdaAbierta.startsWith(e.student_id + ':')">
+								<td :colspan="componentes.length + 2">
+									<div class="edu-desglose">
+										<div v-if="cargandoCelda" class="edu-muted edu-small">Cargando desglose…</div>
+										<div v-else-if="errorCelda" class="edu-texto-error edu-small">
+											{{ errorCelda.message || 'No se pudo cargar el desglose.' }}
+										</div>
+										<template v-else-if="desgloseCelda">
+											<h4 class="edu-desglose-titulo">
+												{{ e.apellidos }} {{ e.nombres }} · {{ desgloseCelda.name }}
+											</h4>
+											<div class="edu-desglose-comp">
+												<div class="edu-desglose-cab">
+													<span class="edu-muted edu-small">peso {{ formatScore(desgloseCelda.weight) }}</span>
+													<span class="edu-desglose-prom">
+														{{ desgloseCelda.average === null ? '—' : formatScore(desgloseCelda.average) }}
+														<span class="edu-muted">({{ desgloseCelda.count }})</span>
+													</span>
+												</div>
+												<ul class="edu-lista edu-small">
+													<li v-for="x in desgloseCelda.entries" :key="x.id">
+														<span>{{ origenTexto(x) }}
+															<span class="edu-muted"> · {{ formatDate(x.registered_at) }}</span>
+														</span>
+														<strong>{{ formatScore(x.score) }}</strong>
+													</li>
+												</ul>
+											</div>
+										</template>
+									</div>
+								</td>
+							</tr>
+							</template>
 						</tbody>
 					</table>
 				</div>

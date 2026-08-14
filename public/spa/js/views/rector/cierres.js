@@ -8,7 +8,7 @@
  */
 
 import { eduApi } from '@edu/api.js';
-import { store } from '@edu/store.js';
+import { store, formatDate } from '@edu/store.js';
 
 export const VistaRectorCierres = {
 	data: () => ( {
@@ -29,6 +29,16 @@ export const VistaRectorCierres = {
 
 		/** Acción esperando confirmación. */
 		confirmando: null,
+
+		/*
+		 * Desglose de un parcial de un estudiante. Cerrar es irreversible sin
+		 * auditoría, así que conviene poder ver de qué está hecha cada nota
+		 * antes de hacerlo.
+		 */
+		desgloseAbierto: null,
+		desglose: null,
+		cargandoDesglose: false,
+		errorDesglose: null,
 	} ),
 
 	computed: {
@@ -110,6 +120,45 @@ export const VistaRectorCierres = {
 		estudiantes( n ) {
 			return this.parciales[ n ]?.students || [];
 		},
+
+		claveDesglose( studentId, parcial ) {
+			return studentId + ':' + parcial;
+		},
+
+		/** Despliega el desglose de un parcial de un estudiante. */
+		async abrirDesglose( studentId, parcial ) {
+			const k = this.claveDesglose( studentId, parcial );
+
+			if ( this.desgloseAbierto === k ) {
+				this.desgloseAbierto = null;
+				return;
+			}
+
+			this.desgloseAbierto = k;
+			this.desglose = null;
+			this.errorDesglose = null;
+			this.cargandoDesglose = true;
+
+			try {
+				this.desglose = await eduApi.get( `/students/${ studentId }/component-breakdown`, {
+					subject_id: this.subjectId,
+					trimester_id: this.trimesterId,
+					parcial_num: parcial,
+				} );
+			} catch ( e ) {
+				this.errorDesglose = e;
+			} finally {
+				this.cargandoDesglose = false;
+			}
+		},
+
+		origenTexto( entrada ) {
+			return 'assignment' === entrada.origin
+				? entrada.assignment_title || 'Tarea'
+				: 'Nota registrada a mano';
+		},
+
+		formatDate,
 
 		cerrados( n ) {
 			return this.estudiantes( n ).filter( ( e ) => e.is_closed ).length;
@@ -292,10 +341,18 @@ export const VistaRectorCierres = {
 							</tr>
 						</thead>
 						<tbody>
-							<tr v-for="i in trimestre.items" :key="i.student_id">
+							<template v-for="i in trimestre.items" :key="i.student_id">
+							<tr>
 								<td class="edu-col-alumno">{{ i.apellidos }} {{ i.nombres }}</td>
-								<td class="edu-td-num">{{ i.parcial1_score ?? '—' }}</td>
-								<td class="edu-td-num">{{ i.parcial2_score ?? '—' }}</td>
+								<td v-for="p in [1, 2]" :key="p" class="edu-td-num">
+									<button class="edu-enlace edu-celda-parcial"
+									        :class="{ 'is-open': desgloseAbierto === claveDesglose(i.student_id, p) }"
+									        @click="abrirDesglose(i.student_id, p)"
+									        :title="'Ver de dónde sale la nota del parcial ' + p">
+										{{ (p === 1 ? i.parcial1_score : i.parcial2_score) ?? '—' }}
+										<span class="edu-caret">▸</span>
+									</button>
+								</td>
 								<td class="edu-td-num">{{ i.final_exam_score ?? '—' }}</td>
 								<td class="edu-td-num">
 									<edu-nota :score="i.computed_score" :cualitativa="i.cualitativa" />
@@ -305,6 +362,46 @@ export const VistaRectorCierres = {
 									           :tono="i.is_closed ? 'ok' : 'neutro'" />
 								</td>
 							</tr>
+
+							<tr v-if="desgloseAbierto && desgloseAbierto.startsWith(i.student_id + ':')">
+								<td colspan="6">
+									<div class="edu-desglose">
+										<div v-if="cargandoDesglose" class="edu-muted edu-small">Cargando desglose…</div>
+										<div v-else-if="errorDesglose" class="edu-texto-error edu-small">
+											{{ errorDesglose.message || 'No se pudo cargar el desglose.' }}
+										</div>
+										<template v-else-if="desglose">
+											<h4 class="edu-desglose-titulo">
+												{{ i.apellidos }} {{ i.nombres }} · Parcial {{ desglose.parcial_num }}
+											</h4>
+											<p v-if="!desglose.components.length" class="edu-muted edu-small">
+												Este parcial no tiene componentes evaluables.
+											</p>
+											<div v-for="c in desglose.components" :key="c.component_id"
+											     class="edu-desglose-comp">
+												<div class="edu-desglose-cab">
+													<strong>{{ c.name }}</strong>
+													<span class="edu-muted edu-small">peso {{ c.weight }}</span>
+													<span class="edu-desglose-prom">
+														{{ c.average === null ? '—' : c.average }}
+														<span class="edu-muted">({{ c.count }})</span>
+													</span>
+												</div>
+												<ul v-if="c.entries.length" class="edu-lista edu-small">
+													<li v-for="x in c.entries" :key="x.id">
+														<span>{{ origenTexto(x) }}
+															<span class="edu-muted"> · {{ formatDate(x.registered_at) }}</span>
+														</span>
+														<strong>{{ x.score }}</strong>
+													</li>
+												</ul>
+												<p v-else class="edu-muted edu-small">Sin notas todavía.</p>
+											</div>
+										</template>
+									</div>
+								</td>
+							</tr>
+							</template>
 						</tbody>
 					</table>
 				</div>
