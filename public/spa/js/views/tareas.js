@@ -3,7 +3,7 @@
  */
 
 import { eduApi } from '@edu/api.js';
-import { store, currentStudent, formatDate, formatScore } from '@edu/store.js';
+import { store, currentStudent, isParent, formatDate, formatScore } from '@edu/store.js';
 
 export const VistaTareas = {
 	data: () => ( {
@@ -17,11 +17,27 @@ export const VistaTareas = {
 		abierta: null,
 		detalle: null,
 		bajando: null,
+
+		/* Formulario de entrega. Se reinicia al abrir otra tarea. */
+		comentario: '',
+		archivos: [],
+		enviando: false,
+		errorEntrega: null,
+		entregada: false,
 	} ),
 
 	computed: {
 		estudiante() {
 			return currentStudent.value;
+		},
+
+		/**
+		 * El representante ve las tareas de su hijo pero no entrega por él: la
+		 * capability `edu_submit_assignment` es solo del estudiante y el
+		 * servidor rechazaría la llamada igual.
+		 */
+		esPadre() {
+			return isParent.value;
 		},
 
 		visibles() {
@@ -118,11 +134,94 @@ export const VistaTareas = {
 
 			this.abierta = tarea.id;
 			this.detalle = null;
+			this.limpiarFormulario();
 
 			try {
 				this.detalle = await eduApi.get( `/assignments/${ tarea.id }` );
 			} catch ( e ) {
 				this.detalle = { files: [] };
+			}
+		},
+
+		limpiarFormulario() {
+			this.comentario = '';
+			this.archivos = [];
+			this.errorEntrega = null;
+			this.entregada = false;
+		},
+
+		/** La entrega propia de esta tarea, si ya existe. */
+		miEntrega( tarea ) {
+			return this.entregas[ tarea.id ] || null;
+		},
+
+		/**
+		 * Se puede entregar mientras la tarea siga publicada y la entrega no
+		 * esté calificada. Vencida no bloquea: el servidor la marca `late`,
+		 * que es justo lo que espera el docente.
+		 */
+		puedeEntregar( tarea ) {
+			if ( this.esPadre ) return false;
+			if ( 'published' !== tarea.status ) return false;
+
+			return 'graded' !== this.miEntrega( tarea )?.status;
+		},
+
+		elegirArchivos( evento ) {
+			this.archivos = Array.from( evento.target.files || [] );
+		},
+
+		quitarArchivo( indice ) {
+			this.archivos.splice( indice, 1 );
+		},
+
+		async entregar( tarea ) {
+			if ( this.enviando ) return;
+
+			if ( ! this.archivos.length && ! this.comentario.trim() ) {
+				this.errorEntrega = { message: 'Adjunta un archivo o escribe un comentario antes de entregar.' };
+				return;
+			}
+
+			this.enviando = true;
+			this.errorEntrega = null;
+			this.entregada = false;
+
+			try {
+				await eduApi.postForm(
+					`/assignments/${ tarea.id }/submissions`,
+					{ comment: this.comentario },
+					this.archivos
+				);
+
+				// Releer solo esta tarea: recarga completa sería tirar el listado entero.
+				const lista = await eduApi.get( `/assignments/${ tarea.id }/submissions` ).catch( () => [] );
+				const mia = ( lista || [] ).find( ( s ) => s.student_id === store.studentId );
+				if ( mia ) this.entregas[ tarea.id ] = mia;
+
+				this.comentario = '';
+				this.archivos = [];
+				if ( this.$refs.archivoInput ) this.$refs.archivoInput.value = '';
+				this.entregada = true;
+			} catch ( e ) {
+				this.errorEntrega = e;
+			} finally {
+				this.enviando = false;
+			}
+		},
+
+		async descargarEntrega( archivo ) {
+			if ( this.bajando ) return;
+
+			this.bajando = archivo.id;
+			this.errorEntrega = null;
+
+			try {
+				await eduApi.abrirAdjunto( archivo.id, 'submission' );
+			} catch ( e ) {
+				this.errorEntrega = e;
+			} finally {
+				this.bajando = null;
 			}
 		},
 
@@ -234,6 +333,92 @@ export const VistaTareas = {
 											<p v-else class="edu-muted edu-small">
 												Esta tarea no trae material adjunto.
 											</p>
+
+											<div class="edu-entrega" @click.stop>
+												<h4 class="edu-entrega-titulo">Mi entrega</h4>
+
+												<div v-if="miEntrega(t)" class="edu-entrega-actual">
+													<p class="edu-small">
+														<edu-badge :texto="estadoDe(t).texto" :tono="estadoDe(t).tono" />
+														<span class="edu-muted">
+															Enviada el {{ formatDate(miEntrega(t).submitted_at, true) }}
+														</span>
+													</p>
+													<p v-if="miEntrega(t).comment" class="edu-detalle-tarea">
+														{{ miEntrega(t).comment }}
+													</p>
+													<div v-if="miEntrega(t).files && miEntrega(t).files.length"
+													     class="edu-acciones-archivos">
+														<button v-for="a in miEntrega(t).files" :key="a.id"
+														        class="edu-btn edu-btn-archivo"
+														        :disabled="bajando === a.id"
+														        @click.stop="descargarEntrega(a)">
+															📎 {{ a.file_name }} · {{ pesoLegible(a.file_size) }}
+														</button>
+													</div>
+												</div>
+												<p v-else-if="!esPadre" class="edu-muted edu-small">
+													Todavía no has entregado esta tarea.
+												</p>
+												<p v-else class="edu-muted edu-small">
+													Tu representado todavía no ha entregado esta tarea.
+												</p>
+
+												<div v-if="miEntrega(t)?.status === 'graded'" class="edu-aviso edu-aviso-ok">
+													Esta entrega ya fue calificada y no admite cambios.
+												</div>
+
+												<form v-else-if="puedeEntregar(t)" class="edu-form edu-entrega-form"
+												      @submit.prevent="entregar(t)">
+													<p v-if="vencida(t)" class="edu-aviso edu-aviso-parcial">
+														La fecha de entrega ya pasó. Tu entrega quedará marcada
+														como <strong>atrasada</strong>.
+													</p>
+
+													<label>
+														<span>Comentario para el docente</span>
+														<textarea class="edu-input" rows="3"
+														          v-model="comentario"
+														          placeholder="Opcional"></textarea>
+													</label>
+
+													<label>
+														<span>Archivos</span>
+														<input class="edu-input" type="file" multiple
+														       ref="archivoInput"
+														       @change="elegirArchivos">
+													</label>
+
+													<ul v-if="archivos.length" class="edu-lista edu-small">
+														<li v-for="(a, i) in archivos" :key="a.name + i">
+															📎 {{ a.name }} · {{ pesoLegible(a.size) }}
+															<button type="button" class="edu-enlace"
+															        @click="quitarArchivo(i)">quitar</button>
+														</li>
+													</ul>
+
+													<div v-if="errorEntrega" class="edu-texto-error edu-small">
+														{{ errorEntrega.message || 'No se pudo enviar la entrega.' }}
+													</div>
+													<div v-if="entregada" class="edu-aviso edu-aviso-ok">
+														Entrega enviada correctamente.
+													</div>
+
+													<div class="edu-acciones">
+														<button type="submit" class="edu-btn edu-btn-primary"
+														        :disabled="enviando">
+															{{ enviando
+																? 'Enviando…'
+																: ( miEntrega(t) ? 'Reemplazar entrega' : 'Entregar tarea' ) }}
+														</button>
+													</div>
+												</form>
+
+												<p v-else-if="!esPadre && t.status !== 'published'"
+												   class="edu-muted edu-small">
+													La tarea está cerrada y ya no admite entregas.
+												</p>
+											</div>
 										</template>
 									</td>
 								</tr>

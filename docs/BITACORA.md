@@ -6,7 +6,7 @@ Documento vivo: agregar una entrada nueva por cada fase o cambio relevante.
 - **Plugin:** Sistema Educativo Integral
 - **Versión actual:** 1.9.0 (`EDU_VERSION`); esquema en 1.0.9 (`EDU_DB_VERSION`)
 - **Stack:** WordPress 6.x · PHP 8.2+ · MySQL 8 / MariaDB 10.6+ · mPDF · sin dependencias JS de build
-- **Última actualización de esta bitácora:** 13 de agosto de 2026
+- **Última actualización de esta bitácora:** 14 de agosto de 2026
 
 ---
 
@@ -151,6 +151,85 @@ Vista de supervisión para el rector: por asignación académica muestra compone
 ---
 
 ## 2.bis · Entradas de bitácora
+
+### 2026-08-14 — Entrega de tareas en la app del estudiante
+
+**Qué se hizo.** La vista de tareas del estudiante en la SPA era **solo de lectura**: listaba
+tareas, mostraba el estado y descargaba el material del docente, pero **no tenía forma de
+entregar**. No era un bug: la interfaz nunca se construyó. El endpoint
+`POST /assignments/{id}/submissions` existía y funcionaba desde la Fase 1, sin nadie que lo
+llamara.
+
+Se añadió el bloque "Mi entrega" dentro de la fila desplegada de cada tarea:
+- Muestra la entrega existente —estado, fecha, comentario y adjuntos descargables— o avisa de
+  que todavía no hay ninguna.
+- Formulario con comentario y archivos múltiples, que envía por `eduApi.postForm()`.
+- Reenviar reemplaza la entrega anterior; el botón cambia a "Reemplazar entrega".
+- Si la entrega ya fue calificada, el formulario desaparece y se explica por qué (el servicio
+  devuelve `already_graded` 409).
+- Si la tarea está cerrada, tampoco se ofrece.
+- Entregar fuera de plazo **sí se permite**, avisando que quedará marcada como atrasada: es el
+  servidor quien decide el estado `late`, y es lo que el docente espera ver.
+- El **representante no entrega por su hijo**: la vista es compartida entre estudiante y
+  padre, y `edu_submit_assignment` es capability solo del estudiante. Se oculta en la interfaz
+  además de estar cerrado en el servidor.
+
+**Archivos tocados.** `public/spa/js/views/tareas.js`, `public/spa/css/app.css`.
+
+**Cambios de esquema.** Ninguno.
+
+**Verificación.** Se escribió un arnés que compila **las 17 plantillas** de la SPA con el mismo
+`vue.global.prod.js` que se sirve en producción: 17 compilan, 0 errores. Vale la pena anotar
+cómo, porque costó tres intentos: el build declara `var Vue` dentro de un IIFE (hay que
+evaluarlo y exponerlo en el global, porque el código de render generado resuelve `Vue` ahí), y
+Vue decodifica entidades HTML de los atributos usando el DOM real — se dispara con cualquier
+`&`, y las plantillas usan `&&` en las expresiones constantemente, así que el stub de
+`document` tiene que devolver valores de verdad.
+
+**Riesgos / notas de despliegue.** Solo dos archivos, ambos estáticos. Se suben sobrescribiendo
+y el navegador los recoge en la siguiente carga (el import map versiona por `EDU_VERSION`, así
+que conviene subir la versión si se quiere forzar el refresco).
+
+### 2026-08-13 — Desplegado en producción y publicado (v1.9.0)
+
+**Qué se hizo.** Se subió la v1.9.0 a producción (`online.giro22.com.ec`) y se publicó el
+repositorio: PR #1 mergeado a `main`, tag `v1.9.0` y GitHub Release con el ZIP de distribución
+(47.359.273 bytes) como asset.
+
+**La sorpresa: producción venía de la 1.0.0, no de la 1.4.0.** El repositorio no tiene ese
+código, así que **no se pudo calcular un parche por diff** y hubo que subir el árbol completo.
+
+**El actualizador de wp-admin no sirve en este servidor.** `Plugins → Subir plugin → Reemplazar`
+falla con "algunos archivos no se han podido copiar", listando los `*.pack` de las carpetas
+`.git` que hay dentro de `vendor/` —la misma herencia de `composer install --prefer-source` que
+había en el repo—. Git los deja en solo lectura y el usuario del servidor web no puede ni
+hacerles `chmod`. El fallo es **inocuo**: la comprobación de escritura de
+`WP_Upgrader::clear_destination()` corre *antes* de borrar nada, así que el sitio quedó intacto.
+
+**Método que funcionó:** FileZilla en modo **binario** (el modo Auto corrompe los `.ttf` de
+mPDF), subiendo todo menos `sistema-educativo.php`, y ese archivo **de último** porque contiene
+los `require_once` de los archivos nuevos. **Solo sobrescribir, nunca borrar.** `vendor/` no se
+subió: su contenido no cambia entre versiones y se validó generando un boletín.
+
+**Trampa de Windows al preparar el paquete:** descomprimir el ZIP con el Explorador en una ruta
+profunda **pierde archivos en silencio** — en una prueba se perdieron 549 de 1241, medio mPDF
+incluido, por el límite de 260 caracteres. El ZIP se genera con `git archive` y se extrae en
+ruta corta, verificando el conteo.
+
+**Cambios de esquema.** Ninguno que aplicar a mano: `Edu_Activator::maybe_migrate()` corre en
+cada carga y se auto-controla por `edu_db_version`, así que el salto 1.0.0 → 1.9.0 aplicó
+`dbDelta()` y las migraciones incrementales solo. **No hizo falta desactivar y reactivar.**
+
+**Verificado en producción:** `readme.txt` sirve `Stable tag: 1.9.0`; `public/spa/js/app.js` y
+`vue.global.prod.js` responden 200; `/wp-json/edu/v1` responde 200. Confirmado por el usuario:
+**pagos, tareas y boletines funcionan**.
+
+**Pendientes que deja abiertos.**
+1. **Borrar las 8 carpetas `.git` de `vendor/` en el servidor** (~106 MB). Mientras sigan ahí,
+   toda actualización desde wp-admin va a fallar igual.
+2. Los 21 escenarios de adaptadores siguen sin correrse como suite. Lo que sí se comprobó:
+   los 72 handlers `admin_post_*` resuelven a métodos existentes y los 102 PHP pasan `php -l`.
+3. No hay auto-updater: WordPress no ofrece la actualización solo.
 
 ### 2026-08-13 — Repositorio publicable y preparación del despliegue (v1.9.0)
 

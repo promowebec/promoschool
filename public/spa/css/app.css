@@ -231,9 +231,26 @@
 }
 
 /* ── Responsive ──────────────────────────────────────────── */
+/* ── Entrega del estudiante ───────────────────────────────── */
+.edu-entrega {
+	margin-top: 16px; padding-top: 14px; border-top: 1px dashed #e2e8f0;
+}
+.edu-entrega-titulo {
+	margin: 0 0 10px; font-size: 11px; font-weight: 700; color: #94a3b8;
+	text-transform: uppercase; letter-spacing: .05em;
+}
+.edu-entrega-actual { margin-bottom: 14px; }
+.edu-entrega-actual .edu-badge { margin-right: 8px; }
+.edu-entrega-form { max-width: 520px; }
+/* El selector de archivos no lleva el borde de caja de los inputs de texto. */
+.edu-entrega-form input[type="file"] {
+	border: 0; padding: 6px 0; font-size: 13px;
+}
+
 @media (max-width: 860px) {
 	.edu-layout { flex-direction: column; }
 	.edu-sidebar { width: 100%; }
 	.edu-sidenav { flex-direction: row; flex-wrap: wrap; }
 	.edu-stats-row { grid-template-columns: repeat(2, 1fr); }
+	.edu-entrega-form { max-width: none; }
 }
