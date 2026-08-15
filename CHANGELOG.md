@@ -21,6 +21,25 @@ _(Sin cambios pendientes de tag.)_
 
 ---
 
+## [1.10.1] — 2026-08-14
+
+### Fixed
+- **`tools/limpiar-notas-duplicadas.php` habría borrado notas reales.** Conservaba
+  "la fila más reciente" de cada celda. En un entorno de prueba todos los duplicados
+  eran idénticos y parecía inofensivo, pero en producción apareció el patrón
+  «12 filas, 6 valores distintos»: no es un docente corrigiendo doce veces, son seis
+  notas legítimas duplicadas. Quedarse con la última habría llevado a un estudiante
+  de **6.75 a 0.00**, y a otro de 7.80 a 3.00.
+
+  Ahora borra **solo copias exactas** —una fila de cada valor— y **únicamente cuando
+  el promedio de la celda no cambia**. Colapsar `(6,6,7,7)` a `(6,7)` conserva el 6.5;
+  a `(7)` no. Toda celda cuyo promedio se movería se omite y se reporta para revisarla
+  a mano con el desglose de la app.
+- Nuevo `--detalle`: vuelca fila a fila las celdas omitidas, que es lo que permite
+  distinguir varias notas legítimas duplicadas de una nota corregida.
+
+---
+
 ## [1.10.0] — 2026-08-14
 
 Sin migración de base de datos: `EDU_DB_VERSION` sigue en 1.0.9.
