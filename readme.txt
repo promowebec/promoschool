@@ -4,7 +4,7 @@ Tags: education, gradebook, students, teachers, school, ecuador
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.2
-Stable tag: 1.10.0
+Stable tag: 1.10.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,10 @@ El catálogo Mineduc se precarga, pero cada institución puede registrar materia
 
 == Changelog ==
 
+= 1.10.1 =
+* Corregido `tools/limpiar-notas-duplicadas.php`: conservaba la fila más reciente de cada celda y eso habría borrado notas reales. Ahora borra solo copias exactas y únicamente cuando el promedio de la celda no cambia; las demás se reportan para revisarlas a mano.
+* Nueva opción `--detalle` para ver fila a fila las celdas que no se tocan.
+
 = 1.10.0 =
 * Entrega de tareas desde la app del estudiante: comentario y archivos, con reemplazo de la entrega anterior.
 * Desglose de las notas que forman cada componente, en las notas del estudiante y representante, la grilla del docente y la tabla de cierres del rector.
@@ -74,6 +78,9 @@ El catálogo Mineduc se precarga, pero cada institución puede registrar materia
 * Fase 0: scaffolding del plugin — esquema de 28 tablas, catálogo Mineduc precargado, 4 roles personalizados, sistema de hooks centralizado.
 
 == Upgrade Notice ==
+
+= 1.10.1 =
+Corrige el script de limpieza de notas duplicadas, que en su versión anterior podía borrar calificaciones legítimas. Si ya ejecutaste `--aplicar` con la 1.10.0, revisa las notas afectadas.
 
 = 1.10.0 =
 Sin migración de base de datos. Corrige un fallo por el que corregir una nota en la grilla la promediaba con la equivocada en vez de reemplazarla. Tras actualizar, ejecuta `php tools/limpiar-notas-duplicadas.php` (simula) para ver si tu base tiene notas duplicadas de antes.
