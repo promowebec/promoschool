@@ -21,6 +21,38 @@ _(Sin cambios pendientes de tag.)_
 
 ---
 
+## [1.11.0] — 2026-08-14
+
+Reglas de integridad sobre entregas y calificaciones. **Cambia comportamiento**:
+lo que antes se podía repetir, ahora no.
+
+Principio de fondo: **una nota con respaldo no se sustituye por una sin respaldo.**
+La nota que sale de calificar una entrega se apoya en el archivo que subió el
+estudiante; una tecleada en la grilla no se apoya en nada.
+
+### Changed
+- **El estudiante entrega una sola vez.** Antes podía reenviar mientras la tarea
+  no estuviera calificada, y al docente le constaban varias entregas del mismo
+  estudiante. Una entrega en estado `returned` **sí** admite reenvío: esa segunda
+  entrega la pidió el docente.
+- **El docente califica una sola vez.** Recalificar en silencio borraba el vínculo
+  con la entrega sin dejar constancia de por qué cambió la nota.
+- **La grilla no deja editar celdas con respaldo.** Si la nota de un componente
+  salió de una entrega calificada, el campo queda bloqueado con un candado. Las
+  celdas vacías y las de notas manuales se siguen editando con normalidad.
+
+### Added
+- **Devolver el trabajo** (`PUT /submissions/{id}/return`, `edu/v1` pasa a
+  **61 rutas**): única forma de deshacer una calificación. La entrega vuelve a
+  `returned`, la nota se borra de `grades_log` para que deje de contar en el
+  promedio, el parcial se recalcula y queda auditado. El estudiante puede reenviar.
+- `GET /gradebook` devuelve `score_locked` junto a `scores` y `score_counts`.
+
+### Security
+- Las tres reglas se aplican **en el servicio**, no solo en la interfaz.
+
+---
+
 ## [1.10.1] — 2026-08-14
 
 ### Fixed

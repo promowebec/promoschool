@@ -39,6 +39,7 @@ export const VistaDocenteTareas = {
 		notas: {},
 		comentarios: {},
 		calificando: null,
+		devolviendo: null,
 	} ),
 
 	computed: {
@@ -271,6 +272,39 @@ export const VistaDocenteTareas = {
 				} );
 			} catch ( e ) {
 				this.error = e;
+			}
+		},
+
+		/**
+		 * Una entrega calificada no se vuelve a calificar.
+		 *
+		 * Su nota tiene respaldo —el archivo que subió el estudiante— y
+		 * recalificarla a mano rompe ese vínculo sin dejar constancia de por qué
+		 * cambió. Para dar otra oportunidad está la recuperación; para corregir
+		 * un error, devolver el trabajo.
+		 */
+		yaCalificada( entrega ) {
+			return 'graded' === entrega.status;
+		},
+
+		/**
+		 * Devuelve el trabajo al estudiante: es la única forma de deshacer una
+		 * calificación, y a diferencia de recalificar en silencio deja rastro.
+		 * La nota se borra del registro y el parcial se recalcula.
+		 */
+		async devolver( entrega ) {
+			if ( this.devolviendo ) return;
+
+			this.devolviendo = entrega.id;
+			this.error = null;
+
+			try {
+				await eduApi.put( `/submissions/${ entrega.id }/return`, {} );
+				await this.verEntregas( this.tareaActiva );
+			} catch ( e ) {
+				this.error = e;
+			} finally {
+				this.devolviendo = null;
 			}
 		},
 
@@ -518,18 +552,26 @@ export const VistaDocenteTareas = {
 								<td><edu-badge :texto="entregaTexto(s.status)" :tono="entregaTono(s.status)" /></td>
 								<td class="edu-muted edu-small">{{ formatDate(s.submitted_at, true) }}</td>
 								<td class="edu-td-num">
-									<input class="edu-nota-input" type="text" inputmode="decimal"
-									       placeholder="—" v-model="notas[s.id]">
+									<input v-if="!yaCalificada(s)" class="edu-nota-input" type="text"
+									       inputmode="decimal" placeholder="—" v-model="notas[s.id]">
+									<strong v-else>{{ formatScore(s.score) }}</strong>
 								</td>
 								<td>
-									<input class="edu-input" type="text" placeholder="Retroalimentación"
-									       v-model="comentarios[s.id]">
+									<input v-if="!yaCalificada(s)" class="edu-input" type="text"
+									       placeholder="Retroalimentación" v-model="comentarios[s.id]">
+									<span v-else class="edu-muted edu-small">{{ s.feedback || '—' }}</span>
 								</td>
 								<td class="edu-td-right">
-									<button class="edu-btn edu-btn-primary"
+									<button v-if="!yaCalificada(s)" class="edu-btn edu-btn-primary"
 									        :disabled="calificando === s.id"
 									        @click="calificar(s)">
 										{{ calificando === s.id ? '…' : 'Calificar' }}
+									</button>
+									<button v-else class="edu-btn"
+									        :disabled="devolviendo === s.id"
+									        title="La entrega vuelve al estudiante para que la corrija y la reenvíe. La nota deja de contar."
+									        @click="devolver(s)">
+										{{ devolviendo === s.id ? '…' : 'Devolver' }}
 									</button>
 								</td>
 							</tr>

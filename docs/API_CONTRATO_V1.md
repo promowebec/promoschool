@@ -464,6 +464,7 @@ parcial es un resultado legítimo:
 | PUT | `/year-scores/{id}/recovery` | `edu_close_partial` | supletorio/remedial/gracia |
 | GET | `/students/{id}/scores` 🔒 | `edu_view_own_grades` \| `edu_view_child_grades` | boleta en JSON |
 | GET | `/students/{id}/component-breakdown` 🔒 | sesión iniciada | de qué está hecha cada nota, ver §8.3 |
+| PUT | `/submissions/{id}/return` | `edu_grade_students` \| `edu_view_all` | devolver el trabajo, ver §8.4 |
 
 **Alcance de `/students/{id}/component-breakdown`.** No basta con una capability: quién puede
 pedirlo depende del vínculo con **ese** estudiante. Rector y superadmin, toda su institución;
@@ -681,6 +682,27 @@ Reglas:
   se siguen promediando, que es el modelo académico. Antes cada guardado insertaba una fila
   más, así que corregir un 6.00 a 8.00 dejaba al estudiante con 7.00. La sustitución se audita
   y se devuelve en `replaced`.
+
+### 8.4 `PUT /submissions/{id}/return` — devolver el trabajo
+
+Única forma de deshacer una calificación. Deja la entrega en `returned`, **borra su fila de
+`grades_log`** para que la nota deje de contar en el promedio, recalcula el parcial y lo audita.
+El estudiante puede reenviar y el docente volver a calificar.
+
+Existe porque las tres reglas de integridad de la v1.11.0 cierran los atajos:
+
+- **Una entrega por estudiante.** `POST /assignments/{id}/submissions` responde `409
+  already_submitted` si ya hay una entrega en `submitted`, `late` o `graded`. En `returned` sí
+  se admite: esa segunda entrega la pidió el docente.
+- **Una calificación por entrega.** `PUT /submissions/{id}/grade` responde `409 already_graded`
+  si la entrega ya está calificada.
+- **La grilla no pisa notas con respaldo.** `POST /gradebook/scores` rechaza con
+  `graded_from_assignment` las celdas cuya nota vino de una entrega calificada, y
+  `GET /gradebook` las marca en `score_locked`.
+
+El principio: **una nota con respaldo no se sustituye por una sin respaldo.** La que sale de
+calificar una entrega se apoya en el archivo que subió el estudiante; una tecleada en la grilla
+no se apoya en nada.
 
 ### 8.3 `GET /students/{id}/component-breakdown` — de qué está hecha cada nota
 

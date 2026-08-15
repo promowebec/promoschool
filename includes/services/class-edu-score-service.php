@@ -96,6 +96,32 @@ class Edu_Score_Service {
 		$student_ids = Edu_Service::active_student_ids( $grade_id );
 		$closed      = self::closed_students( $student_ids, $subject_id, $trimester_id, $parcial_num );
 
+		/*
+		 * Celdas con respaldo: las que ya tienen una nota puesta al calificar una
+		 * entrega. No se editan desde la grilla — esa nota se apoya en el archivo
+		 * que subió el estudiante, y sustituirla tecleando rompería el vínculo sin
+		 * dejar constancia de por qué cambió.
+		 *
+		 * Para cambiarla, el docente devuelve el trabajo o habilita la
+		 * recuperación de la tarea; las dos vías quedan documentadas.
+		 */
+		$con_respaldo = array();
+		if ( $student_ids && $component_ids ) {
+			$sid_in = implode( ',', array_map( 'intval', $student_ids ) );
+			$cid_in = implode( ',', array_map( 'intval', $component_ids ) );
+
+			$filas = $wpdb->get_results(
+				"SELECT DISTINCT student_id, component_id
+				 FROM $tl
+				 WHERE student_id IN ($sid_in) AND component_id IN ($cid_in)
+				   AND assignment_id IS NOT NULL" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- IDs ya pasados por intval.
+			);
+
+			foreach ( (array) $filas as $f ) {
+				$con_respaldo[ (int) $f->student_id . ':' . (int) $f->component_id ] = true;
+			}
+		}
+
 		$registered_by = get_current_user_id();
 		$saved         = 0;
 		$replaced      = 0;
@@ -129,6 +155,17 @@ class Edu_Score_Service {
 			if ( isset( $closed[ $sid ] ) ) {
 				$skipped++;
 				$errors[] = self::cell_error( $sid, $cid, 'partial_closed', __( 'El parcial de este estudiante ya está cerrado.', 'sistema-educativo' ) );
+				continue;
+			}
+
+			if ( isset( $con_respaldo[ $sid . ':' . $cid ] ) ) {
+				$skipped++;
+				$errors[] = self::cell_error(
+					$sid,
+					$cid,
+					'graded_from_assignment',
+					__( 'Esta nota viene de una entrega calificada y no se edita desde la grilla. Para cambiarla, devuelve el trabajo al estudiante o habilita la recuperación de la tarea.', 'sistema-educativo' )
+				);
 				continue;
 			}
 

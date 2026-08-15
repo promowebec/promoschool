@@ -152,6 +152,47 @@ Vista de supervisión para el rector: por asignación académica muestra compone
 
 ## 2.bis · Entradas de bitácora
 
+### 2026-08-14 — Una entrega, una calificación (v1.11.0)
+
+**Qué se hizo.** Tres reglas de integridad, con un principio de fondo: **una nota con respaldo
+no se sustituye por una sin respaldo**. La nota que sale de calificar una entrega se apoya en
+el archivo que subió el estudiante; una tecleada en la grilla no se apoya en nada.
+
+1. **El estudiante entrega una sola vez.** Antes podía reenviar mientras la tarea no estuviera
+   calificada, y al docente le constaban varias entregas del mismo estudiante. Una entrega en
+   `returned` sí admite reenvío: esa segunda entrega la pidió el docente.
+2. **El docente califica una sola vez.** Recalificar en silencio borraba el vínculo con la
+   entrega sin dejar constancia de por qué cambió la nota.
+3. **La grilla no edita celdas con respaldo.** Si la nota del componente salió de una entrega
+   calificada, el campo queda bloqueado. Las celdas vacías y las de notas manuales se siguen
+   editando: ahí el docente no está pisando ninguna evidencia.
+
+**La vía de corrección: devolver el trabajo.** `PUT /submissions/{id}/return` deja la entrega
+en `returned`, **borra la nota de `grades_log`** para que deje de contar en el promedio,
+recalcula el parcial y lo audita. El estudiante puede reenviar y el docente volver a calificar.
+Es la única forma de deshacer una calificación, y a diferencia de recalificar deja rastro de
+las dos rondas.
+
+**Archivos tocados.** `includes/services/class-edu-submission-service.php`,
+`includes/services/class-edu-score-service.php`,
+`includes/services/class-edu-gradebook-service.php`,
+`includes/api/routes/class-edu-api-write-routes.php`, `public/spa/js/views/tareas.js`,
+`public/spa/js/views/docente/tareas.js`, `public/spa/js/views/docente/calificaciones.js`,
+`public/spa/css/app.css`.
+
+**Cambios de esquema.** Ninguno. `edu/v1` pasa de 60 a **61 rutas**.
+
+**Verificación.** Prueba que crea su propia tarea y la borra al terminar, 9 de 9:
+primera entrega aceptada y segunda rechazada (`already_submitted`); primera calificación
+aceptada y segunda rechazada (`already_graded`); el gradebook marca la celda como bloqueada y
+`save_batch()` la rechaza (`graded_from_assignment`); devolver deja la entrega en `returned` y
+borra la nota del registro; y tras devolver, el estudiante puede reenviar.
+
+**Riesgos / notas de despliegue.** **Cambia comportamiento.** Conviene avisar a los docentes de
+que para corregir una nota ya puesta usen el botón **Devolver**, porque el campo de la grilla
+va a aparecerles bloqueado con un candado y sin explicación no se entiende.
+
+
 ### 2026-08-14 — Desglose de las notas de cada componente, y el bug que destapó
 
 **Qué se hizo.** La celda de un componente es el **promedio** de sus filas de `grades_log`, y

@@ -102,6 +102,21 @@ export const VistaDocenteCalificaciones = {
 			return estudiante.score_counts?.[ String( componenteId ) ] || 0;
 		},
 
+		/**
+		 * Una celda con respaldo no se edita a mano.
+		 *
+		 * Su nota salió de calificar una entrega, así que se apoya en el archivo
+		 * que subió el estudiante. Sustituirla tecleando rompería ese vínculo sin
+		 * dejar constancia de por qué cambió. Para cambiarla, el docente devuelve
+		 * el trabajo o habilita la recuperación: las dos vías quedan documentadas.
+		 *
+		 * El servidor lo rechaza igual; esto solo evita que el docente escriba
+		 * para nada.
+		 */
+		bloqueada( estudiante, componenteId ) {
+			return !! estudiante.score_locked?.[ String( componenteId ) ];
+		},
+
 		/** Despliega el desglose de una celda; segundo clic lo cierra. */
 		async abrirCelda( estudiante, componenteId ) {
 			const k = this.clave( estudiante.student_id, componenteId );
@@ -282,11 +297,16 @@ export const VistaDocenteCalificaciones = {
 								</td>
 								<td v-for="c in componentes" :key="c.id" class="edu-td-num">
 									<input class="edu-nota-input"
-									       :class="{ 'edu-input-error': invalida(e, c.id) }"
+									       :class="{ 'edu-input-error': invalida(e, c.id), 'edu-nota-bloqueada': bloqueada(e, c.id) }"
 									       type="text" inputmode="decimal" placeholder="—"
-									       :disabled="e.is_closed || cerrado"
+									       :disabled="e.is_closed || cerrado || bloqueada(e, c.id)"
+									       :title="bloqueada(e, c.id)
+									          ? 'Esta nota viene de una entrega calificada. Para cambiarla, devuelve el trabajo al estudiante o habilita la recuperación de la tarea.'
+									          : ''"
 									       :value="valor(e, c.id)"
 									       @input="editar(e, c.id, $event)">
+									<span v-if="bloqueada(e, c.id)" class="edu-candado"
+									      title="Nota puesta al calificar una entrega">🔒</span>
 									<button v-if="cuantas(e, c.id)"
 									        class="edu-enlace edu-conteo-celda"
 									        :class="{ 'is-open': celdaAbierta === clave(e.student_id, c.id) }"
