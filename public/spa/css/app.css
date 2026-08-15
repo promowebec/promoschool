@@ -270,6 +270,12 @@
 .edu-conteo-celda:hover { background: #f1f5f9; color: #475569; }
 .edu-conteo-celda.is-open { background: #e0e7ff; color: #3730a3; font-weight: 700; }
 
+/* Celda con respaldo: la nota salió de calificar una entrega y no se teclea. */
+.edu-nota-bloqueada {
+	background: #f8fafc; color: #475569; border-style: dashed; cursor: not-allowed;
+}
+.edu-candado { font-size: 10px; margin-left: 3px; opacity: .55; }
+
 /* ── Entrega del estudiante ───────────────────────────────── */
 .edu-entrega {
 	margin-top: 16px; padding-top: 14px; border-top: 1px dashed #e2e8f0;

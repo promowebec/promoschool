@@ -4,7 +4,7 @@ Tags: education, gradebook, students, teachers, school, ecuador
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.2
-Stable tag: 1.10.1
+Stable tag: 1.11.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -52,6 +52,13 @@ El catálogo Mineduc se precarga, pero cada institución puede registrar materia
 
 == Changelog ==
 
+= 1.11.0 =
+* El estudiante entrega una sola vez. Antes podía reenviar y al docente le constaban varias entregas del mismo estudiante.
+* El docente califica una sola vez. Para dar otra oportunidad está la recuperación; para corregir un error, devolver el trabajo.
+* Nuevo botón "Devolver": la entrega vuelve al estudiante, la nota deja de contar y el parcial se recalcula. Todo queda auditado.
+* La grilla de calificaciones bloquea las celdas cuya nota viene de una entrega calificada. Las vacías y las manuales se siguen editando.
+* Sin cambios de esquema: no hay migración de base de datos.
+
 = 1.10.1 =
 * Corregido `tools/limpiar-notas-duplicadas.php`: conservaba la fila más reciente de cada celda y eso habría borrado notas reales. Ahora borra solo copias exactas y únicamente cuando el promedio de la celda no cambia; las demás se reportan para revisarlas a mano.
 * Nueva opción `--detalle` para ver fila a fila las celdas que no se tocan.
@@ -78,6 +85,9 @@ El catálogo Mineduc se precarga, pero cada institución puede registrar materia
 * Fase 0: scaffolding del plugin — esquema de 28 tablas, catálogo Mineduc precargado, 4 roles personalizados, sistema de hooks centralizado.
 
 == Upgrade Notice ==
+
+= 1.11.0 =
+Cambia comportamiento: el estudiante ya no puede reenviar una tarea entregada y el docente no puede recalificar una entrega. Avisa a los docentes de que para corregir una nota deben usar el botón "Devolver".
 
 = 1.10.1 =
 Corrige el script de limpieza de notas duplicadas, que en su versión anterior podía borrar calificaciones legítimas. Si ya ejecutaste `--aplicar` con la 1.10.0, revisa las notas afectadas.

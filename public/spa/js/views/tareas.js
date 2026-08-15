@@ -156,15 +156,42 @@ export const VistaTareas = {
 		},
 
 		/**
-		 * Se puede entregar mientras la tarea siga publicada y la entrega no
-		 * esté calificada. Vencida no bloquea: el servidor la marca `late`,
-		 * que es justo lo que espera el docente.
+		 * Una tarea se entrega UNA vez.
+		 *
+		 * Vencida no bloquea: el servidor la marca `late`, que es justo lo que
+		 * espera ver el docente. Lo que sí bloquea es haber entregado ya, porque
+		 * si no al docente le constan varias entregas del mismo estudiante. La
+		 * segunda oportunidad va por la recuperación, que el docente habilita.
+		 *
+		 * `returned` sí admite reenvío: esa segunda entrega la pidió el docente.
 		 */
 		puedeEntregar( tarea ) {
 			if ( this.esPadre ) return false;
 			if ( 'published' !== tarea.status ) return false;
 
-			return 'graded' !== this.miEntrega( tarea )?.status;
+			const estado = this.miEntrega( tarea )?.status;
+
+			return ! [ 'submitted', 'late', 'graded' ].includes( estado );
+		},
+
+		/** Por qué no se puede entregar, para decírselo al estudiante. */
+		motivoBloqueo( tarea ) {
+			if ( this.esPadre ) return '';
+			if ( 'published' !== tarea.status ) {
+				return 'La tarea está cerrada y ya no admite entregas.';
+			}
+
+			const estado = this.miEntrega( tarea )?.status;
+
+			if ( 'graded' === estado ) {
+				return 'Tu entrega ya fue calificada y no admite cambios.';
+			}
+
+			if ( [ 'submitted', 'late' ].includes( estado ) ) {
+				return 'Ya entregaste esta tarea. Si necesitas volver a entregarla, pídele a tu docente que habilite la recuperación.';
+			}
+
+			return '';
 		},
 
 		elegirArchivos( evento ) {
@@ -364,8 +391,10 @@ export const VistaTareas = {
 													Tu representado todavía no ha entregado esta tarea.
 												</p>
 
-												<div v-if="miEntrega(t)?.status === 'graded'" class="edu-aviso edu-aviso-ok">
-													Esta entrega ya fue calificada y no admite cambios.
+												<div v-if="!esPadre && !puedeEntregar(t) && motivoBloqueo(t)"
+												     class="edu-aviso"
+												     :class="miEntrega(t)?.status === 'graded' ? 'edu-aviso-ok' : 'edu-aviso-cerrado'">
+													{{ motivoBloqueo(t) }}
 												</div>
 
 												<form v-else-if="puedeEntregar(t)" class="edu-form edu-entrega-form"
@@ -400,24 +429,23 @@ export const VistaTareas = {
 													<div v-if="errorEntrega" class="edu-texto-error edu-small">
 														{{ errorEntrega.message || 'No se pudo enviar la entrega.' }}
 													</div>
-													<div v-if="entregada" class="edu-aviso edu-aviso-ok">
-														Entrega enviada correctamente.
-													</div>
+
+													<p class="edu-muted edu-small">
+														Solo se entrega una vez. Revisa los archivos antes de enviar.
+													</p>
 
 													<div class="edu-acciones">
 														<button type="submit" class="edu-btn edu-btn-primary"
 														        :disabled="enviando">
-															{{ enviando
-																? 'Enviando…'
-																: ( miEntrega(t) ? 'Reemplazar entrega' : 'Entregar tarea' ) }}
+															{{ enviando ? 'Enviando…' : 'Entregar tarea' }}
 														</button>
 													</div>
 												</form>
 
-												<p v-else-if="!esPadre && t.status !== 'published'"
-												   class="edu-muted edu-small">
-													La tarea está cerrada y ya no admite entregas.
-												</p>
+												<!-- Fuera del formulario: al entregar, el formulario desaparece. -->
+												<div v-if="entregada" class="edu-aviso edu-aviso-ok">
+													Entrega enviada correctamente.
+												</div>
 											</div>
 										</template>
 									</td>

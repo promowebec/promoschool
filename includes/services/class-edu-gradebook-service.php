@@ -308,14 +308,23 @@ class Edu_Gradebook_Service {
 		// Notas promediadas por (estudiante, componente).
 		$scores_map = array();
 		$counts_map = array();
+		$locked_map = array();
 		if ( ! empty( $students ) && ! empty( $component_ids ) ) {
 			$sid_in = implode( ',', array_map( 'intval', wp_list_pluck( $students, 'student_id' ) ) );
 			$cid_in = implode( ',', array_map( 'intval', $component_ids ) );
 
-			// El COUNT viaja junto al promedio para que la grilla pueda avisar de
-			// cuántas notas hay detrás de cada celda sin una segunda consulta.
+			/*
+			 * El COUNT viaja junto al promedio para que la grilla pueda avisar de
+			 * cuántas notas hay detrás de cada celda sin una segunda consulta.
+			 *
+			 * `con_respaldo` cuenta las que vienen de una entrega calificada. Una
+			 * celda con respaldo no se edita a mano: su nota se apoya en el
+			 * archivo que subió el estudiante, y sustituirla tecleando rompería
+			 * ese vínculo sin dejar constancia de por qué cambió.
+			 */
 			$rows = $wpdb->get_results(
-				"SELECT student_id, component_id, AVG(score) AS score, COUNT(*) AS n
+				"SELECT student_id, component_id, AVG(score) AS score, COUNT(*) AS n,
+				        SUM(assignment_id IS NOT NULL) AS con_respaldo
 				 FROM {$p}grades_log
 				 WHERE student_id IN ($sid_in) AND component_id IN ($cid_in)
 				 GROUP BY student_id, component_id" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -324,6 +333,7 @@ class Edu_Gradebook_Service {
 			foreach ( (array) $rows as $row ) {
 				$scores_map[ (int) $row->student_id ][ (int) $row->component_id ] = round( (float) $row->score, 2 );
 				$counts_map[ (int) $row->student_id ][ (int) $row->component_id ] = (int) $row->n;
+				$locked_map[ (int) $row->student_id ][ (int) $row->component_id ] = (int) $row->con_respaldo > 0;
 			}
 		}
 
@@ -356,11 +366,13 @@ class Edu_Gradebook_Service {
 
 			$cells  = array();
 			$counts = array();
+			$locked = array();
 			foreach ( $component_ids as $cid ) {
 				// null = sin calificar. El cálculo lo excluye y renormaliza;
 				// no es lo mismo que un cero.
 				$cells[ (string) $cid ]  = $scores_map[ $sid ][ $cid ] ?? null;
 				$counts[ (string) $cid ] = $counts_map[ $sid ][ $cid ] ?? 0;
+				$locked[ (string) $cid ] = ! empty( $locked_map[ $sid ][ $cid ] );
 			}
 
 			$row       = $parcial_map[ $sid ] ?? null;
@@ -377,6 +389,7 @@ class Edu_Gradebook_Service {
 				'apellidos'      => $student['apellidos'],
 				'scores'         => $cells,
 				'score_counts'   => $counts,
+				'score_locked'   => $locked,
 				'computed_score' => $computed,
 				'cualitativa'    => self::cualitativa( $computed ),
 				'is_closed'      => $is_closed,

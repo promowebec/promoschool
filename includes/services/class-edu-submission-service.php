@@ -81,10 +81,23 @@ class Edu_Submission_Service {
 			)
 		);
 
-		if ( $existing && 'graded' === $existing->status ) {
+		/*
+		 * Una tarea se entrega UNA vez.
+		 *
+		 * Antes se podia reenviar mientras no estuviera calificada, y eso hacia
+		 * que al docente le constaran varias entregas del mismo estudiante. Si
+		 * hace falta una segunda oportunidad, el canal es la recuperacion, que
+		 * el docente habilita a proposito con su propia fecha limite.
+		 *
+		 * `returned` si admite reenvio: significa que el docente devolvio el
+		 * trabajo pidiendo correcciones, o sea que la segunda entrega la pidio el.
+		 */
+		if ( $existing && in_array( $existing->status, array( 'submitted', 'late', 'graded' ), true ) ) {
 			return Edu_Service::error(
-				'already_graded',
-				__( 'Tu entrega ya fue calificada y no admite cambios.', 'sistema-educativo' ),
+				'already_submitted',
+				'graded' === $existing->status
+					? __( 'Tu entrega ya fue calificada y no admite cambios.', 'sistema-educativo' )
+					: __( 'Ya entregaste esta tarea. Si necesitas volver a entregarla, pídele a tu docente que habilite la recuperación.', 'sistema-educativo' ),
 				409
 			);
 		}
@@ -171,6 +184,25 @@ class Edu_Submission_Service {
 
 		list( $submission, $assignment ) = $context;
 
+		/*
+		 * Una entrega se califica UNA vez.
+		 *
+		 * La nota de una entrega tiene respaldo: el archivo que subio el
+		 * estudiante. Recalificarla a mano borra ese vinculo sin dejar rastro de
+		 * por que cambio. Para dar otra oportunidad estan la recuperacion y la
+		 * entrega atrasada, que son canales explicitos y quedan registrados.
+		 *
+		 * Si de verdad hubo un error al calificar, el docente devuelve el trabajo
+		 * (`returned`) y vuelve a empezar; eso si queda documentado.
+		 */
+		if ( 'graded' === $submission->status ) {
+			return Edu_Service::error(
+				'already_graded',
+				__( 'Esta entrega ya fue calificada. Para dar otra oportunidad, habilita la recuperación de la tarea; para corregir un error, devuelve el trabajo al estudiante.', 'sistema-educativo' ),
+				409
+			);
+		}
+
 		$score = Edu_Service::parse_score( $input['score'] ?? '' );
 		if ( null !== $score && ( $score < 0 || $score > (float) $assignment->max_score ) ) {
 			return Edu_Service::error(
@@ -243,6 +275,102 @@ class Edu_Submission_Service {
 	 * @param array $input assignment_id, allow_recovery, recovery_due_date.
 	 * @return array|WP_Error
 	 */
+	/**
+	 * Devuelve una entrega al estudiante para que la corrija y la reenvíe.
+	 *
+	 * Es la única forma de deshacer una calificación, y existe justamente porque
+	 * recalificar en silencio no deja rastro de por qué cambió la nota. Aquí sí:
+	 * la entrega vuelve a `returned`, se borra la nota que había puesto en
+	 * `grades_log` —para que no siga contando en el promedio—, se recalcula el
+	 * parcial y queda auditado.
+	 *
+	 * @param array $input submission_id, comment (motivo, opcional).
+	 * @return array|WP_Error
+	 */
+	public static function return_to_student( array $input ) {
+		$cap = Edu_Service::require_cap( array( 'edu_grade_students', 'edu_view_all' ) );
+		if ( is_wp_error( $cap ) ) {
+			return $cap;
+		}
+
+		$submission_id = isset( $input['submission_id'] ) ? (int) $input['submission_id'] : 0;
+		$motivo        = wp_kses_post( (string) ( $input['comment'] ?? '' ) );
+
+		$context = self::load_for_grading( $submission_id );
+		if ( is_wp_error( $context ) ) {
+			return $context;
+		}
+
+		list( $submission, $assignment ) = $context;
+
+		if ( 'returned' === $submission->status ) {
+			return Edu_Service::error(
+				'already_returned',
+				__( 'Esta entrega ya está devuelta.', 'sistema-educativo' ),
+				409
+			);
+		}
+
+		global $wpdb;
+		$p = $wpdb->prefix . 'edu_';
+
+		$nota_previa = $submission->score;
+
+		$wpdb->update(
+			$p . 'submissions',
+			array(
+				'status'    => 'returned',
+				'score'     => null,
+				'feedback'  => $motivo ? $motivo : $submission->feedback,
+				'graded_at' => null,
+				'graded_by' => null,
+			),
+			array( 'id' => $submission_id ),
+			array( '%s', '%s', '%s', '%s', '%d' ),
+			array( '%d' )
+		);
+
+		// La nota deja de contar en el promedio del componente.
+		if ( ! empty( $assignment->component_id ) ) {
+			$wpdb->delete(
+				$p . 'grades_log',
+				array(
+					'student_id'    => (int) $submission->student_id,
+					'component_id'  => (int) $assignment->component_id,
+					'assignment_id' => (int) $assignment->id,
+				),
+				array( '%d', '%d', '%d' )
+			);
+
+			require_once EDU_PLUGIN_DIR . 'modules/calificaciones/class-edu-grade-calculator.php';
+			Edu_Grade_Calculator::recalculate_parcial(
+				(int) $submission->student_id,
+				(int) $assignment->subject_id,
+				(int) $assignment->trimester_id,
+				(int) $assignment->parcial_num
+			);
+		}
+
+		Edu_Audit::log(
+			Edu_Audit::NOTA_INGRESADA,
+			'entrega',
+			$submission_id,
+			array( 'score' => $nota_previa, 'status' => $submission->status ),
+			array(
+				'accion'     => 'entrega_devuelta',
+				'tarea_id'   => (int) $assignment->id,
+				'estudiante' => (int) $submission->student_id,
+				'motivo'     => $motivo,
+			)
+		);
+
+		return array(
+			'submission_id' => $submission_id,
+			'status'        => 'returned',
+			'score'         => null,
+		);
+	}
+
 	public static function save_recovery_settings( array $input ) {
 		$cap = Edu_Service::require_cap( array( 'edu_grade_students', 'edu_view_all' ) );
 		if ( is_wp_error( $cap ) ) {

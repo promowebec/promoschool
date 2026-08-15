@@ -164,6 +164,17 @@ class Edu_Api_Write_Routes {
 			)
 		);
 
+		// Devolver el trabajo: unica forma de deshacer una calificacion.
+		register_rest_route(
+			$ns,
+			'/submissions/(?P<id>\d+)/return',
+			array(
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => array( __CLASS__, 'return_submission' ),
+				'permission_callback' => Edu_Api::require_cap( array( 'edu_grade_students', 'edu_view_all' ) ),
+			)
+		);
+
 		register_rest_route(
 			$ns,
 			'/submissions/(?P<id>\d+)/recovery-grade',
@@ -572,6 +583,22 @@ class Edu_Api_Write_Routes {
 					'submission_id' => (int) $request['id'],
 					'score'         => $request->get_param( 'score' ),
 					'feedback'      => (string) $request->get_param( 'feedback' ),
+				)
+			)
+		);
+	}
+
+	public static function return_submission( WP_REST_Request $request ) {
+		$ready = self::ready( $request, 'tareas' );
+		if ( is_wp_error( $ready ) ) {
+			return $ready;
+		}
+
+		return Edu_Api::from_service(
+			Edu_Submission_Service::return_to_student(
+				array(
+					'submission_id' => (int) $request['id'],
+					'comment'       => (string) $request->get_param( 'comment' ),
 				)
 			)
 		);
