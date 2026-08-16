@@ -4,7 +4,7 @@ Tags: education, gradebook, students, teachers, school, ecuador
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 8.2
-Stable tag: 1.11.0
+Stable tag: 1.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,12 @@ Sí. Cada institución y cada período académico se configuran como `sierra` o 
 El catálogo Mineduc se precarga, pero cada institución puede registrar materias propias marcándolas como `is_custom = TRUE` en `wp_edu_subjects`.
 
 == Changelog ==
+
+= 1.12.0 =
+* Nueva pantalla "Mis materias" en la app del docente: lo que dicta agrupado por grado, con las tareas publicadas y las entregas por revisar.
+* Al pulsar "Notas" o "Tareas" desde ahí, el curso queda preseleccionado.
+* Suite de pruebas incluida en `tests/`: 6 pruebas y 36 comprobaciones sobre calificaciones, permisos y arranque. Se corre con `php tests/run.php`.
+* Sin cambios de esquema: no hay migración de base de datos.
 
 = 1.11.0 =
 * El estudiante entrega una sola vez. Antes podía reenviar y al docente le constaban varias entregas del mismo estudiante.

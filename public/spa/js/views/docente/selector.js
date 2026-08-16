@@ -89,8 +89,21 @@ export const EduSelectorCurso = {
 	},
 
 	mounted() {
-		this.gradeId = this.grados[ 0 ]?.id || null;
-		this.subjectId = this.materias[ 0 ]?.id || null;
+		/*
+		 * Si otra vista pidió un curso concreto —"Notas" desde Mis materias—, se
+		 * respeta y se consume: es un traspaso de una sola vez. Si no, se cae al
+		 * primero de la lista, que es el comportamiento de siempre.
+		 */
+		const pedido = store.cursoPendiente;
+		store.cursoPendiente = null;
+
+		const gradoValido = pedido && this.grados.some( ( g ) => g.id === pedido.grade_id );
+
+		this.gradeId = gradoValido ? pedido.grade_id : ( this.grados[ 0 ]?.id || null );
+
+		const materiaValida = pedido && this.materias.some( ( m ) => m.id === pedido.subject_id );
+
+		this.subjectId = materiaValida ? pedido.subject_id : ( this.materias[ 0 ]?.id || null );
 
 		// Se preselecciona el primer trimestre que siga abierto.
 		const abierto = this.trimestres.find( ( t ) => ! t.is_closed );

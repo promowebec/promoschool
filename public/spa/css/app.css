@@ -231,6 +231,12 @@
 }
 
 /* ── Responsive ──────────────────────────────────────────── */
+/* Cabecera de un grupo dentro de una tarjeta (p. ej. cada grado en Mis materias). */
+.edu-grupo-titulo {
+	margin: 0 0 12px; font-size: 15px; font-weight: 700;
+	display: flex; align-items: baseline; gap: 8px;
+}
+
 /* ── Desglose de un componente ────────────────────────────── */
 /* La celda del parcial se vuelve un botón: mismo aspecto que el número, con
    una flecha que gira al abrir. Debe seguir leyéndose como una nota. */

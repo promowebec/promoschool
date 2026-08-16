@@ -152,6 +152,53 @@ Vista de supervisión para el rector: por asignación académica muestra compone
 
 ## 2.bis · Entradas de bitácora
 
+### 2026-08-16 — Suite de pruebas y "Mis materias" en la app (v1.12.0)
+
+**Qué se hizo.** Dos cosas: versionar las pruebas y cerrar una de las dos brechas de
+paridad de la SPA.
+
+**Pruebas (`tests/`, deuda técnica #7).** Hasta ahora cada verificación se escribía, se
+corría y se tiraba. Eso costó caro: el desglose salió a producción rechazando al estudiante
+y al representante, y el script de limpieza habría borrado notas reales — los dos habrían
+salido en una suite que ya existiera. Ahora son **6 pruebas y 36 comprobaciones en ~50 s**,
+sin dependencias nuevas.
+
+Cada prueba corre en **su propio proceso**: un fatal en una no se lleva las demás y el estado
+global de WordPress no se contamina entre pruebas que cambian de usuario. El runner repone
+las extensiones de PHP a los procesos hijos cuando el padre las recibió por `-d` en vez de
+por `php.ini`, que es el caso de un entorno Local.
+
+Ninguna prueba deja nada escrito: el fixture se deshace en el shutdown pase lo que pase.
+
+**"Mis materias" del docente.** Lo que dicta agrupado por grado, con cuántas tareas tiene
+publicadas y cuántas entregas le esperan. `GET /teacher-assignments` gana `n_tareas` y
+`n_entregas` como subconsultas acotadas al docente dueño de la asignación —dos docentes
+pueden compartir grado y materia—. Pulsar "Notas" o "Tareas" **preselecciona el curso** en la
+vista destino, vía `store.cursoPendiente`, que el selector consume y limpia al montarse.
+
+**Archivos tocados.** `tests/` (nuevo, 8 archivos), `public/spa/js/views/docente/materias.js`
+(nuevo), `public/spa/js/app.js`, `public/spa/js/store.js`,
+`public/spa/js/views/docente/selector.js`, `public/spa/css/app.css`,
+`includes/services/class-edu-people-service.php`.
+
+**Cambios de esquema.** Ninguno.
+
+**Lo que NO se pudo hacer: el tab "Mis textos".** Es la otra brecha de paridad y está
+**bloqueada por el entorno**. En Local, Flipbook registra `[flipbook]` pero **`mis_textos` no
+existe** —comprobado en runtime— y por eso `Edu_Modules::is_active('textos')` da falso. En
+producción sí existe: el tab se ve y funciona. O sea que la pieza con la que hay que integrar
+no está en el entorno de desarrollo, y construirla a ciegas sería adivinar qué devuelve ese
+shortcode y si sobrevive a una llamada REST.
+
+Hay además una duda técnica real que solo se resuelve con el código delante: un shortcode que
+encola su propio CSS y JS **no funciona igual servido por REST**, porque `wp_enqueue_*` durante
+`do_shortcode()` no llega a ninguna parte. Si ese es el caso, la integración correcta no es
+devolver HTML sino enlazar al portal, que ya lo renderiza bien.
+
+Para desbloquearlo hace falta una de dos: instalar en Local la versión de Flipbook que corre
+en producción, o saber qué plugin registra `mis_textos` allí.
+
+
 ### 2026-08-14 — Una entrega, una calificación (v1.11.0)
 
 **Qué se hizo.** Tres reglas de integridad, con un principio de fondo: **una nota con respaldo
@@ -1118,7 +1165,7 @@ apply_filters( 'edu_module_active', bool $activo, string $modulo );
 | 4 | Perfil "solo calificaciones" | Los módulos ya se apagan uno por uno, pero no hay un preset de un clic para una institución que solo quiere notas + asistencia. |
 | 5 | Reportes por componente | No hay exporte/visual analítico por componente para presentar a instituciones. |
 | 6 | Nginx | La protección de `edu-privado` con `.htaccess` no aplica; requiere regla manual en el server block. |
-| 7 | Tests | No hay suite PHPUnit corriendo. |
+| 7 | Tests | **Parcialmente resuelto (16 ago 2026):** `tests/` con 6 pruebas y 36 comprobaciones, sin PHPUnit. Cubre calificaciones, permisos, arranque y las plantillas de la SPA. Falta cubrir asistencia, comunicados, pagos y los adaptadores de wp-admin. |
 | 8 | Demo seed | `demo-seed.php` se carga si existe; debe eliminarse en producción real. |
 
 ---

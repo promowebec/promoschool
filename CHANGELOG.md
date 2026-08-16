@@ -21,6 +21,37 @@ _(Sin cambios pendientes de tag.)_
 
 ---
 
+## [1.12.0] — 2026-08-16
+
+Sin migración de base de datos.
+
+### Added
+- **Suite de pruebas versionada** (`tests/`), que salda parte de la deuda técnica #7.
+  6 pruebas, **36 comprobaciones**, ~50 s. Sin dependencias nuevas: no hay PHPUnit ni
+  Composer de desarrollo. Cada prueba arranca WordPress, crea su fixture y lo deshace
+  en el shutdown pase lo que pase, incluido un fatal a mitad.
+
+  ```
+  php tests/run.php
+  php tests/run.php --db-host=127.0.0.1:10004    (entornos Local)
+  php tests/run.php permisos                     (filtra)
+  ```
+
+  Cubre: arranque y registro (clases, shortcodes, rutas, los 72 handlers
+  `admin_post_*`, contrato estático de los servicios), sintaxis de los 110 PHP y
+  compilación de las **18 plantillas** de la SPA con el mismo `vue.global.prod.js`
+  que se sirve, la matriz de permisos del desglose, el reemplazo en la grilla, las
+  reglas de una-entrega-una-calificación, y que la limpieza de duplicados no altere
+  ninguna nota.
+- **"Mis materias" en la app del docente.** Lo que dicta, agrupado por grado, con
+  cuántas tareas tiene publicadas y cuántas entregas le esperan sin calificar.
+  Cierra una de las dos brechas de paridad con el portal shortcode.
+- `GET /teacher-assignments` devuelve `n_tareas` y `n_entregas`.
+- Pulsar "Notas" o "Tareas" desde Mis materias **preselecciona ese curso** en la
+  vista destino, en vez de obligar al docente a volver a escoger grado y materia.
+
+---
+
 ## [1.11.0] — 2026-08-14
 
 Reglas de integridad sobre entregas y calificaciones. **Cambia comportamiento**:
