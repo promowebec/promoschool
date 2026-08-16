@@ -393,8 +393,22 @@ class Edu_People_Service {
 		$p    = $wpdb->prefix . 'edu_';
 		$name = self::name_sql( 't' );
 
+		/*
+		 * Los dos contadores son los que el docente mira de un vistazo: cuántas
+		 * tareas tiene vivas en esa materia y cuántas entregas le esperan sin
+		 * calificar. Van como subconsultas correlacionadas y acotadas al docente
+		 * dueño de la asignación: dos docentes pueden compartir grado y materia.
+		 */
 		$sql = "SELECT ta.*, g.name AS grade_name, g.paralelo, g.sub_level,
 		               s.name AS subject_name, pe.name AS period_name,
+		               (SELECT COUNT(*) FROM {$p}assignments a
+		                 WHERE a.grade_id = ta.grade_id AND a.subject_id = ta.subject_id
+		                   AND a.teacher_id = ta.teacher_id AND a.status = 'published') AS n_tareas,
+		               (SELECT COUNT(*) FROM {$p}submissions sb
+		                 INNER JOIN {$p}assignments a2 ON a2.id = sb.assignment_id
+		                 WHERE a2.grade_id = ta.grade_id AND a2.subject_id = ta.subject_id
+		                   AND a2.teacher_id = ta.teacher_id
+		                   AND sb.status IN ('submitted','late')) AS n_entregas,
 		               {$name['select']}
 		        FROM {$p}teacher_assignments ta
 		        INNER JOIN {$p}grades g   ON g.id = ta.grade_id
@@ -451,6 +465,8 @@ class Edu_People_Service {
 					'period_id'    => (int) $row->period_id,
 					'period_name'  => $row->period_name,
 					'is_active'    => Edu_Api::boolean( $row->is_active ),
+					'n_tareas'     => (int) $row->n_tareas,
+					'n_entregas'   => (int) $row->n_entregas,
 				);
 			},
 			(array) $rows

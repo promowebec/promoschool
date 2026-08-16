@@ -16,6 +16,13 @@ export const store = reactive( {
 
 	/** Estudiante en foco. */
 	studentId: null,
+
+	/**
+	 * Curso que otra vista pidió preseleccionar, p. ej. al pulsar "Notas" desde
+	 * Mis materias. Lo consume el selector al montarse y lo deja en null: es un
+	 * traspaso de una sola vez, no un estado que haya que mantener.
+	 */
+	cursoPendiente: null,
 } );
 
 /** Perfil resumido. */

@@ -36,6 +36,7 @@ import { VistaDocenteCalificaciones } from '@edu/views/docente/calificaciones.js
 import { VistaDocenteTareas } from '@edu/views/docente/tareas.js';
 import { VistaDocenteAsistencia } from '@edu/views/docente/asistencia.js';
 import { VistaDocenteComunicados } from '@edu/views/docente/comunicados.js';
+import { VistaDocenteMaterias } from '@edu/views/docente/materias.js';
 
 import { VistaRectorInicio } from '@edu/views/rector/inicio.js';
 import { VistaRectorDocentes } from '@edu/views/rector/docentes.js';
@@ -70,6 +71,7 @@ const RUTAS_RECTOR = {
 /** Rutas del docente. */
 const RUTAS_DOCENTE = {
 	inicio:         { titulo: 'Inicio',         icono: '🏠', vista: VistaDocenteInicio },
+	materias:       { titulo: 'Mis materias',   icono: '📚', vista: VistaDocenteMaterias },
 	calificaciones: { titulo: 'Calificaciones', icono: '📊', vista: VistaDocenteCalificaciones },
 	tareas:         { titulo: 'Tareas',         icono: '📋', vista: VistaDocenteTareas, modulo: 'tareas' },
 	asistencia:     { titulo: 'Asistencia',     icono: '✅', vista: VistaDocenteAsistencia, modulo: 'asistencia' },
