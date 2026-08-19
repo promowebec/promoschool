@@ -4,9 +4,9 @@ Registro de todo lo construido en el plugin, desde el scaffolding hasta la versi
 Documento vivo: agregar una entrada nueva por cada fase o cambio relevante.
 
 - **Plugin:** Sistema Educativo Integral
-- **Versión actual:** 1.9.0 (`EDU_VERSION`); esquema en 1.0.9 (`EDU_DB_VERSION`)
+- **Versión actual:** 1.13.0 (`EDU_VERSION`); esquema en 1.0.9 (`EDU_DB_VERSION`)
 - **Stack:** WordPress 6.x · PHP 8.2+ · MySQL 8 / MariaDB 10.6+ · mPDF · sin dependencias JS de build
-- **Última actualización de esta bitácora:** 14 de agosto de 2026
+- **Última actualización de esta bitácora:** 19 de agosto de 2026
 
 ---
 
@@ -151,6 +151,46 @@ Vista de supervisión para el rector: por asignación académica muestra compone
 ---
 
 ## 2.bis · Entradas de bitácora
+
+### 2026-08-19 — "Mis libros" en la app (v1.13.0)
+
+**Qué se hizo.** Una pestaña en la SPA que muestra los textos ya asignados a quien entra.
+Tres piezas y ninguna regla nueva.
+
+**Lo importante es lo que NO se hizo.** El criterio de quién ve qué texto **no se toca ni se
+copia**. En giro22 vive en el `functions.php` del tema: un mapa de 289 roles de WordPress a
+páginas, cada una con su flipbook y su material. `GET /me/texts` reenvía el HTML que ese
+shortcode produce, sin reinterpretarlo. Duplicar ese criterio aquí habría garantizado que
+algún día el portal y la app le mostraran cosas distintas al mismo docente.
+
+**Por qué se puede devolver HTML.** Es la única ruta de `edu/v1` que lo hace. Se sostiene
+porque ese shortcode es HTML puro —tarjetas con enlace, imagen y un `<style>` en línea— y por
+eso sobrevive a viajar por REST. Uno que dependa de `wp_enqueue_script()` no serviría: en una
+petición REST esas llamadas no llegan a ninguna parte. Conviene tenerlo escrito porque en la
+sesión del 17 de agosto se dio por hecho lo contrario —mirando el shortcode de Flipbook, que
+sí necesita su JavaScript— y eso llevó a construir un modelo entero de asignación que para
+este objetivo sobraba.
+
+**Archivos tocados.** `includes/api/routes/class-edu-api-me-routes.php`,
+`public/spa/js/views/textos.js` (nuevo), `public/spa/js/app.js`, `tests/test-me-textos.php`
+(nuevo), `docs/API_CONTRATO_V1.md`.
+
+**Cambios de esquema.** Ninguno. `edu/v1` pasa de 61 a **62 rutas**.
+
+**Verificación.** `tests/test-me-textos.php`, 9 comprobaciones: la ruta existe, sin sesión da
+401, con sesión da 200 con `html` y `vacio`, `vacio` concuerda con el contenido real
+descontando el `<style>`, el HTML no trae scripts, y con el módulo `textos` apagado responde
+**404, no 403**. Suite completa: 7 pruebas en verde, incluidas las 19 plantillas de la SPA.
+
+**Riesgos / notas de despliegue.** Sin cambio de esquema: se sube y ya. Si el tab fallara, se
+quita su línea de `app.js` y la SPA queda como estaba. **En Local el tab se ve raro** y es
+esperado: allí quien registra `[mis_textos]` es Flipbook, cuyo HTML sí necesita JavaScript, así
+que las portadas no abren. En producción el proveedor es el tema y son enlaces normales.
+
+**Aparcado.** La rama `textos-por-institucion` tiene un modelo de asignación dentro del plugin
+—catálogo de textos, acceso por institución/grado/usuario y pantalla de wp-admin— probado y
+documentado, **sin fusionar**. Resuelve el día que poner roles uno por uno no escale; hoy no
+hace falta. Si se retoma, hay que renumerarla: reclamaba la 1.13.0, que se llevó esta entrada.
 
 ### 2026-08-16 — Suite de pruebas y "Mis materias" en la app (v1.12.0)
 

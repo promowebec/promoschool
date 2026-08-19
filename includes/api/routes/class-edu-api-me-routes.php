@@ -59,6 +59,62 @@ class Edu_Api_Me_Routes {
 				'permission_callback' => array( 'Edu_Api', 'require_login' ),
 			)
 		);
+
+		register_rest_route(
+			$ns,
+			'/me/texts',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( __CLASS__, 'texts' ),
+				'permission_callback' => array( 'Edu_Api', 'require_login' ),
+			)
+		);
+	}
+
+	/**
+	 * GET /me/texts — los textos asignados al usuario en sesión.
+	 *
+	 * Devuelve el HTML que ya produce `[mis_textos]`, sin reinterpretarlo. Quién
+	 * ve qué lo decide ese shortcode y solo él: en giro22 es un mapa de rol de
+	 * WordPress a página, con sus propias reglas de agrupación y orden. Duplicar
+	 * ese criterio aquí garantizaría que algún día los dos discrepen y el mismo
+	 * docente vea cosas distintas según entre por el portal o por la app.
+	 *
+	 * Devolver HTML es la excepción en esta API, y se sostiene porque ese
+	 * shortcode es **HTML puro**: tarjetas con enlace, imagen y un `<style>` en
+	 * línea. No encola scripts ni estilos, así que sobrevive a viajar por REST
+	 * —cosa que no le pasaría a un shortcode que dependa de `wp_enqueue_*`,
+	 * porque durante una petición REST esas llamadas no llegan a ninguna parte—.
+	 * Cada tarjeta enlaza a su página de WordPress, que es donde vive el
+	 * flipbook y el material; la app no los reimplementa, solo lleva hasta allí.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function texts( WP_REST_Request $request ) {
+		$modulo = Edu_Api::require_module( 'textos' );
+
+		if ( is_wp_error( $modulo ) ) {
+			return $modulo;
+		}
+
+		if ( ! shortcode_exists( 'mis_textos' ) ) {
+			return Edu_Api::error(
+				'edu_no_texts_provider',
+				__( 'No hay ningún proveedor de textos instalado.', 'sistema-educativo' ),
+				404
+			);
+		}
+
+		$html = do_shortcode( '[mis_textos]' );
+
+		return new WP_REST_Response(
+			array(
+				'html'  => $html,
+				'vacio' => '' === trim( wp_strip_all_tags( $html ) ),
+			),
+			200
+		);
 	}
 
 	/* ─────────────────────────────────────────────────────────────────── */

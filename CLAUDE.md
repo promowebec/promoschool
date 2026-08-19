@@ -247,8 +247,15 @@ En la API, un módulo apagado responde **404**, no 403.
 ## Integración con Flipbook
 
 PromoSchool es **standalone** y no conoce a Flipbook: nunca hacer `require` ni instanciar
-clases suyas. El único punto de contacto hoy es el módulo `textos`, que ejecuta
-`do_shortcode('[mis_textos]')` en un tab de los portales.
+clases suyas. El único punto de contacto es el módulo `textos`, que ejecuta
+`do_shortcode('[mis_textos]')` — en un tab de los portales, y ahora también en `GET /me/texts`
+para la pestaña «Mis libros» de la SPA.
+
+**Quién registra `[mis_textos]` cambia según el sitio, y hay que comprobarlo, no suponerlo.**
+En producción (giro22) lo registra el `functions.php` del tema, con un mapa de 289 roles de
+WordPress a páginas; en Local lo registra Flipbook. El plugin no reinterpreta ese criterio:
+reenvía el HTML tal cual. Eso funciona porque el shortcode de producción es HTML puro; **uno
+que dependa de `wp_enqueue_*` no sobreviviría a una petición REST**.
 
 El puente real —que una asignación creada desde Flipbook genere una tarea con componente— **no
 existe todavía** (deuda técnica #2 de la bitácora). Cuando se construya, el punto de entrada es
@@ -323,7 +330,7 @@ portal: si algo falla, se vuelve a poner el shortcode.
 
 ## Estado actual
 
-**v1.9.0** · esquema `EDU_DB_VERSION` 1.0.9.
+**v1.13.0** · esquema `EDU_DB_VERSION` 1.0.9.
 
 Fases 0–7 del plugin completas (calificaciones, tareas, comunicados, asistencia, PWA, cuentas,
 pagos Payphone, WhatsApp y exportes Mineduc), más la revisión de seguridad de julio de 2026.
@@ -337,6 +344,11 @@ dominio de WordPress** (decisión de agosto de 2026: evita CORS y el problema de
 `Authorization` en Apache) y se autentica con cookie + `X-WP-Nonce`.
 
 Verificado con 261 pruebas automatizadas más los 21 escenarios de adaptadores de wp-admin.
+
+**Textos (19 ago 2026):** la SPA tiene la pestaña «Mis libros» en estudiante, docente y
+rector, sobre `GET /me/texts`. La asignación sigue siendo la del sitio (roles de WordPress);
+el plugin solo la muestra. La rama `textos-por-institucion` tiene aparcado, sin fusionar, un
+modelo de asignación propio para cuando poner roles uno por uno deje de escalar.
 
 **Siguiente:** retirar los portales shortcode cuando se confirme la paridad en producción
 (checklist en `docs/MANUAL_PANTALLAS.md`).

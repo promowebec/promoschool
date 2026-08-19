@@ -30,6 +30,7 @@ import { VistaAsistencia } from '@edu/views/asistencia.js';
 import { VistaComunicados } from '@edu/views/comunicados.js';
 import { VistaPagos } from '@edu/views/pagos.js';
 import { VistaBoletines } from '@edu/views/boletines.js';
+import { VistaTextos } from '@edu/views/textos.js';
 
 import { VistaDocenteInicio } from '@edu/views/docente/inicio.js';
 import { VistaDocenteCalificaciones } from '@edu/views/docente/calificaciones.js';
@@ -56,6 +57,7 @@ const RUTAS_FAMILIA = {
 	comunicados: { titulo: 'Comunicados', icono: '📣', vista: VistaComunicados, modulo: 'comunicados' },
 	pagos:       { titulo: 'Pagos',       icono: '💳', vista: VistaPagos, modulo: 'pagos', soloPadre: true },
 	boletines:   { titulo: 'Boletines',   icono: '📄', vista: VistaBoletines, modulo: 'boletines' },
+	textos:      { titulo: 'Mis libros',  icono: '📖', vista: VistaTextos, modulo: 'textos', soloEstudiante: true },
 };
 
 /** Rutas del rector. */
@@ -66,6 +68,7 @@ const RUTAS_RECTOR = {
 	comunicados: { titulo: 'Comunicados', icono: '📣', vista: VistaRectorComunicados, modulo: 'comunicados' },
 	pagos:       { titulo: 'Pagos',       icono: '💳', vista: VistaRectorPagos, modulo: 'pagos' },
 	reportes:    { titulo: 'Reportes',    icono: '📄', vista: VistaRectorReportes },
+	textos:      { titulo: 'Mis libros',  icono: '📖', vista: VistaTextos, modulo: 'textos' },
 };
 
 /** Rutas del docente. */
@@ -76,6 +79,7 @@ const RUTAS_DOCENTE = {
 	tareas:         { titulo: 'Tareas',         icono: '📋', vista: VistaDocenteTareas, modulo: 'tareas' },
 	asistencia:     { titulo: 'Asistencia',     icono: '✅', vista: VistaDocenteAsistencia, modulo: 'asistencia' },
 	comunicados:    { titulo: 'Comunicados',    icono: '📣', vista: VistaDocenteComunicados, modulo: 'comunicados' },
+	textos:         { titulo: 'Mis libros',     icono: '📖', vista: VistaTextos, modulo: 'textos' },
 };
 
 const App = {
@@ -108,6 +112,7 @@ const App = {
 			return Object.entries( this.rutas )
 				.filter( ( [ , def ] ) => {
 					if ( def.soloPadre && ! this.esPadre ) return false;
+					if ( def.soloEstudiante && this.esPadre ) return false;
 					if ( def.modulo && ! moduleActive( def.modulo ) ) return false;
 					return true;
 				} )

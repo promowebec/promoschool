@@ -401,6 +401,7 @@ alcance personal (§5.1 nivel 3).
 | GET | `/me/sessions` | autenticado | Dispositivos con sesión abierta |
 | GET | `/me/announcements` | `edu_read_announcements` | Bandeja del usuario, con `read_at` |
 | GET | `/me/children` | `edu_view_child_grades` | Hijos del representante |
+| GET | `/me/texts` | autenticado · módulo `textos` | Textos asignados al usuario, ya montados en HTML |
 
 ### 7.2 Estructura institucional
 
@@ -787,6 +788,32 @@ correspondan**, no solo las del tipo primario — un rector que además dicta cl
 Nota de implementación: `nombres`/`apellidos` salen de `wp_usermeta` (`first_name`/`last_name`),
 **no** de `wp_edu_students` — esa tabla no los tiene.
 
+### 9.1.bis Textos (`GET /me/texts`) — la excepción que devuelve HTML
+
+```json
+{
+  "html": "<style>.g22-card{…}</style><h3 class=\"g22-seccion\">NEO Matemática EGB – Guía del docente</h3>…",
+  "vacio": false
+}
+```
+
+**Es el único endpoint que devuelve HTML, y es deliberado.** Quién ve qué texto lo decide el
+shortcode `[mis_textos]` del sitio, no este plugin: en giro22 es un mapa de rol de WordPress a
+página, con sus reglas de agrupación y orden. Reinterpretar ese criterio aquí garantizaría que
+algún día el portal y la app le mostraran cosas distintas al mismo docente.
+
+Se sostiene porque ese shortcode es **HTML puro** —tarjetas con enlace, imagen y un `<style>`
+en línea— y por tanto sobrevive a viajar por REST. Un shortcode que dependa de
+`wp_enqueue_script()` **no serviría**: durante una petición REST esas llamadas no llegan a
+ninguna parte, y el HTML llegaría sin sus estilos ni su JavaScript. Si algún día el proveedor
+cambia por uno así, este endpoint deja de ser el camino correcto.
+
+`vacio` es `true` cuando el HTML no tiene contenido visible descontando el `<style>`. La app lo
+usa para pintar el estado vacío en vez de una tarjeta en blanco.
+
+Respuestas: **404 `edu_module_disabled`** si el módulo `textos` está apagado, y **404
+`edu_no_texts_provider`** si nadie registró `[mis_textos]` en esa instalación.
+
 ### 9.2 Nota de trimestre
 
 ```json
@@ -952,7 +979,7 @@ son justamente las que no pueden fallar.
 | `includes/api/class-edu-api-auth.php` | Login, refresh rotatorio, revocación, rate limit, resolución del Bearer |
 | `includes/api/class-edu-api.php` | Arranque, CORS, institución de la request, gate de módulos, helpers de respuesta y error |
 | `includes/api/routes/class-edu-api-auth-routes.php` | `/auth/token`, `/auth/refresh`, `/auth/revoke` |
-| `includes/api/routes/class-edu-api-me-routes.php` | `/me`, `/me/password`, `/me/sessions` |
+| `includes/api/routes/class-edu-api-me-routes.php` | `/me`, `/me/password`, `/me/sessions`, `/me/texts` |
 
 Ajustes de apoyo: `Edu_Context::override_institution_id()` (institución solo para la request,
 sin tocar el selector de wp-admin), nuevo hook `do_action( 'edu_account_suspended', $user_id )`
