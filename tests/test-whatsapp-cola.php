@@ -236,4 +236,48 @@ if ( $alumno ) {
 	echo "   (sin estudiante con representante con WhatsApp: se omite la comprobación 7)\n";
 }
 
+/* ── 8. Plan limitado: comunicados generales no van por WhatsApp ───────── */
+
+$plan_con( 0 );
+edu_assert( 'sin tope: un comunicado de grado puede ir por WhatsApp', Edu_Whatsapp_Queue::permite_comunicado( 'grade' ) );
+$plan_con( 50 );
+edu_assert( 'con tope: institución y grado no', ! Edu_Whatsapp_Queue::permite_comunicado( 'institution' ) && ! Edu_Whatsapp_Queue::permite_comunicado( 'grade' ) );
+edu_assert( 'con tope: a un estudiante sí', Edu_Whatsapp_Queue::permite_comunicado( 'student' ) );
+
+if ( $alumno ) {
+	$grado = (int) $wpdb->get_var( $wpdb->prepare( "SELECT grade_id FROM {$wpdb->prefix}edu_students WHERE id = %d", $alumno ) );
+	$ta    = $wpdb->prefix . 'edu_announcements';
+	$nuevo = function ( $scope ) use ( $wpdb, $ta, $grado, $alumno ) {
+		$wpdb->insert(
+			$ta,
+			array(
+				'sender_user_id'    => 1,
+				'scope'             => $scope,
+				'target_grade_id'   => 'grade' === $scope ? $grado : null,
+				'target_student_id' => 'student' === $scope ? $alumno : null,
+				'title'             => 'Prueba cola',
+				'body'              => 'Texto',
+				'channels'          => 'portal,whatsapp',
+			)
+		);
+		return (int) $wpdb->insert_id;
+	};
+	$id_grado  = $nuevo( 'grade' );
+	$id_alumno = $nuevo( 'student' );
+	edu_test_cleanup(
+		function () use ( $wpdb, $ta, $id_grado, $id_alumno ) {
+			$wpdb->query( $wpdb->prepare( "DELETE FROM {$ta} WHERE id IN (%d, %d)", $id_grado, $id_alumno ) );
+		}
+	);
+
+	$cuenta = function ( $ann ) use ( $wpdb, $t, $max_cola ) {
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE id > %d AND announcement_id = %d", $max_cola, $ann ) );
+	};
+	Edu_Whatsapp_Notifier::process_announcement( $id_grado );
+	Edu_Whatsapp_Notifier::process_announcement( $id_alumno );
+	edu_assert( 'con tope: el comunicado de grado no se encola', 0 === $cuenta( $id_grado ) );
+	edu_assert( 'con tope: el comunicado a un estudiante sí', $cuenta( $id_alumno ) > 0 );
+}
+$plan_con( 0 );
+
 edu_test_finish();

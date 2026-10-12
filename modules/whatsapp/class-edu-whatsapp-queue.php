@@ -67,6 +67,20 @@ class Edu_Whatsapp_Queue {
 		return Edu_Plan::limite( 'whatsapp_dia' );
 	}
 
+	/**
+	 * ¿Un comunicado con este alcance puede ir por WhatsApp?
+	 *
+	 * Con tope diario (plan con WhatsApp limitado) solo los individuales: un
+	 * comunicado a todo el colegio o a un grado no cabe en el tope —1.500
+	 * representantes a 50 por día son 30 días— y caducaría a medias. Esos van
+	 * por portal y correo. Sin tope (giro22) no cambia nada.
+	 *
+	 * @param string $scope student | grade | multi_grade | institution.
+	 */
+	public static function permite_comunicado( $scope ) {
+		return 'student' === $scope || self::tope_diario() <= 0;
+	}
+
 	/* ─── Encolar ───────────────────────────────────────────────────────── */
 
 	/**

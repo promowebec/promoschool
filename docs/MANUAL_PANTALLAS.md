@@ -194,6 +194,9 @@ Los ítems de módulos apagados desaparecen del menú (ver A.25 Ajustes).
 
 - **Tablas:** `announcements`, `announcement_recipients`, `announcement_templates`
 - **Dispara:** `edu_announcement_sent` → cola de emails y, si el módulo está activo, WhatsApp.
+- **Plan con WhatsApp limitado** (tope diario en la licencia): solo los comunicados a un
+  estudiante van por WhatsApp; los de grado o institución llegan por portal y correo, y la
+  pantalla lo avisa. Faltas, notas y pagos siguen yendo por WhatsApp, dentro del tope.
 - **Captura:** sí — la pantalla de detalle con el acuse de recibo es muy vendedora.
 
 ---

@@ -48,8 +48,11 @@ class Edu_Announcement_Service {
 		$title             = sanitize_text_field( (string) ( $input['title'] ?? '' ) );
 		$body              = wp_kses_post( (string) ( $input['body'] ?? '' ) );
 		$send_email        = ! empty( $input['send_email'] );
-		$send_whatsapp     = ! empty( $input['send_whatsapp'] )
+		$wa_pedido         = ! empty( $input['send_whatsapp'] )
 			&& 'disabled' !== (string) get_option( 'edu_wa_provider', 'disabled' );
+		// Con WhatsApp limitado por el plan, los comunicados generales van solo
+		// por portal y correo (Edu_Whatsapp_Queue::permite_comunicado()).
+		$send_whatsapp     = $wa_pedido && Edu_Whatsapp_Queue::permite_comunicado( $scope );
 
 		// Solo el rectorado puede escribir a toda la institución.
 		$allowed_scopes = Edu_Context::can( 'edu_view_all' )
@@ -192,6 +195,8 @@ class Edu_Announcement_Service {
 			'recipients'   => count( $user_ids ),
 			'emailed'      => $emailed,
 			'channels'     => $channels,
+			// Se pidió WhatsApp pero el plan solo lo permite en comunicados individuales.
+			'whatsapp_omitted' => $wa_pedido && ! $send_whatsapp,
 		);
 	}
 

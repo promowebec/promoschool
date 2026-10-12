@@ -176,6 +176,13 @@ número no oficial que manda cientos de mensajes seguidos arriesga el bloqueo).
 - El notificador ahora encola (comunicados, notas, pagos, faltas) y el destinatario del comunicado
   se registra en `announcement_recipients` **cuando el envío sale**, no al encolar.
 - Ajustes muestra el estado de la cola.
+- **Decisión del usuario (opción b):** con plan limitado (tope diario en la licencia), los
+  comunicados de grado o institución **no** van por WhatsApp, solo por portal y correo; por
+  WhatsApp quedan los avisos individuales (comunicado a un estudiante, faltas, notas, pagos).
+  Regla única `Edu_Whatsapp_Queue::permite_comunicado()`, aplicada en
+  `Edu_Announcement_Service::send()` (responde `whatsapp_omitted`) y en el notificador. Sin tope
+  (giro22) no cambia nada. La SPA del rector y wp-admin lo avisan; los portales congelados solo
+  heredan la regla del servidor.
 
 **Archivos tocados.** `modules/whatsapp/class-edu-whatsapp-queue.php` (nuevo),
 `modules/whatsapp/class-edu-whatsapp-notifier.php`, `includes/class-edu-plan.php`,
@@ -196,10 +203,10 @@ aplicada en Local (`edu_db_version` = 1.0.10).
 - **wp-cron solo corre con visitas.** En producción, desactivar `DISABLE_WP_CRON` no basta: hay
   que poner un cron real del servidor cada minuto (`wp-cron.php`), o la cola avanza solo cuando
   alguien entra al sitio.
-- **El tope de 50/día de la proforma no alcanza para un comunicado a todo el colegio:** 1.500
-  representantes a 50 por día son 30 días, y caducan a las 72 h. Además, cerrar un trimestre
-  encola **un mensaje por materia** por representante. Hay que decidir con el cliente el tope
-  real, o limitar WhatsApp a avisos individuales y dejar los comunicados por portal y correo.
+- Con 50/día, **la nota de trimestre por WhatsApp no conviene activarla** en un colegio grande:
+  cerrar un trimestre encola un mensaje por materia por representante (cientos por grado) y se
+  comería el tope de varios días. Recomendado para el colegio de 1.500: faltas y pagos sí, notas
+  no (`edu_wa_notify_notas` apagado); las notas se ven en el portal.
 - A ritmo de WAHA (≈6–10 por minuto) un lote grande tarda: 1.500 mensajes ≈ 3–4 horas sin tope.
 
 ### 2026-10-11 — WhatsApp por WAHA (v1.14.0)

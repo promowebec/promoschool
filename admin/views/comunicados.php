@@ -241,7 +241,12 @@ if ( 'new' === $action ) {
 					<th><?php esc_html_e( 'Enviar por WhatsApp', 'sistema-educativo' ); ?></th>
 					<td>
 						<input type="checkbox" name="send_whatsapp" value="1">
-						<p class="description"><?php esc_html_e( 'Envía un mensaje de WhatsApp a los representantes con número registrado.', 'sistema-educativo' ); ?></p>
+						<p class="description">
+							<?php esc_html_e( 'Envía un mensaje de WhatsApp a los representantes con número registrado.', 'sistema-educativo' ); ?>
+							<?php if ( ! Edu_Whatsapp_Queue::permite_comunicado( 'grade' ) ) : ?>
+								<br><?php esc_html_e( 'Con su plan, WhatsApp solo se envía en comunicados a un estudiante; los de grado o institución llegan por el portal y el correo.', 'sistema-educativo' ); ?>
+							<?php endif; ?>
+						</p>
 					</td>
 				</tr>
 				<?php endif; ?>

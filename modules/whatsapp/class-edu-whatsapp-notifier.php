@@ -69,6 +69,12 @@ class Edu_Whatsapp_Notifier {
 			return;
 		}
 
+		// El servicio ya no marca WhatsApp en un comunicado general con plan
+		// limitado; esto cubre los que quedaron guardados antes.
+		if ( ! Edu_Whatsapp_Queue::permite_comunicado( (string) $ann->scope ) ) {
+			return;
+		}
+
 		$parents = self::get_parents_for_announcement( $ann );
 		if ( empty( $parents ) ) {
 			return;

@@ -116,7 +116,8 @@ export const VistaRectorComunicados = {
 				} );
 
 				this.aviso = `Encolado para ${ r.recipients } destinatario(s).`
-					+ ( r.emailed ? ` ${ r.emailed } correo(s) enviados.` : '' );
+					+ ( r.emailed ? ` ${ r.emailed } correo(s) enviados.` : '' )
+					+ ( r.whatsapp_omitted ? ' No se envió por WhatsApp: su plan lo reserva para comunicados a un estudiante; este llega por el portal y el correo.' : '' );
 				this.titulo = '';
 				this.cuerpo = '';
 				await this.cargar();

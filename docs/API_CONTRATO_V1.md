@@ -546,6 +546,12 @@ significa **asistencia diaria general**, que es la que dispara `edu_attendance_a
 WhatsApp **ya está diferido a cron** (`edu_wa_send_announcement`) desde el hardening, así que
 la respuesta es **202 Accepted** con el recuento de destinatarios encolados, no 201.
 
+Desde la 1.14.0 cada WhatsApp sale por la cola por lotes (`Edu_Whatsapp_Queue`). Si el plan trae
+tope diario (`limites.whatsapp_dia`), un comunicado de grado o de institución **no** va por
+WhatsApp aunque se pida `send_whatsapp`: la respuesta lo indica con
+`"whatsapp_omitted": true` y el comunicado llega por portal y correo. Los comunicados a un
+estudiante sí van.
+
 ### 7.8 Pagos
 
 | Método | Ruta | Cap |
