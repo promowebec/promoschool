@@ -17,6 +17,7 @@ class Edu_Deactivator {
 	public static function deactivate() {
 		wp_clear_scheduled_hook( 'edu_payment_daily_cron' );
 		wp_unschedule_hook( 'edu_wa_send_announcement' );
+		wp_unschedule_hook( 'edu_wa_cola' );
 
 		flush_rewrite_rules();
 	}

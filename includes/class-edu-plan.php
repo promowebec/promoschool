@@ -285,6 +285,18 @@ class Edu_Plan {
 
 	/* ─── Capacidad ─────────────────────────────────────────────────────── */
 
+	/**
+	 * Un límite contratado (`limites.<clave>` de la licencia). 0 = sin límite,
+	 * que es también lo que tiene una instalación sin licencia.
+	 *
+	 * @param string $clave estudiantes | whatsapp_dia.
+	 */
+	public static function limite( $clave ) {
+		$estado = self::estado();
+
+		return 'licencia' === $estado['modo'] ? (int) ( $estado['licencia']['limites'][ $clave ] ?? 0 ) : 0;
+	}
+
 	/** Estudiantes activos en todo el sitio: la licencia es por instalación. */
 	public static function estudiantes_activos() {
 		global $wpdb;
@@ -299,8 +311,7 @@ class Edu_Plan {
 	 * @return array|null { contratados, activos } o null si no se excede.
 	 */
 	public static function exceso_capacidad() {
-		$estado = self::estado();
-		$limite = 'licencia' === $estado['modo'] ? (int) ( $estado['licencia']['limites']['estudiantes'] ?? 0 ) : 0;
+		$limite = self::limite( 'estudiantes' );
 
 		if ( $limite <= 0 ) {
 			return null;

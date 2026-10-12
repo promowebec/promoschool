@@ -4,7 +4,7 @@ Registro de todo lo construido en el plugin, desde el scaffolding hasta la versi
 Documento vivo: agregar una entrada nueva por cada fase o cambio relevante.
 
 - **Plugin:** Sistema Educativo Integral
-- **Versión actual:** 1.14.0 (`EDU_VERSION`); esquema en 1.0.9 (`EDU_DB_VERSION`)
+- **Versión actual:** 1.14.0 (`EDU_VERSION`); esquema en 1.0.10 (`EDU_DB_VERSION`)
 - **Stack:** WordPress 6.x · PHP 8.2+ · MySQL 8 / MariaDB 10.6+ · mPDF · sin dependencias JS de build
 - **Última actualización de esta bitácora:** 11 de octubre de 2026
 
@@ -14,7 +14,7 @@ Documento vivo: agregar una entrada nueva por cada fase o cambio relevante.
 
 | Métrica | Valor |
 |---|---|
-| Tablas propias en base de datos | **30** (prefijo `wp_edu_`) |
+| Tablas propias en base de datos | **31** (prefijo `wp_edu_`) |
 | Pantallas del backend WordPress | **25** ítems de menú + 1 subvista (`tareas-detalle`) |
 | Portales frontend (shortcodes) | **4** portales (CONGELADOS) + **2** shortcodes sueltos |
 | App propia (SPA) | `[edu_app]` · Vue 3 sin build · **los 4 portales** · 23 módulos JS |
@@ -152,6 +152,56 @@ Vista de supervisión para el rector: por asignación académica muestra compone
 
 ## 2.bis · Entradas de bitácora
 
+### 2026-10-12 — Cola de WhatsApp por lotes y tope diario (v1.14.0, esquema 1.0.10)
+
+**Qué se hizo.** Ningún WhatsApp se envía ya en línea: todo entra a una cola y sale por lotes.
+Resuelve el riesgo #1 para el colegio de 1.500 estudiantes, y es requisito para usar WAHA (un
+número no oficial que manda cientos de mensajes seguidos arriesga el bloqueo).
+
+- **Antes:** el comunicado institucional era un solo loop dentro de un cron (timeout con cientos
+  de destinatarios); las notas de trimestre y las faltas se enviaban **dentro de la petición del
+  docente**, uno por representante. Con WAHA cada envío puede tardar hasta 60 s.
+- **`Edu_Whatsapp_Queue`** (`modules/whatsapp/class-edu-whatsapp-queue.php`) y tabla
+  **`wp_edu_wa_queue`**. Cron `edu_wa_cola` cada minuto (intervalo propio `edu_cada_minuto`):
+  lote de 20 con presupuesto de 45 s; con WAHA, pausa aleatoria de 4–9 s entre mensajes.
+  Ajustable con el filtro `edu_wa_cola_config`.
+- **Tope diario = licencia** (`limites.whatsapp_dia`, nuevo `--whatsapp-dia` en
+  `tools/emitir-licencia.php`). Sin tope en la licencia o sin licencia (giro22), no hay tope: nada
+  cambia para quien ya usa Meta. Lo que excede el tope sale al día siguiente, en orden.
+  `Edu_Plan::limite()` generaliza la lectura de límites.
+- Tres intentos por mensaje; tres fallos seguidos cortan el lote sin gastar los intentos del resto
+  (sesión caída). Lo pendiente más de 72 h caduca. Candado (`edu_wa_cola_lock`) para que dos
+  wp-cron no procesen a la vez. Las filas no pendientes se borran a los 30 días: guardan
+  teléfonos y nombres.
+- El notificador ahora encola (comunicados, notas, pagos, faltas) y el destinatario del comunicado
+  se registra en `announcement_recipients` **cuando el envío sale**, no al encolar.
+- Ajustes muestra el estado de la cola.
+
+**Archivos tocados.** `modules/whatsapp/class-edu-whatsapp-queue.php` (nuevo),
+`modules/whatsapp/class-edu-whatsapp-notifier.php`, `includes/class-edu-plan.php`,
+`includes/class-edu-activator.php`, `includes/class-edu-deactivator.php`, `sistema-educativo.php`,
+`admin/views/ajustes.php`, `tools/emitir-licencia.php`, `docs/sistema_educativo_schema.sql`,
+`tests/test-whatsapp-cola.php` (nuevo), `CLAUDE.md`, `docs/MANUAL_PANTALLAS.md`.
+
+**Cambios de esquema.** Tabla nueva `wp_edu_wa_queue`; `EDU_DB_VERSION` 1.0.9 → **1.0.10** (la
+crea `maybe_migrate()` sola al subir los archivos). No toca tablas que lea Flipbook.
+
+**Verificación.** `tests/test-whatsapp-cola.php`, 25 comprobaciones con WAHA simulado: lotes en
+orden, tope de una licencia firmada (par de claves en memoria), comunicado registrado solo al
+enviar, reintentos, corte por fallos seguidos, caducidad, candado (incluido uno de un proceso
+muerto) y que una falta encola sin enviar. Suite completa: **10 pruebas en verde**. Migración
+aplicada en Local (`edu_db_version` = 1.0.10).
+
+**Riesgos / notas de despliegue.**
+- **wp-cron solo corre con visitas.** En producción, desactivar `DISABLE_WP_CRON` no basta: hay
+  que poner un cron real del servidor cada minuto (`wp-cron.php`), o la cola avanza solo cuando
+  alguien entra al sitio.
+- **El tope de 50/día de la proforma no alcanza para un comunicado a todo el colegio:** 1.500
+  representantes a 50 por día son 30 días, y caducan a las 72 h. Además, cerrar un trimestre
+  encola **un mensaje por materia** por representante. Hay que decidir con el cliente el tope
+  real, o limitar WhatsApp a avisos individuales y dejar los comunicados por portal y correo.
+- A ritmo de WAHA (≈6–10 por minuto) un lote grande tarda: 1.500 mensajes ≈ 3–4 horas sin tope.
+
 ### 2026-10-11 — WhatsApp por WAHA (v1.14.0)
 
 **Qué se hizo.** Tercer proveedor de WhatsApp: **WAHA**, el mismo servidor que la agencia ya
@@ -194,11 +244,8 @@ barra final) y se restauraron las 26 opciones `edu_*`. Suite completa: 9 pruebas
 probó contra un WAHA real**: en esta PC Docker estaba apagado.
 
 **Riesgos / notas de despliegue.**
-- **El envío masivo sigue siendo un solo loop síncrono en un cron**
-  (`process_announcement()`): con WAHA es peor que con Meta, porque cada envío puede tardar hasta
-  60 s y porque un número no oficial que manda cientos de mensajes seguidos **arriesga el
-  bloqueo de WhatsApp**. Antes de usarlo con los 1.500 estudiantes hace falta el envío por lotes
-  con pausa y el tope diario. Es lo siguiente.
+- ~~El envío masivo era un solo loop síncrono~~ — resuelto con la cola por lotes (entrada del
+  12 oct 2026).
 - La sesión de un colegio no se comparte con otro colegio ni con el CRM: los mensajes saldrían
   con el número equivocado.
 - **Exponer WAHA del VPS.** En el `docker-compose.yml` del CRM, WAHA vive en la red interna

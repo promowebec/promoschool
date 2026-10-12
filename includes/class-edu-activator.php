@@ -571,6 +571,26 @@ class Edu_Activator {
 			KEY idx_user_read (user_id,read_at)
 		) $charset_collate;";
 
+		// Cola de WhatsApp (v1.0.10): todo mensaje sale por aquí, por lotes.
+		$tables[] = "CREATE TABLE {$p}wa_queue (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			to_number varchar(20) NOT NULL,
+			message text NOT NULL,
+			tipo varchar(20) NOT NULL DEFAULT '',
+			tpl_name varchar(100) NOT NULL DEFAULT '',
+			tpl_params longtext DEFAULT NULL,
+			tpl_lang varchar(10) NOT NULL DEFAULT 'es',
+			announcement_id bigint(20) unsigned DEFAULT NULL,
+			user_id bigint(20) unsigned DEFAULT NULL,
+			status enum('pending','sent','failed','expired') NOT NULL DEFAULT 'pending',
+			attempts tinyint(3) unsigned NOT NULL DEFAULT 0,
+			created_at datetime NOT NULL,
+			sent_at datetime DEFAULT NULL,
+			PRIMARY KEY  (id),
+			KEY idx_status (status,id),
+			KEY idx_sent_at (sent_at)
+		) $charset_collate;";
+
 		// 6. AUDITORÍA -------------------------------------------------------
 
 		$tables[] = "CREATE TABLE {$p}audit (

@@ -463,6 +463,33 @@ $pages = get_pages( array( 'post_status' => 'publish', 'sort_column' => 'post_ti
 			<?php endif; ?>
 		</div>
 
+		<!-- Estado de la cola -->
+		<?php if ( 'disabled' !== $wa_provider ) : ?>
+			<?php $wa_cola = Edu_Whatsapp_Queue::resumen(); ?>
+			<p style="margin:0 0 16px 10px;">
+				<strong><?php esc_html_e( 'Cola de envío:', 'sistema-educativo' ); ?></strong>
+				<?php
+				printf(
+					/* translators: 1: pendientes, 2: enviados hoy, 3: tope diario */
+					esc_html__( '%1$d pendientes · %2$d enviados hoy de %3$s', 'sistema-educativo' ),
+					(int) $wa_cola['pendientes'],
+					(int) $wa_cola['enviados_hoy'],
+					$wa_cola['tope'] > 0 ? esc_html( (string) $wa_cola['tope'] ) : esc_html__( 'sin tope', 'sistema-educativo' )
+				);
+				if ( $wa_cola['fallidos'] || $wa_cola['caducados'] ) {
+					echo ' · ';
+					printf(
+						/* translators: 1: fallidos, 2: caducados */
+						esc_html__( 'últimos 7 días: %1$d fallidos, %2$d caducados', 'sistema-educativo' ),
+						(int) $wa_cola['fallidos'],
+						(int) $wa_cola['caducados']
+					);
+				}
+				?>
+				<br><span class="description"><?php esc_html_e( 'Los mensajes salen por lotes cada minuto. El tope diario lo fija el plan contratado; lo que no alcanza a salir hoy sale mañana, y lo que lleva más de 72 horas en cola se descarta.', 'sistema-educativo' ); ?></span>
+			</p>
+		<?php endif; ?>
+
 		<!-- Botón de prueba de conexión (fuera del form) -->
 		<div id="edu-wa-test-wrap" style="<?php echo 'disabled' === $wa_provider ? 'display:none;' : ''; ?>margin-bottom:20px;padding-left:10px;">
 			<button type="button" class="button" id="edu-wa-test-btn" onclick="eduWaTestConnection()">

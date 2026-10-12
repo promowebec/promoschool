@@ -210,7 +210,7 @@ Cadena de recálculo: `edu_grade_logged` → parcial · `edu_partial_closed` →
 
 ## Base de datos
 
-**30 tablas** con prefijo `wp_edu_`. Esquema canónico en `docs/sistema_educativo_schema.sql`
+**31 tablas** con prefijo `wp_edu_` (la 31 es `wa_queue`, la cola de WhatsApp, desde 1.0.10). Esquema canónico en `docs/sistema_educativo_schema.sql`
 (28 tablas; `payments` y `payment_config` se crean en el activator).
 
 - `dbDelta()` **ignora las FOREIGN KEY**: la integridad se aplica desde PHP.
@@ -336,6 +336,8 @@ portal: si algo falla, se vuelve a poner el shortcode.
   una entrega y guardar la grilla, ambos auditados). Nunca borrar notas de tareas desde la grilla.
 - ❌ Duplicar en JavaScript el cálculo de notas o la escala cualitativa.
 - ❌ Escribir lógica de negocio en un controller o en una vista.
+- ❌ Enviar WhatsApp sin pasar por `Edu_Whatsapp_Queue::encolar()` (lotes por cron, tope
+  diario de la licencia `limites.whatsapp_dia`).
 - ❌ Enviar emails o WhatsApp masivos de forma síncrona. Encolar en cron y responder
   "encolado, N destinatarios".
 - ❌ Exponer cédulas o nombres reales de menores en logs, pruebas o capturas.
@@ -346,7 +348,7 @@ portal: si algo falla, se vuelve a poner el shortcode.
 
 ## Estado actual
 
-**v1.14.0** · esquema `EDU_DB_VERSION` 1.0.9. Desde la 1.14.0 los módulos dependen del plan contratado (licencia firmada, ver «Plan contratado»).
+**v1.14.0** · esquema `EDU_DB_VERSION` 1.0.10. Desde la 1.14.0 los módulos dependen del plan contratado (licencia firmada, ver «Plan contratado»).
 
 Fases 0–7 del plugin completas (calificaciones, tareas, comunicados, asistencia, PWA, cuentas,
 pagos Payphone, WhatsApp y exportes Mineduc), más la revisión de seguridad de julio de 2026.

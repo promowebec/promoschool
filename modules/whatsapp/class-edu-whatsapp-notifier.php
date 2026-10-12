@@ -2,7 +2,8 @@
 /**
  * Dispatcher de notificaciones WhatsApp.
  *
- * Lógica de envío:
+ * Nada se envía aquí: cada mensaje se encola en Edu_Whatsapp_Queue, que lo
+ * envía por lotes desde el cron. Al enviar:
  *   - Si el proveedor es 'meta' Y hay plantilla configurada para el evento
  *     → usa send_template() (funciona sin ventana de 24h, envío proactivo).
  *   - En cualquier otro caso (Twilio, o Meta sin plantilla configurada)
@@ -43,7 +44,8 @@ class Edu_Whatsapp_Notifier {
 	}
 
 	/**
-	 * Callback del evento cron edu_wa_send_announcement: hace el envío real.
+	 * Callback del evento cron edu_wa_send_announcement: encola un mensaje por
+	 * representante. El envío lo hace la cola, por lotes.
 	 */
 	public static function process_announcement( int $announcement_id ): void {
 		if ( 'disabled' === (string) get_option( 'edu_wa_provider', 'disabled' ) ) {
@@ -79,33 +81,25 @@ class Edu_Whatsapp_Notifier {
 		$cuerpo      = wp_strip_all_tags( $ann->body );
 		$fallback    = "📢 *{$titulo}*\n\n{$cuerpo}\n\n— {$site}";
 
-		$now = current_time( 'mysql' );
-
 		foreach ( $parents as $parent ) {
 			if ( empty( $parent->whatsapp ) ) {
 				continue;
 			}
 
-			$sent = self::dispatch(
-				$parent->whatsapp,
-				$tpl_name,
-				array( $titulo, $cuerpo, $site ),
-				$fallback,
-				$lang
+			// El destinatario se registra en announcement_recipients cuando
+			// la cola confirma el envío, no al encolar.
+			Edu_Whatsapp_Queue::encolar(
+				array(
+					'to'              => $parent->whatsapp,
+					'message'         => $fallback,
+					'tipo'            => 'comunicado',
+					'tpl_name'        => $tpl_name,
+					'tpl_params'      => array( $titulo, $cuerpo, $site ),
+					'tpl_lang'        => $lang,
+					'announcement_id' => $announcement_id,
+					'user_id'         => (int) $parent->user_id,
+				)
 			);
-
-			if ( $sent && $parent->user_id ) {
-				$wpdb->insert(
-					"{$p}announcement_recipients",
-					array(
-						'announcement_id' => $announcement_id,
-						'user_id'         => (int) $parent->user_id,
-						'channel'         => 'whatsapp',
-						'sent_at'         => $now,
-					),
-					array( '%d', '%d', '%s', '%s' )
-				);
-			}
 		}
 	}
 
@@ -164,11 +158,7 @@ class Edu_Whatsapp_Notifier {
 		// Parámetros: {{1}}=institución {{2}}=estudiante {{3}}=materia {{4}}=trimestre {{5}}=nota
 		$tpl_params = array( $site, $nombre, $materia, $trim_num, $nota );
 
-		foreach ( $parents as $parent ) {
-			if ( ! empty( $parent->whatsapp ) ) {
-				self::dispatch( $parent->whatsapp, $tpl_name, $tpl_params, $fallback, $lang );
-			}
-		}
+		self::encolar_padres( $parents, 'nota', $tpl_name, $tpl_params, $fallback, $lang );
 	}
 
 	/**
@@ -214,11 +204,7 @@ class Edu_Whatsapp_Notifier {
 		// Parámetros: {{1}}=institución {{2}}=estudiante {{3}}=concepto {{4}}=mes {{5}}=valor {{6}}=vencimiento
 		$tpl_params = array( $site, $nombre, $concept, $mes, $valor, $vencio );
 
-		foreach ( $parents as $parent ) {
-			if ( ! empty( $parent->whatsapp ) ) {
-				self::dispatch( $parent->whatsapp, $tpl_name, $tpl_params, $fallback, $lang );
-			}
-		}
+		self::encolar_padres( $parents, 'pago', $tpl_name, $tpl_params, $fallback, $lang );
 	}
 
 	/**
@@ -252,10 +238,26 @@ class Edu_Whatsapp_Notifier {
 		// Parámetros: {{1}}=institución {{2}}=estudiante {{3}}=fecha {{4}}=tipo
 		$tpl_params = array( $site, $nombre, $date, $tipo );
 
+		self::encolar_padres( $parents, 'asistencia', $tpl_name, $tpl_params, $fallback, $lang );
+	}
+
+	/** Un mensaje en cola por representante con WhatsApp. */
+	private static function encolar_padres( array $parents, string $tipo, string $tpl_name, array $tpl_params, string $fallback, string $lang ): void {
 		foreach ( $parents as $parent ) {
-			if ( ! empty( $parent->whatsapp ) ) {
-				self::dispatch( $parent->whatsapp, $tpl_name, $tpl_params, $fallback, $lang );
+			if ( empty( $parent->whatsapp ) ) {
+				continue;
 			}
+			Edu_Whatsapp_Queue::encolar(
+				array(
+					'to'         => $parent->whatsapp,
+					'message'    => $fallback,
+					'tipo'       => $tipo,
+					'tpl_name'   => $tpl_name,
+					'tpl_params' => $tpl_params,
+					'tpl_lang'   => $lang,
+					'user_id'    => (int) $parent->user_id,
+				)
+			);
 		}
 	}
 
@@ -264,7 +266,8 @@ class Edu_Whatsapp_Notifier {
 	 * -------------------------------------------------------------------- */
 
 	/**
-	 * Elige entre plantilla (Meta proactivo) o texto libre (Twilio / ventana 24h Meta).
+	 * Elige entre plantilla (Meta proactivo) o texto libre (Twilio, WAHA, ventana
+	 * 24h Meta). Lo usa la cola al enviar cada mensaje.
 	 *
 	 * @param string   $to            Número del destinatario.
 	 * @param string   $tpl_name      Nombre de la plantilla (vacío = sin plantilla configurada).
@@ -272,7 +275,7 @@ class Edu_Whatsapp_Notifier {
 	 * @param string   $fallback_text Texto libre para cuando no hay plantilla.
 	 * @param string   $lang          Código de idioma para la plantilla.
 	 */
-	private static function dispatch(
+	public static function dispatch(
 		string $to,
 		string $tpl_name,
 		array $tpl_params,

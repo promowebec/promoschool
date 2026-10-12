@@ -519,7 +519,7 @@ pantallas del plugin muestran un aviso; la matrícula nunca se bloquea.
 
 **4. Email de envío** — nombre y dirección del remitente (filtros `wp_mail_from` / `wp_mail_from_name`).
 
-**5. WhatsApp Business** — proveedor (desactivado / Twilio / Meta / WAHA), credenciales (para WAHA: URL del servidor de PromoWebEc, API key y la sesión del colegio), panel **«Conectar número»** solo para WAHA (estado, QR para escanear con el teléfono del colegio, número conectado, Desconectar y Volver a vincular), nombres de las plantillas aprobadas por tipo de mensaje (comunicado, nota, pago, asistencia), idioma, y botón de prueba de envío por AJAX.
+**5. WhatsApp Business** — proveedor (desactivado / Twilio / Meta / WAHA), credenciales (para WAHA: URL del servidor de PromoWebEc, API key y la sesión del colegio), panel **«Conectar número»** solo para WAHA (estado, QR para escanear con el teléfono del colegio, número conectado, Desconectar y Volver a vincular), nombres de las plantillas aprobadas por tipo de mensaje (comunicado, nota, pago, asistencia), idioma, botón de prueba de conexión por AJAX y el **estado de la cola** (pendientes, enviados hoy frente al tope diario del plan, fallidos y caducados de la última semana). Los mensajes salen por lotes cada minuto; lo que excede el tope sale al día siguiente.
 
 - **Opciones:** `edu_modules`, `edu_tareas_page_id`, `edu_comunicados_page_id`, `edu_email_from_*`, `edu_wa_*`
 - **Captura:** sí — **la tabla de módulos es la pantalla clave para vender por etapas.**

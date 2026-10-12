@@ -414,6 +414,26 @@ CREATE TABLE IF NOT EXISTS `wp_edu_announcement_recipients` (
   INDEX idx_user_read (`user_id`,`read_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Cola de WhatsApp (v1.0.10). Todo mensaje sale por aquí, por lotes, con el tope
+-- diario de la licencia. Las filas no pendientes se borran a los 30 días.
+CREATE TABLE IF NOT EXISTS `wp_edu_wa_queue` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `to_number` VARCHAR(20) NOT NULL COMMENT 'E.164',
+  `message` TEXT NOT NULL COMMENT 'Texto libre (Twilio, WAHA, Meta sin plantilla)',
+  `tipo` VARCHAR(20) NOT NULL DEFAULT '' COMMENT 'comunicado, nota, pago, asistencia',
+  `tpl_name` VARCHAR(100) NOT NULL DEFAULT '' COMMENT 'Plantilla Meta',
+  `tpl_params` LONGTEXT NULL COMMENT 'JSON',
+  `tpl_lang` VARCHAR(10) NOT NULL DEFAULT 'es',
+  `announcement_id` BIGINT UNSIGNED NULL,
+  `user_id` BIGINT UNSIGNED NULL COMMENT 'Representante destinatario',
+  `status` ENUM('pending','sent','failed','expired') NOT NULL DEFAULT 'pending',
+  `attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  `created_at` DATETIME NOT NULL,
+  `sent_at` DATETIME NULL,
+  INDEX idx_status (`status`,`id`),
+  INDEX idx_sent_at (`sent_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- =====================================================
 -- 6. AUDITORÍA
 -- =====================================================

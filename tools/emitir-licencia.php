@@ -21,10 +21,11 @@
  *
  *      php tools/emitir-licencia.php --cliente="Unidad Educativa X" \
  *          --hosts=colegiox.edu.ec,staging.colegiox.edu.ec \
- *          --edicion=base --estudiantes=1500 --actualizaciones-hasta=2027-11-30
+ *          --edicion=base --estudiantes=1500 --whatsapp-dia=50 --actualizaciones-hasta=2027-11-30
  *
  *    --edicion toma los módulos de la plantilla de abajo. --agregar=entregas,pagos
  *    suma módulos vendidos aparte; --modulos=... reemplaza la plantilla entera.
+ *    --whatsapp-dia es el tope diario de mensajes de WhatsApp (sin él, sin tope).
  *
  * @package SistemaEducativo
  */
@@ -53,7 +54,7 @@ const EDU_LIC_EDICIONES = array(
 	'completa'   => EDU_LIC_MODULOS,
 );
 
-$opts = getopt( '', array( 'generar-claves', 'mostrar-publica', 'salida:', 'clave:', 'cliente:', 'hosts:', 'edicion:', 'modulos:', 'agregar:', 'estudiantes:', 'actualizaciones-hasta:', 'lid:' ) );
+$opts = getopt( '', array( 'generar-claves', 'mostrar-publica', 'salida:', 'clave:', 'cliente:', 'hosts:', 'edicion:', 'modulos:', 'agregar:', 'estudiantes:', 'whatsapp-dia:', 'actualizaciones-hasta:', 'lid:' ) );
 
 $dir_defecto = rtrim( (string) ( getenv( 'USERPROFILE' ) ?: getenv( 'HOME' ) ), '\\/' ) . DIRECTORY_SEPARATOR . '.promowebec';
 
@@ -148,7 +149,12 @@ $payload = array(
 	'hosts'                 => $lista( $opts['hosts'] ),
 	'edicion'               => $edicion,
 	'modulos'               => $modulos,
-	'limites'               => array( 'estudiantes' => (int) ( $opts['estudiantes'] ?? 0 ) ),
+	'limites'               => array_filter(
+		array(
+			'estudiantes'  => (int) ( $opts['estudiantes'] ?? 0 ),
+			'whatsapp_dia' => (int) ( $opts['whatsapp-dia'] ?? 0 ),
+		)
+	),
 	'actualizaciones_hasta' => $hasta,
 	'emitida'               => gmdate( 'Y-m-d' ),
 );

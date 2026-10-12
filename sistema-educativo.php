@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'EDU_VERSION', '1.14.0' );
-define( 'EDU_DB_VERSION', '1.0.9' );
+define( 'EDU_DB_VERSION', '1.0.10' );
 
 define( 'EDU_PLUGIN_FILE', __FILE__ );
 define( 'EDU_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -91,6 +91,7 @@ require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-payment-controller
 require_once EDU_PLUGIN_DIR . 'modules/reportes/class-edu-mineduc-exporter.php';
 require_once EDU_PLUGIN_DIR . 'modules/whatsapp/class-edu-whatsapp.php';
 require_once EDU_PLUGIN_DIR . 'modules/whatsapp/class-edu-whatsapp-notifier.php';
+require_once EDU_PLUGIN_DIR . 'modules/whatsapp/class-edu-whatsapp-queue.php';
 
 // API REST edu/v1 — contrato en docs/API_CONTRATO_V1.md.
 require_once EDU_PLUGIN_DIR . 'includes/api/class-edu-api-jwt.php';
@@ -286,9 +287,17 @@ function edu_bootstrap() {
 		$loader->add_action( 'edu_payment_overdue',   'Edu_Whatsapp_Notifier', 'on_payment_overdue',   10, 2 );
 		$loader->add_action( 'edu_attendance_absence','Edu_Whatsapp_Notifier', 'on_attendance_absence',10, 3 );
 
+		// Cola: un lote por minuto (ver Edu_Whatsapp_Queue).
+		add_filter( 'cron_schedules', array( 'Edu_Whatsapp_Queue', 'schedules' ) );
+		Edu_Whatsapp_Queue::programar();
+		$loader->add_action( Edu_Whatsapp_Queue::CRON, 'Edu_Whatsapp_Queue', 'procesar' );
+
 		// AJAX: prueba de conexión WhatsApp.
 		$loader->add_action( 'wp_ajax_edu_test_whatsapp', 'Edu_Settings_Controller', 'handle_test_whatsapp' );
 		$loader->add_action( 'wp_ajax_edu_waha', 'Edu_Settings_Controller', 'handle_waha' );
+	} else {
+		// Módulo apagado: la cola no se procesa (las filas se conservan).
+		Edu_Whatsapp_Queue::desprogramar();
 	}
 
 	if ( Edu_Modules::is_active( 'pagos' ) ) {
