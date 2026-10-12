@@ -31,6 +31,11 @@ $wa_twilio_token        = (string) get_option( 'edu_wa_twilio_token', '' );
 $wa_twilio_from         = (string) get_option( 'edu_wa_twilio_from', '' );
 $wa_meta_phone_id       = (string) get_option( 'edu_wa_meta_phone_id', '' );
 $wa_meta_token          = (string) get_option( 'edu_wa_meta_token', '' );
+$wa_waha_url            = (string) get_option( 'edu_wa_waha_url', '' );
+$wa_waha_key            = (string) get_option( 'edu_wa_waha_key', '' );
+$wa_waha_session        = (string) get_option( 'edu_wa_waha_session', '' );
+$wa_waha_sugerida       = 'promoschool-' . sanitize_title( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
+$wa_waha_listo          = '' !== $wa_waha_url && '' !== $wa_waha_session;
 $wa_notify_comunicados  = (int) get_option( 'edu_wa_notify_comunicados', 0 );
 $wa_notify_notas        = (int) get_option( 'edu_wa_notify_notas', 0 );
 $wa_notify_pagos        = (int) get_option( 'edu_wa_notify_pagos', 0 );
@@ -51,6 +56,79 @@ $pages = get_pages( array( 'post_status' => 'publish', 'sort_column' => 'post_ti
 		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Ajustes guardados.', 'sistema-educativo' ); ?></p></div>
 	<?php endif; ?>
 
+	<?php
+	// ── Plan contratado ─────────────────────────────────────────────────
+	$plan          = Edu_Plan::estado();
+	$plan_lic      = $plan['licencia'];
+	$plan_error    = 'license_error' === $status ? (string) get_transient( 'edu_license_error_' . get_current_user_id() ) : '';
+	$plan_catalogo = Edu_Modules::catalog();
+	$plan_modos    = array(
+		'licencia' => __( 'Licencia activa', 'sistema-educativo' ),
+		'heredado' => __( 'Instalación anterior al plan: conserva todos sus módulos hasta que se cargue una licencia.', 'sistema-educativo' ),
+		'nuevo'    => __( 'Sin licencia: solo el núcleo académico está activo.', 'sistema-educativo' ),
+	);
+	if ( $plan_error ) {
+		delete_transient( 'edu_license_error_' . get_current_user_id() );
+	}
+	?>
+
+	<?php if ( 'license_saved' === $status ) : ?>
+		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Licencia actualizada.', 'sistema-educativo' ); ?></p></div>
+	<?php elseif ( 'license_error' === $status ) : ?>
+		<div class="notice notice-error"><p><?php echo esc_html( $plan_error ? $plan_error : __( 'No se pudo guardar la licencia.', 'sistema-educativo' ) ); ?></p></div>
+	<?php endif; ?>
+
+	<div class="edu-card" style="max-width:600px; margin:16px 0 24px; padding:16px 20px;">
+		<h2 style="margin-top:0;"><?php esc_html_e( 'Plan contratado', 'sistema-educativo' ); ?></h2>
+
+		<p><strong><?php echo esc_html( $plan_modos[ $plan['modo'] ] ); ?></strong></p>
+
+		<?php if ( $plan['error'] ) : ?>
+			<p style="color:#b91c1c;"><?php echo esc_html( sprintf( __( 'La licencia guardada no es válida: %s', 'sistema-educativo' ), $plan['error'] ) ); ?></p>
+		<?php endif; ?>
+
+		<?php if ( $plan_lic ) : ?>
+			<table class="widefat striped" style="margin-bottom:12px;">
+				<tr><th><?php esc_html_e( 'Institución', 'sistema-educativo' ); ?></th><td><?php echo esc_html( $plan_lic['cliente'] ); ?></td></tr>
+				<tr><th><?php esc_html_e( 'Edición', 'sistema-educativo' ); ?></th><td><?php echo esc_html( ucfirst( $plan_lic['edicion'] ) ); ?></td></tr>
+				<tr><th><?php esc_html_e( 'Módulos incluidos', 'sistema-educativo' ); ?></th>
+					<td>
+						<?php
+						$plan_nombres = array();
+						foreach ( $plan_lic['modulos'] as $plan_mod ) {
+							$plan_nombres[] = isset( $plan_catalogo[ $plan_mod ] ) ? $plan_catalogo[ $plan_mod ]['label'] : $plan_mod;
+						}
+						echo esc_html( $plan_nombres ? implode( ', ', $plan_nombres ) : __( 'Solo núcleo académico', 'sistema-educativo' ) );
+						?>
+					</td>
+				</tr>
+				<?php if ( ! empty( $plan_lic['limites']['estudiantes'] ) ) : ?>
+					<tr><th><?php esc_html_e( 'Capacidad', 'sistema-educativo' ); ?></th>
+						<td><?php echo esc_html( sprintf( __( '%1$d estudiantes (activos hoy: %2$d)', 'sistema-educativo' ), $plan_lic['limites']['estudiantes'], Edu_Plan::estudiantes_activos() ) ); ?></td>
+					</tr>
+				<?php endif; ?>
+				<?php if ( $plan_lic['actualizaciones_hasta'] ) : ?>
+					<tr><th><?php esc_html_e( 'Actualizaciones hasta', 'sistema-educativo' ); ?></th><td><?php echo esc_html( $plan_lic['actualizaciones_hasta'] ); ?></td></tr>
+				<?php endif; ?>
+				<tr><th><?php esc_html_e( 'Licencia', 'sistema-educativo' ); ?></th><td><code><?php echo esc_html( $plan_lic['lid'] ); ?></code></td></tr>
+			</table>
+		<?php endif; ?>
+
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php wp_nonce_field( 'edu_save_license' ); ?>
+			<input type="hidden" name="action" value="edu_save_license">
+			<label for="edu_license"><strong><?php echo esc_html( $plan_lic ? __( 'Reemplazar licencia', 'sistema-educativo' ) : __( 'Pegar licencia', 'sistema-educativo' ) ); ?></strong></label>
+			<textarea name="edu_license" id="edu_license" rows="4" class="large-text code" placeholder="PS1...."></textarea>
+			<p class="description"><?php esc_html_e( 'La licencia la emite PromoWebEc e indica los módulos contratados. Al cambiarla los módulos se activan o desactivan al instante; los datos nunca se borran.', 'sistema-educativo' ); ?></p>
+			<p>
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Guardar licencia', 'sistema-educativo' ); ?></button>
+				<?php if ( $plan_lic ) : ?>
+					<button type="submit" name="edu_license_remove" value="1" class="button"><?php esc_html_e( 'Quitar licencia', 'sistema-educativo' ); ?></button>
+				<?php endif; ?>
+			</p>
+		</form>
+	</div>
+
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="max-width:600px;">
 		<?php wp_nonce_field( 'edu_save_settings' ); ?>
 		<input type="hidden" name="action" value="edu_save_settings">
@@ -64,15 +142,23 @@ $pages = get_pages( array( 'post_status' => 'publish', 'sort_column' => 'post_ti
 			<?php
 			$modulos_guardados = (array) get_option( Edu_Modules::OPTION, array() );
 			foreach ( Edu_Modules::catalog() as $mod_key => $mod ) :
-				$mod_activo = ! array_key_exists( $mod_key, $modulos_guardados ) || ! empty( $modulos_guardados[ $mod_key ] );
+				$mod_activo  = ! array_key_exists( $mod_key, $modulos_guardados ) || ! empty( $modulos_guardados[ $mod_key ] );
+				$mod_en_plan = Edu_Modules::in_plan( $mod_key );
 			?>
-			<tr>
+			<tr<?php echo $mod_en_plan ? '' : ' style="opacity:.6;"'; ?>>
 				<th><?php echo esc_html( $mod['label'] ); ?></th>
 				<td>
-					<label>
-						<input type="checkbox" name="edu_modules[<?php echo esc_attr( $mod_key ); ?>]" value="1" <?php checked( $mod_activo ); ?>>
-						<?php esc_html_e( 'Activo', 'sistema-educativo' ); ?>
-					</label>
+					<?php if ( $mod_en_plan ) : ?>
+						<label>
+							<input type="checkbox" name="edu_modules[<?php echo esc_attr( $mod_key ); ?>]" value="1" <?php checked( $mod_activo ); ?>>
+							<?php esc_html_e( 'Activo', 'sistema-educativo' ); ?>
+						</label>
+					<?php else : ?>
+						<label>
+							<input type="checkbox" disabled>
+							<?php esc_html_e( 'No incluido en su plan — contacte a PromoWebEc', 'sistema-educativo' ); ?>
+						</label>
+					<?php endif; ?>
 					<p class="description"><?php echo esc_html( $mod['desc'] ); ?></p>
 				</td>
 			</tr>
@@ -212,6 +298,7 @@ $pages = get_pages( array( 'post_status' => 'publish', 'sort_column' => 'post_ti
 						<option value="disabled" <?php selected( $wa_provider, 'disabled' ); ?>><?php esc_html_e( 'Desactivado', 'sistema-educativo' ); ?></option>
 						<option value="twilio"   <?php selected( $wa_provider, 'twilio' ); ?>>Twilio WhatsApp API</option>
 						<option value="meta"     <?php selected( $wa_provider, 'meta' ); ?>>Meta WhatsApp Business Cloud</option>
+						<option value="waha"     <?php selected( $wa_provider, 'waha' ); ?>><?php esc_html_e( 'WAHA (servidor de PromoWebEc)', 'sistema-educativo' ); ?></option>
 					</select>
 				</td>
 			</tr>
@@ -324,6 +411,58 @@ $pages = get_pages( array( 'post_status' => 'publish', 'sort_column' => 'post_ti
 			</table>
 		</div>
 
+		<!-- Credenciales WAHA -->
+		<div id="edu-wa-waha" style="<?php echo 'waha' === $wa_provider ? '' : 'display:none'; ?>">
+			<h3><?php esc_html_e( 'Servidor WAHA', 'sistema-educativo' ); ?></h3>
+			<p class="description" style="margin-bottom:12px;">
+				<?php esc_html_e( 'Los datos los entrega PromoWebEc. Cada colegio tiene su propia sesión, es decir su propio número, que se empareja escaneando el QR en «Conectar número», más abajo. Los mensajes salen como texto, sin plantillas de Meta.', 'sistema-educativo' ); ?>
+			</p>
+			<table class="form-table">
+				<tr>
+					<th><label for="edu_wa_waha_url"><?php esc_html_e( 'URL del servidor', 'sistema-educativo' ); ?></label></th>
+					<td>
+						<input type="url" name="edu_wa_waha_url" id="edu_wa_waha_url" class="regular-text"
+							value="<?php echo esc_attr( $wa_waha_url ); ?>" placeholder="https://waha.ejemplo.com">
+					</td>
+				</tr>
+				<tr>
+					<th><label for="edu_wa_waha_key"><?php esc_html_e( 'API key', 'sistema-educativo' ); ?></label></th>
+					<td>
+						<input type="password" name="edu_wa_waha_key" id="edu_wa_waha_key" class="regular-text"
+							value="<?php echo esc_attr( $wa_waha_key ); ?>" autocomplete="new-password">
+					</td>
+				</tr>
+				<tr>
+					<th><label for="edu_wa_waha_session"><?php esc_html_e( 'Sesión', 'sistema-educativo' ); ?></label></th>
+					<td>
+						<input type="text" name="edu_wa_waha_session" id="edu_wa_waha_session" class="regular-text"
+							value="<?php echo esc_attr( $wa_waha_session ? $wa_waha_session : $wa_waha_sugerida ); ?>" pattern="[A-Za-z0-9_\-]+">
+						<p class="description"><?php esc_html_e( 'Nombre de la sesión de este colegio en WAHA (letras, números, guiones). La sugerida es única para este sitio: no usar la de otro colegio ni la del CRM, o los mensajes saldrían por ese número.', 'sistema-educativo' ); ?></p>
+					</td>
+				</tr>
+			</table>
+
+			<h3><?php esc_html_e( 'Conectar número', 'sistema-educativo' ); ?></h3>
+			<?php if ( ! $wa_waha_listo ) : ?>
+				<p class="description"><?php esc_html_e( 'Guarde los ajustes con la URL, la API key y la sesión; después aparece aquí el botón para conectar el número.', 'sistema-educativo' ); ?></p>
+			<?php else : ?>
+				<div id="edu-waha-panel" style="padding:12px 16px;border:1px solid #dcdcde;background:#fff;max-width:640px;">
+					<p style="margin-top:0;">
+						<?php esc_html_e( 'Estado:', 'sistema-educativo' ); ?>
+						<strong id="edu-waha-estado"><?php esc_html_e( 'consultando…', 'sistema-educativo' ); ?></strong>
+					</p>
+					<p id="edu-waha-msg" class="description" style="margin:4px 0 10px;"></p>
+					<div id="edu-waha-qr-wrap" style="display:none;margin-bottom:12px;">
+						<img id="edu-waha-qr" alt="<?php esc_attr_e( 'Código QR de WhatsApp', 'sistema-educativo' ); ?>" style="width:264px;height:264px;border:1px solid #dcdcde;image-rendering:pixelated;">
+						<p class="description"><?php esc_html_e( 'En el teléfono del colegio: WhatsApp → Dispositivos vinculados → Vincular un dispositivo, y escanee este código. Se renueva solo.', 'sistema-educativo' ); ?></p>
+					</div>
+					<button type="button" class="button button-primary" id="edu-waha-conectar" onclick="eduWaha('conectar')"><?php esc_html_e( 'Conectar número', 'sistema-educativo' ); ?></button>
+					<button type="button" class="button" id="edu-waha-desconectar" onclick="eduWaha('desconectar')"><?php esc_html_e( 'Desconectar', 'sistema-educativo' ); ?></button>
+					<button type="button" class="button" id="edu-waha-revincular" onclick="eduWaha('revincular')"><?php esc_html_e( 'Volver a vincular', 'sistema-educativo' ); ?></button>
+				</div>
+			<?php endif; ?>
+		</div>
+
 		<!-- Botón de prueba de conexión (fuera del form) -->
 		<div id="edu-wa-test-wrap" style="<?php echo 'disabled' === $wa_provider ? 'display:none;' : ''; ?>margin-bottom:20px;padding-left:10px;">
 			<button type="button" class="button" id="edu-wa-test-btn" onclick="eduWaTestConnection()">
@@ -427,6 +566,7 @@ $pages = get_pages( array( 'post_status' => 'publish', 'sort_column' => 'post_ti
 function eduWaProviderChange(val) {
 	document.getElementById('edu-wa-twilio').style.display = val === 'twilio' ? '' : 'none';
 	document.getElementById('edu-wa-meta').style.display   = val === 'meta'   ? '' : 'none';
+	document.getElementById('edu-wa-waha').style.display   = val === 'waha'   ? '' : 'none';
 	var hide = val === 'disabled';
 	document.getElementById('edu-wa-test-wrap').style.display  = hide ? 'none' : '';
 	document.getElementById('edu-wa-events').style.display     = hide ? 'none' : '';
@@ -452,4 +592,79 @@ function eduWaTestConnection() {
 		})
 		.finally(function() { btn.disabled = false; });
 }
+
+/* Panel WAHA: consulta el estado y, mientras espera el escaneo, muestra el QR. */
+var eduWahaTimer = null, eduWahaIntentos = 0;
+var eduWahaTextos = {
+	WORKING:      '<?php echo esc_js( __( 'Conectado', 'sistema-educativo' ) ); ?>',
+	SCAN_QR_CODE: '<?php echo esc_js( __( 'Esperando que se escanee el QR', 'sistema-educativo' ) ); ?>',
+	STARTING:     '<?php echo esc_js( __( 'Iniciando…', 'sistema-educativo' ) ); ?>',
+	STOPPED:      '<?php echo esc_js( __( 'Desconectado', 'sistema-educativo' ) ); ?>',
+	FAILED:       '<?php echo esc_js( __( 'Falló — use «Volver a vincular»', 'sistema-educativo' ) ); ?>',
+	NO_EXISTE:    '<?php echo esc_js( __( 'Sin conectar todavía', 'sistema-educativo' ) ); ?>'
+};
+var eduWahaConfirmar = {
+	desconectar: '<?php echo esc_js( __( '¿Desconectar el número? Los mensajes dejarán de salir hasta que se vuelva a escanear el QR.', 'sistema-educativo' ) ); ?>',
+	revincular:  '<?php echo esc_js( __( '¿Borrar la sesión y crearla de nuevo? Habrá que escanear un QR nuevo.', 'sistema-educativo' ) ); ?>'
+};
+function eduWahaPost(accion) {
+	var data = new FormData();
+	data.append('action', 'edu_waha');
+	data.append('accion', accion);
+	data.append('_wpnonce', '<?php echo esc_js( wp_create_nonce( 'edu_waha' ) ); ?>');
+	return fetch(ajaxurl, { method: 'POST', body: data, credentials: 'same-origin' }).then(function(r) { return r.json(); });
+}
+function eduWahaPintar(d) {
+	var estado = document.getElementById('edu-waha-estado');
+	var msg    = document.getElementById('edu-waha-msg');
+	if (!d.ok) {
+		msg.textContent = d.message || '';
+		msg.style.color = '#dc2626';
+		if (d.code !== 'waha_sin_qr') { estado.textContent = '—'; }
+		return;
+	}
+	msg.textContent = '';
+	estado.textContent = (eduWahaTextos[d.estado] || d.estado) + (d.numero ? ' · ' + d.numero : '');
+	estado.style.color = d.estado === 'WORKING' ? '#16a34a' : '';
+	document.getElementById('edu-waha-conectar').style.display   = d.estado === 'WORKING' ? 'none' : '';
+	document.getElementById('edu-waha-desconectar').style.display = d.estado === 'WORKING' ? '' : 'none';
+	if (d.estado !== 'SCAN_QR_CODE' && d.estado !== 'SCAN_QR') {
+		document.getElementById('edu-waha-qr-wrap').style.display = 'none';
+	}
+}
+function eduWahaSeguir() {
+	clearTimeout(eduWahaTimer);
+	if (++eduWahaIntentos > 60) { return; } // ~3 minutos y se deja de consultar.
+	eduWahaPost('estado').then(function(d) {
+		eduWahaPintar(d);
+		if (!d.ok) { return; }
+		if (d.estado === 'SCAN_QR_CODE' || d.estado === 'SCAN_QR') {
+			eduWahaPost('qr').then(function(q) {
+				if (q.ok && q.qr) {
+					document.getElementById('edu-waha-qr').src = q.qr;
+					document.getElementById('edu-waha-qr-wrap').style.display = '';
+				}
+			});
+		}
+		if (d.estado === 'SCAN_QR_CODE' || d.estado === 'SCAN_QR' || d.estado === 'STARTING') {
+			eduWahaTimer = setTimeout(eduWahaSeguir, 3000);
+		}
+	});
+}
+function eduWaha(accion) {
+	if (eduWahaConfirmar[accion] && !window.confirm(eduWahaConfirmar[accion])) { return; }
+	var botones = document.querySelectorAll('#edu-waha-panel button');
+	botones.forEach(function(b) { b.disabled = true; });
+	document.getElementById('edu-waha-msg').textContent = '<?php echo esc_js( __( 'Procesando…', 'sistema-educativo' ) ); ?>';
+	document.getElementById('edu-waha-msg').style.color = '#555';
+	eduWahaPost(accion).then(function(d) {
+		eduWahaPintar(d);
+		if (d.ok) { eduWahaIntentos = 0; eduWahaSeguir(); }
+	}).catch(function() {
+		document.getElementById('edu-waha-msg').textContent = '<?php echo esc_js( __( 'Error de red.', 'sistema-educativo' ) ); ?>';
+	}).finally(function() {
+		botones.forEach(function(b) { b.disabled = false; });
+	});
+}
+if (document.getElementById('edu-waha-panel')) { eduWahaSeguir(); }
 </script>

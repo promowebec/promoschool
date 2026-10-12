@@ -118,11 +118,20 @@ function edu_test_finish() {
 
 register_shutdown_function(
 	function () {
-		$t = $GLOBALS['edu_test'];
-		if ( $t['fallos'] > 0 ) {
-			// El runner distingue fallo de prueba (1) de fatal de PHP (255).
-			exit( 1 );
-		}
+		/*
+		 * Esta función se registra antes que cualquier edu_test_cleanup(), y un
+		 * exit() dentro de una función de cierre cancela las que faltan: una
+		 * prueba que fallaba dejaba su fixture escrito en la base. Se re-registra
+		 * para correr la ÚLTIMA, después de todas las limpiezas.
+		 */
+		register_shutdown_function(
+			function () {
+				if ( $GLOBALS['edu_test']['fallos'] > 0 ) {
+					// El runner distingue fallo de prueba (1) de fatal de PHP (255).
+					exit( 1 );
+				}
+			}
+		);
 	}
 );
 

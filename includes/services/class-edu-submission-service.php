@@ -34,6 +34,11 @@ class Edu_Submission_Service {
 	 * @return array|WP_Error
 	 */
 	public static function submit( array $input ) {
+		$modulo = self::require_entregas();
+		if ( is_wp_error( $modulo ) ) {
+			return $modulo;
+		}
+
 		$cap = Edu_Service::require_cap( 'edu_submit_assignment' );
 		if ( is_wp_error( $cap ) ) {
 			return $cap;
@@ -446,6 +451,11 @@ class Edu_Submission_Service {
 	 * @return array|WP_Error
 	 */
 	public static function submit_recovery( array $input ) {
+		$modulo = self::require_entregas();
+		if ( is_wp_error( $modulo ) ) {
+			return $modulo;
+		}
+
 		$cap = Edu_Service::require_cap( 'edu_submit_assignment' );
 		if ( is_wp_error( $cap ) ) {
 			return $cap;
@@ -821,4 +831,25 @@ class Edu_Submission_Service {
 			$wpdb->delete( $tsf, array( 'id' => (int) $file->id ), array( '%d' ) );
 		}
 	}
+
+	/**
+	 * Que el estudiante suba trabajos es un módulo aparte de las tareas: hay
+	 * colegios donde el docente registra todas las notas y el estudiante solo
+	 * consulta. Se valida aquí y no solo ocultando el botón.
+	 *
+	 * @return true|WP_Error
+	 */
+	private static function require_entregas() {
+		if ( ! Edu_Modules::is_active( 'entregas' ) ) {
+			return Edu_Service::error(
+				'module_disabled',
+				__( 'Las entregas del estudiante no están habilitadas en esta institución.', 'sistema-educativo' ),
+				404,
+				array( 'module' => 'entregas' )
+			);
+		}
+
+		return true;
+	}
+
 }

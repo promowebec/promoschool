@@ -34,3 +34,7 @@ desktop.ini
 .idea/
 .vscode/
 *.sublime-*
+
+# Skills de agentes instalados localmente (no viajan al plugin)
+.agents/
+skills-lock.json

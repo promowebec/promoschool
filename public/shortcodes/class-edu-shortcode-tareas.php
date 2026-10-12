@@ -137,7 +137,7 @@ class Edu_Shortcode_Tareas {
 			$sub           = $submissions[ (int) $a->id ] ?? null;
 			$sub_status    = $sub ? $sub->status : 'pending';
 			$is_overdue    = $a->due_date && strtotime( $a->due_date ) < time() && ! $sub;
-			$can_submit    = 'published' === $a->status && ( ! $sub || 'graded' !== $sub->status );
+			$can_submit    = Edu_Modules::is_active( 'entregas' ) && 'published' === $a->status && ( ! $sub || 'graded' !== $sub->status );
 			$files_of_sub  = $sub ? ( $sub_files[ (int) $sub->id ] ?? array() ) : array();
 			$task_files    = $task_files_map[ (int) $a->id ] ?? array();
 			$is_open       = (int) $a->id === $open_id;

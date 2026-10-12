@@ -481,11 +481,20 @@ reprueba supletorio → remedial · reprueba remedial → gracia · reprueba gra
 
 **Secciones**
 
-**1. Módulos del sistema** — un checkbox *Activo* por módulo:
+**0. Plan contratado** (v1.14.0) — muestra la licencia que emitió PromoWebEc: institución,
+edición, módulos incluidos, capacidad contratada frente a estudiantes activos, y hasta cuándo
+recibe actualizaciones. Un cuadro para pegar o reemplazar la licencia y un botón para quitarla.
+Si la licencia no es válida (firma, dominio) se dice el motivo y no se guarda. Sin licencia, una
+instalación anterior a la 1.14.0 conserva todos sus módulos; una nueva solo el núcleo.
+
+**1. Módulos del sistema** — un checkbox *Activo* por módulo **incluido en el plan**. Los que
+el plan no incluye aparecen deshabilitados con «No incluido en su plan — contacte a
+PromoWebEc». Desde aquí solo se puede apagar lo contratado, nunca encender lo que no lo está.
 
 | Módulo | Qué controla |
 |---|---|
-| `tareas` | Tareas, entregas con archivos y su calificación |
+| `tareas` | El docente publica tareas, lecciones y pruebas y registra la nota; estudiante y representante las consultan |
+| `entregas` | El estudiante sube trabajos con archivos y entrega mejoras (requiere `tareas`) |
 | `comunicados` | Comunicados con acuse de recibo |
 | `asistencia` | Registro de asistencia |
 | `boletines` | Boletines PDF individuales y ZIP |
@@ -498,6 +507,10 @@ reprueba supletorio → remedial · reprueba remedial → gracia · reprueba gra
 
 Un módulo apagado desaparece del menú admin y de los tabs de los portales, y detiene sus crons y notificaciones. **Los datos no se borran**: al reactivarlo todo vuelve.
 
+**Argumento comercial:** cada colegio ve solo lo que contrató, y un módulo nuevo se habilita
+cambiando la licencia, sin reinstalar. Si la institución supera la capacidad contratada, las
+pantallas del plugin muestran un aviso; la matrícula nunca se bloquea.
+
 **Núcleo no desactivable:** calificaciones, personas, pensum, componentes, cierres, resumen anual, auditoría.
 
 **2. Páginas del portal** — a qué página de WordPress corresponde `[edu_mis_tareas]` y `[edu_mis_comunicados]` (para las redirecciones tras entregar).
@@ -506,7 +519,7 @@ Un módulo apagado desaparece del menú admin y de los tabs de los portales, y d
 
 **4. Email de envío** — nombre y dirección del remitente (filtros `wp_mail_from` / `wp_mail_from_name`).
 
-**5. WhatsApp Business** — proveedor (desactivado / Twilio / Meta), credenciales, nombres de las plantillas aprobadas por tipo de mensaje (comunicado, nota, pago, asistencia), idioma, y botón de prueba de envío por AJAX.
+**5. WhatsApp Business** — proveedor (desactivado / Twilio / Meta / WAHA), credenciales (para WAHA: URL del servidor de PromoWebEc, API key y la sesión del colegio), panel **«Conectar número»** solo para WAHA (estado, QR para escanear con el teléfono del colegio, número conectado, Desconectar y Volver a vincular), nombres de las plantillas aprobadas por tipo de mensaje (comunicado, nota, pago, asistencia), idioma, y botón de prueba de envío por AJAX.
 
 - **Opciones:** `edu_modules`, `edu_tareas_page_id`, `edu_comunicados_page_id`, `edu_email_from_*`, `edu_wa_*`
 - **Captura:** sí — **la tabla de módulos es la pantalla clave para vender por etapas.**

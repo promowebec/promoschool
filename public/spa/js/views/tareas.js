@@ -3,7 +3,7 @@
  */
 
 import { eduApi } from '@edu/api.js';
-import { store, currentStudent, isParent, formatDate, formatScore } from '@edu/store.js';
+import { store, currentStudent, isParent, formatDate, formatScore, moduleActive } from '@edu/store.js';
 
 export const VistaTareas = {
 	data: () => ( {
@@ -40,6 +40,14 @@ export const VistaTareas = {
 			return isParent.value;
 		},
 
+		/**
+		 * Sin el módulo de entregas el estudiante no sube nada: el docente
+		 * registra la nota y aquí solo se consulta la tarea.
+		 */
+		conEntregas() {
+			return moduleActive( 'entregas' );
+		},
+
 		visibles() {
 			if ( this.filtro === 'todas' ) return this.tareas;
 
@@ -52,6 +60,12 @@ export const VistaTareas = {
 		},
 
 		pendientes() {
+			// Sin entregas no hay nada que el estudiante deba subir: pendiente es
+			// lo que sigue abierto.
+			if ( ! this.conEntregas ) {
+				return this.tareas.filter( ( t ) => t.status === 'published' ).length;
+			}
+
 			return this.tareas.filter( ( t ) => {
 				const e = this.entregas[ t.id ];
 				return ! e || ! [ 'submitted', 'late', 'graded' ].includes( e.status );
@@ -109,6 +123,11 @@ export const VistaTareas = {
 			if ( e?.status === 'graded' ) return { texto: 'Calificada', tono: 'ok' };
 			if ( e?.status === 'late' ) return { texto: 'Entregada con atraso', tono: 'aviso' };
 			if ( e?.status === 'submitted' ) return { texto: 'Entregada', tono: 'info' };
+			if ( ! this.conEntregas ) {
+				return tarea.status === 'closed'
+					? { texto: 'Cerrada', tono: 'neutro' }
+					: { texto: 'Publicada', tono: 'info' };
+			}
 			if ( tarea.status === 'closed' ) return { texto: 'Cerrada sin entregar', tono: 'malo' };
 
 			return { texto: 'Pendiente', tono: 'neutro' };
@@ -166,7 +185,7 @@ export const VistaTareas = {
 		 * `returned` sí admite reenvío: esa segunda entrega la pidió el docente.
 		 */
 		puedeEntregar( tarea ) {
-			if ( this.esPadre ) return false;
+			if ( this.esPadre || ! this.conEntregas ) return false;
 			if ( 'published' !== tarea.status ) return false;
 
 			const estado = this.miEntrega( tarea )?.status;
@@ -176,7 +195,7 @@ export const VistaTareas = {
 
 		/** Por qué no se puede entregar, para decírselo al estudiante. */
 		motivoBloqueo( tarea ) {
-			if ( this.esPadre ) return '';
+			if ( this.esPadre || ! this.conEntregas ) return '';
 			if ( 'published' !== tarea.status ) {
 				return 'La tarea está cerrada y ya no admite entregas.';
 			}
@@ -299,7 +318,7 @@ export const VistaTareas = {
 				<edu-stat label="Calificadas" :value="calificadas" color="#1d4ed8" />
 			</div>
 
-			<div class="edu-spa-filtros">
+			<div v-if="conEntregas" class="edu-spa-filtros">
 				<button v-for="f in ['todas','pendientes','entregadas']" :key="f"
 				        class="edu-chip" :class="{ active: filtro === f }"
 				        @click="filtro = f">{{ f }}</button>
@@ -361,7 +380,10 @@ export const VistaTareas = {
 												Esta tarea no trae material adjunto.
 											</p>
 
-											<div class="edu-entrega" @click.stop>
+											<p v-if="!conEntregas" class="edu-muted edu-small">
+												La nota de esta tarea la registra el docente; la verás en tus calificaciones.
+											</p>
+											<div v-else class="edu-entrega" @click.stop>
 												<h4 class="edu-entrega-titulo">Mi entrega</h4>
 
 												<div v-if="miEntrega(t)" class="edu-entrega-actual">

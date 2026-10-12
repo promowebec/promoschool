@@ -238,9 +238,11 @@ class Edu_Shortcode_Estudiante {
 			'falta_injustificada' => __( 'Falta I.', 'sistema-educativo' ),
 		);
 
-		// Tarea abierta para entregar (regular o mejora).
-		$tarea_open   = isset( $_GET['edu_entregar'] )        ? (int) $_GET['edu_entregar']        : 0;
-		$mejora_open  = isset( $_GET['edu_entregar_mejora'] ) ? (int) $_GET['edu_entregar_mejora'] : 0;
+		// Tarea abierta para entregar (regular o mejora). Sin el módulo de
+		// entregas el estudiante solo consulta: no hay formularios que abrir.
+		$con_entregas = Edu_Modules::is_active( 'entregas' );
+		$tarea_open   = $con_entregas && isset( $_GET['edu_entregar'] )        ? (int) $_GET['edu_entregar']        : 0;
+		$mejora_open  = $con_entregas && isset( $_GET['edu_entregar_mejora'] ) ? (int) $_GET['edu_entregar_mejora'] : 0;
 
 		// Inyectar JS de acuse de recibo en footer (una sola vez).
 		static $ack_script_added = false;
@@ -452,7 +454,7 @@ function eduAckAnnouncement(btn){
 						<?php if ( $dlabel ) : ?>
 							<span style="font-size:12px; color:<?php echo esc_attr( $color ); ?>;"><?php echo esc_html( $dlabel ); ?></span>
 						<?php endif; ?>
-						<?php if ( 'published' === ( $t->status ?? '' ) ) : ?>
+						<?php if ( $con_entregas && 'published' === ( $t->status ?? '' ) ) : ?>
 						<a href="<?php echo esc_url( add_query_arg( array( 'edu_tab' => 'tareas', 'edu_entregar' => $t->id ), $current_url ) ); ?>" class="edu-btn edu-btn-primary edu-btn-sm">
 							<?php esc_html_e( 'Entregar', 'sistema-educativo' ); ?>
 						</a>
@@ -673,7 +675,7 @@ function eduAckAnnouncement(btn){
 			}
 			$mejora_activa     = ! empty( $t->allow_recovery );
 			// Disponible para TODOS: allow_recovery activo, no enviada/calificada, fecha no vencida.
-			$mejora_disponible = $mejora_activa
+			$mejora_disponible = $con_entregas && $mejora_activa
 				&& ! in_array( $rec_status, array( 'submitted', 'graded' ), true )
 				&& ( ! $t->recovery_due_date || strtotime( $t->recovery_due_date ) >= time() );
 			$mejora_enviada    = $mejora_activa && 'submitted' === $rec_status;
@@ -724,7 +726,7 @@ function eduAckAnnouncement(btn){
 					</a>
 				<?php elseif ( $mejora_enviada ) : ?>
 					<p style="font-size:12px; color:#1d4ed8; margin-top:8px;">&#9650; <?php esc_html_e( 'Mejora enviada. Esperando calificación del docente.', 'sistema-educativo' ); ?></p>
-				<?php elseif ( 'published' === $t->status && ( ! $sub_status || 'late' === $sub_status ) ) : ?>
+				<?php elseif ( $con_entregas && 'published' === $t->status && ( ! $sub_status || 'late' === $sub_status ) ) : ?>
 					<a href="<?php echo esc_url( add_query_arg( array( 'edu_tab' => 'tareas', 'edu_entregar' => $t->id ), $current_url ) ); ?>" class="edu-btn edu-btn-primary edu-btn-sm" style="margin-top:8px; display:inline-block;">
 						<?php esc_html_e( 'Entregar', 'sistema-educativo' ); ?>
 					</a>

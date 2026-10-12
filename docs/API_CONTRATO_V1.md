@@ -39,7 +39,7 @@ extracción del núcleo a paquete Composer (Fase 3).
   con `permission_callback => '__return_true'` porque la llama Payphone.
 - 60+ handlers `admin_post_*` que contienen toda la lógica de escritura.
 - `Edu_Context` resuelve institución activa y capabilities con bypass para el Superadmin Editorial.
-- `Edu_Modules` enciende y apaga 10 módulos.
+- `Edu_Modules` enciende y apaga 11 módulos, dentro de lo que permite el plan contratado (`Edu_Plan`, v1.14.0).
 - Toda la lógica de cálculo ya está aislada en `Edu_Grade_Calculator` (esto sí es reutilizable tal cual).
 
 ### 2.2 El bloqueador: los controllers están acoplados al ciclo formulario→redirect
@@ -359,7 +359,9 @@ Si no hay institución resoluble → **409 `edu_no_institution`**.
 
 ## 6. Módulos activables
 
-`Edu_Modules::is_active()` gobierna 10 módulos. La API los respeta:
+`Edu_Modules::is_active()` gobierna 11 módulos. Desde v1.14.0 un módulo está activo solo si
+**el plan contratado lo incluye** (licencia firmada, `Edu_Plan`) **y** Ajustes no lo apagó. Para
+la API no cambia nada: un módulo fuera del plan es un módulo apagado. La API los respeta:
 
 - Los endpoints de un módulo apagado devuelven **404 `edu_module_disabled`** (404 y no 403:
   para el cliente, la ruta no existe en esta instalación).
@@ -371,6 +373,7 @@ Módulos y prefijos afectados:
 | Módulo | Rutas |
 |---|---|
 | `tareas` | `/assignments/*`, `/submissions/*` |
+| `entregas` (requiere `tareas`) | `POST /assignments/{id}/submissions`, `POST /assignments/{id}/recovery` |
 | `comunicados` | `/announcements/*`, `/announcement-templates` |
 | `asistencia` | `/attendance/*` |
 | `boletines` | `/reports/boletin*` |
@@ -378,6 +381,12 @@ Módulos y prefijos afectados:
 | `exportes` | `/reports/mineduc/*` |
 | `cuentas` | `/accounts/*` |
 | `whatsapp`, `pwa`, `textos` | sin rutas propias en v1 |
+
+**`entregas` (v1.14.0).** Antes la subida del estudiante iba dentro de `tareas`. Ahora es
+un módulo aparte para los colegios donde el docente registra todas las notas y el estudiante
+solo consulta. Apagado, las dos rutas de subida responden 404 `edu_module_disabled` —y el
+servicio también lo rechaza si se le llama directo—, mientras que el resto de `tareas`
+(listar, ver detalle, calificar, devolver) sigue igual. `GET /me` trae `modules.entregas`.
 
 `/payphone/webhook` queda fuera del gate a propósito: si se apaga el módulo con pagos en
 vuelo, la pasarela debe poder seguir confirmando.

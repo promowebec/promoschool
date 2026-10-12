@@ -33,8 +33,13 @@ class Edu_Modules {
 	public static function catalog(): array {
 		return array(
 			'tareas'      => array(
-				'label' => __( 'Tareas y entregas', 'sistema-educativo' ),
-				'desc'  => __( 'Tareas, lecciones, entregas con archivos y su calificación.', 'sistema-educativo' ),
+				'label' => __( 'Tareas', 'sistema-educativo' ),
+				'desc'  => __( 'El docente publica tareas, lecciones y pruebas y registra sus notas. Estudiantes y representantes las consultan.', 'sistema-educativo' ),
+			),
+			'entregas'    => array(
+				'label'    => __( 'Entregas del estudiante', 'sistema-educativo' ),
+				'desc'     => __( 'El estudiante sube sus trabajos con archivos y entrega mejoras. Requiere el módulo Tareas.', 'sistema-educativo' ),
+				'requiere' => 'tareas',
 			),
 			'comunicados' => array(
 				'label' => __( 'Comunicados', 'sistema-educativo' ),
@@ -76,8 +81,11 @@ class Edu_Modules {
 	}
 
 	/**
-	 * ¿Está activo el módulo? Los módulos no listados en el catálogo (núcleo)
-	 * siempre están activos.
+	 * ¿Está activo el módulo?
+	 *
+	 * Lo que no está en el catálogo es núcleo y siempre está activo. Un módulo
+	 * del catálogo necesita dos cosas: que el plan contratado lo incluya
+	 * (Edu_Plan) y que Ajustes no lo haya apagado. Ajustes solo puede apagar.
 	 */
 	public static function is_active( string $modulo ): bool {
 		$catalogo = self::catalog();
@@ -86,6 +94,11 @@ class Edu_Modules {
 		} else {
 			$saved  = (array) get_option( self::OPTION, array() );
 			$activo = ! array_key_exists( $modulo, $saved ) || ! empty( $saved[ $modulo ] );
+
+			// Un módulo que depende de otro se apaga con él.
+			if ( $activo && ! empty( $catalogo[ $modulo ]['requiere'] ) ) {
+				$activo = self::is_active( $catalogo[ $modulo ]['requiere'] );
+			}
 		}
 
 		// El tab de textos solo tiene sentido si el plugin flipbook registró su shortcode.
@@ -94,12 +107,25 @@ class Edu_Modules {
 		}
 
 		/**
-		 * Permite a otros plugins forzar el estado de un módulo.
+		 * Permite a otros plugins apagar un módulo.
+		 *
+		 * Corre ANTES del plan: puede apagar, pero no encender un módulo que el
+		 * plan contratado no incluye.
 		 *
 		 * @param bool   $activo Estado calculado.
 		 * @param string $modulo Clave del módulo.
 		 */
-		return (bool) apply_filters( 'edu_module_active', $activo, $modulo );
+		$activo = (bool) apply_filters( 'edu_module_active', $activo, $modulo );
+
+		return $activo && ( ! isset( $catalogo[ $modulo ] ) || Edu_Plan::permite( $modulo ) );
+	}
+
+	/**
+	 * ¿El plan contratado incluye este módulo? Es lo que decide si Ajustes lo
+	 * muestra como interruptor o como «No incluido en su plan».
+	 */
+	public static function in_plan( string $modulo ): bool {
+		return Edu_Plan::permite( $modulo );
 	}
 
 	/**

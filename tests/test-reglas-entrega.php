@@ -19,6 +19,12 @@ require __DIR__ . '/bootstrap.php';
 
 edu_test_case( 'Una entrega, una calificación' );
 
+// Con un plan que no incluye «Entregas» (p. ej. la edición base) el estudiante
+// no sube nada: no hay regla que probar.
+if ( ! Edu_Modules::is_active( 'entregas' ) ) {
+	edu_test_skip( 'el plan de este sitio no incluye el módulo entregas' );
+}
+
 global $wpdb;
 $p = $wpdb->prefix . 'edu_';
 

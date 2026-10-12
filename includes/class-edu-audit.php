@@ -30,6 +30,8 @@ class Edu_Audit {
 	const RECUPERACION_GUARDADA   = 'recuperacion_guardada';
 	const CUENTA_SUSPENDIDA       = 'cuenta_suspendida';
 	const CUENTA_ACTIVADA         = 'cuenta_activada';
+	const LICENCIA_ACTUALIZADA    = 'licencia_actualizada';
+	const WHATSAPP_SESION         = 'whatsapp_sesion';
 
 	/**
 	 * Registra una entrada en el log de auditoría.
@@ -114,6 +116,8 @@ class Edu_Audit {
 			self::RECUPERACION_GUARDADA => __( 'Recuperación guardada', 'sistema-educativo' ),
 			self::CUENTA_SUSPENDIDA     => __( 'Cuenta suspendida',     'sistema-educativo' ),
 			self::CUENTA_ACTIVADA       => __( 'Cuenta activada',       'sistema-educativo' ),
+			self::LICENCIA_ACTUALIZADA  => __( 'Licencia actualizada',  'sistema-educativo' ),
+			self::WHATSAPP_SESION       => __( 'Sesión de WhatsApp',    'sistema-educativo' ),
 		);
 		return $labels[ $action ] ?? esc_html( $action );
 	}
@@ -135,6 +139,8 @@ class Edu_Audit {
 			self::RECUPERACION_GUARDADA => '#d97706',
 			self::CUENTA_SUSPENDIDA     => '#dc2626',
 			self::CUENTA_ACTIVADA       => '#16a34a',
+			self::LICENCIA_ACTUALIZADA  => '#7c3aed',
+			self::WHATSAPP_SESION       => '#16a34a',
 		);
 		return $colors[ $action ] ?? '#374151';
 	}

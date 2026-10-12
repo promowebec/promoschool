@@ -69,7 +69,7 @@ $flags = '';
 exec( escapeshellarg( $php ) . ' -r "echo extension_loaded(\'mysqli\') ? 1 : 0;" 2>&1', $sonda );
 
 if ( '1' !== trim( implode( '', $sonda ) ) ) {
-	$necesarias = array( 'mysqli', 'curl', 'mbstring', 'gd', 'openssl', 'exif', 'zip' );
+	$necesarias = array( 'mysqli', 'curl', 'mbstring', 'gd', 'openssl', 'exif', 'zip', 'sodium' );
 	$dir        = ini_get( 'extension_dir' );
 
 	if ( $dir ) {

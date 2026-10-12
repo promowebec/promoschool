@@ -4,9 +4,9 @@ Registro de todo lo construido en el plugin, desde el scaffolding hasta la versi
 Documento vivo: agregar una entrada nueva por cada fase o cambio relevante.
 
 - **Plugin:** Sistema Educativo Integral
-- **Versión actual:** 1.13.0 (`EDU_VERSION`); esquema en 1.0.9 (`EDU_DB_VERSION`)
+- **Versión actual:** 1.14.0 (`EDU_VERSION`); esquema en 1.0.9 (`EDU_DB_VERSION`)
 - **Stack:** WordPress 6.x · PHP 8.2+ · MySQL 8 / MariaDB 10.6+ · mPDF · sin dependencias JS de build
-- **Última actualización de esta bitácora:** 19 de agosto de 2026
+- **Última actualización de esta bitácora:** 11 de octubre de 2026
 
 ---
 
@@ -25,7 +25,7 @@ Documento vivo: agregar una entrada nueva por cada fase o cambio relevante.
 | Servicios (lógica sin HTTP) | **15** clases (`includes/services/`) |
 | Clases de la API REST `edu/v1` | **10** (`includes/api/`) · **59** rutas (índice de `/wp-json/edu/v1`) |
 | Módulos de dominio | **6** (calificaciones, boletines, pagos, reportes, whatsapp, PWA) |
-| Módulos activables/desactivables | **10** desde Ajustes |
+| Módulos activables/desactivables | **11** desde Ajustes, dentro del plan contratado (`Edu_Plan`) |
 | Handlers `admin_post_*` registrados | **60+** |
 | Archivos PHP del plugin (sin vendor) | ~80 |
 
@@ -106,7 +106,7 @@ Especificación en `docs/superpowers/specs/2026-06-12-fase7-integraciones-design
 
 - **7A · Cuentas** — `Edu_Account_Controller`: suspender/activar usuarios con cascada padre → hijos. Bloqueo de login por `edu_account_status` vía filtro `authenticate` (prioridad 30) + compatibilidad con Ultimate Member (`um_custom_authenticate_error_codes`).
 - **7B · Pagos Payphone** — `modules/pagos/`: `Edu_Payphone` (cliente API), `Edu_Payment_Manager` (generación mensual, morosidad, links de pago públicos por token), `Edu_Payment_Controller` (UI + REST webhook + cron diario `edu_payment_daily_cron`). Tablas `payments` y `payment_config`.
-- **7C · WhatsApp** — `modules/whatsapp/`: `Edu_Whatsapp` (Twilio o Meta Cloud API) y `Edu_Whatsapp_Notifier` (comunicados, notas de trimestre, pagos vencidos, faltas). Plantillas aprobadas configurables por tipo de mensaje.
+- **7C · WhatsApp** — `modules/whatsapp/`: `Edu_Whatsapp` (Twilio, Meta Cloud API o, desde la 1.14.0, WAHA) y `Edu_Whatsapp_Notifier` (comunicados, notas de trimestre, pagos vencidos, faltas). Plantillas aprobadas configurables por tipo de mensaje.
 - **7D · Exportes Mineduc** — `modules/reportes/`: `Edu_Mineduc_Exporter` (acta consolidada, nómina, distributivo docente, asistencia acumulada) y `Edu_Xlsx_Writer`, escritor .xlsx propio sin dependencias (solo requiere `ext-zip`).
 
 > Decisión de proyecto: **no se agregó PhpSpreadsheet**. Se escribió `Edu_Xlsx_Writer` a mano para no sumar dependencias de Composer.
@@ -151,6 +151,138 @@ Vista de supervisión para el rector: por asignación académica muestra compone
 ---
 
 ## 2.bis · Entradas de bitácora
+
+### 2026-10-11 — WhatsApp por WAHA (v1.14.0)
+
+**Qué se hizo.** Tercer proveedor de WhatsApp: **WAHA**, el mismo servidor que la agencia ya
+opera para el CRM (`crm_agencia`, en el VPS). PromoSchool no instala WAHA: se conecta a él. Cada
+colegio usa **su propia sesión**, es decir su propio número. La API key es la del servidor. Como
+WAHA no tiene un panel a la vista (en el CRM todo pasa por su conector), PromoSchool trae **su
+propio panel «Conectar número»**, con el mismo ciclo que `WahaProvider` del CRM.
+
+- `Edu_Whatsapp::send_waha()`: `POST /api/sendText` con `session`, `chatId` (`593…@c.us`) y
+  `X-Api-Key`. Timeout de 60 s: el CRM aprendió (14 sep 2026) que con 15 s el primer mensaje a un
+  contacto nuevo se marcaba fallido aunque llegaba.
+- `test_waha()` («Probar conexión»): `GET /api/sessions/{sesión}`, sin enviar nada. Distingue
+  conectada (y muestra el número), esperando QR, sesión inexistente y API key rechazada.
+- Ajustes: opción «WAHA (servidor de PromoWebEc)» con URL, API key y sesión
+  (`edu_wa_waha_url`, `edu_wa_waha_key`, `edu_wa_waha_session`). La sesión se sugiere única por
+  sitio (`promoschool-<host>`) y solo admite letras, números, `-` y `_`. Con WAHA no hay
+  plantillas de Meta: todo sale como texto, el camino que el notificador ya usaba con Twilio.
+- **Panel «Conectar número»** (Ajustes, solo `manage_options`): estado de la sesión, botón
+  Conectar (crea/arranca la sesión), QR que se renueva cada 3 s hasta que se escanea, número
+  conectado, Desconectar (logout) y Volver a vincular (borra y recrea, para la sesión que queda
+  FAILED). Lógica en `Edu_Whatsapp::waha_estado/conectar/qr/desconectar/revincular()` (array o
+  WP_Error); adaptador `Edu_Settings_Controller::handle_waha()` por `wp_ajax_edu_waha` con nonce.
+  Conectar, desconectar y revincular se auditan (`whatsapp_sesion`). La sesión se crea sin
+  webhook: PromoSchool solo envía.
+- `tests/test-reglas-entrega.php` se salta si el plan del sitio no incluye `entregas` (con la
+  licencia base puesta fallaba en falso).
+
+**Archivos tocados.** `modules/whatsapp/class-edu-whatsapp.php`,
+`includes/controllers/class-edu-settings-controller.php`, `includes/class-edu-audit.php`,
+`sistema-educativo.php`, `admin/views/ajustes.php`, `tests/test-whatsapp-waha.php` (nuevo),
+`tests/test-reglas-entrega.php`, `CLAUDE.md`, `docs/MANUAL_PANTALLAS.md`.
+
+**Cambios de esquema.** Ninguno: tres opciones nuevas.
+
+**Verificación.** `tests/test-whatsapp-waha.php`, 35 comprobaciones contra un WAHA simulado con
+`pre_http_request` (ningún mensaje sale): envío, «Probar conexión», y el ciclo completo de la
+sesión (crear → QR → conectado → desconectar → reconectar → revincular una FAILED), más el AJAX
+real con auditoría, acción desconocida y usuario sin permiso. El handler de Ajustes guarda los tres campos (URL sin
+barra final) y se restauraron las 26 opciones `edu_*`. Suite completa: 9 pruebas en verde. **No se
+probó contra un WAHA real**: en esta PC Docker estaba apagado.
+
+**Riesgos / notas de despliegue.**
+- **El envío masivo sigue siendo un solo loop síncrono en un cron**
+  (`process_announcement()`): con WAHA es peor que con Meta, porque cada envío puede tardar hasta
+  60 s y porque un número no oficial que manda cientos de mensajes seguidos **arriesga el
+  bloqueo de WhatsApp**. Antes de usarlo con los 1.500 estudiantes hace falta el envío por lotes
+  con pausa y el tope diario. Es lo siguiente.
+- La sesión de un colegio no se comparte con otro colegio ni con el CRM: los mensajes saldrían
+  con el número equivocado.
+- **Exponer WAHA del VPS.** En el `docker-compose.yml` del CRM, WAHA vive en la red interna
+  (`http://waha:3000`) y el puerto 3000 lleva el comentario «quitar en producción». PromoSchool
+  corre en otro hosting, así que hace falta un subdominio con HTTPS en el Nginx del VPS (p. ej.
+  `waha.<dominio>` → `waha:3000`) protegido por la API key. **No** abrir el 3000 en HTTP plano:
+  la API key viajaría en claro.
+- **El webhook global del CRM** (`WHATSAPP_HOOK_URL`) también recibirá los eventos de las
+  sesiones de PromoSchool. El CRM los rechaza con 404 «Sesión desconocida»
+  (`apps/whatsapp/views.py`): es inofensivo, pero ensucia el log de WAHA.
+- El panel es de `manage_options` (la agencia). El rector no lo ve: el QR se escanea con el
+  teléfono del colegio durante la instalación.
+
+### 2026-10-11 — Plan contratado: licencias firmadas y módulo «Entregas» (v1.14.0)
+
+**Qué se hizo.** El colegio deja de elegir sus módulos: los elige una licencia que emite
+PromoWebEc. Es lo que permite vender por ediciones (base, particulares, fiscales, editoriales)
+y cobrar los módulos que se agregan después, con una sola base de código.
+
+- **`Edu_Plan`** (`includes/class-edu-plan.php`). La licencia es `PS1.<payload>.<firma>`,
+  firmada con Ed25519 (libsodium; dentro de WordPress también vale `sodium_compat`, que trae el
+  núcleo). El plugin solo lleva la clave **pública**: verifica, no puede fabricar. El payload
+  trae dominios, edición, módulos, capacidad y `actualizaciones_hasta`. La clave pública **no**
+  se puede sobrescribir desde wp-config ni con filtros, a propósito.
+- **`Edu_Modules::is_active()`** exige plan **y** Ajustes. Ajustes solo apaga. El filtro
+  `edu_module_active` corre antes del plan: puede apagar, ya no encender (nadie lo usaba, se
+  buscó en todo `wp-content`).
+- **Sin licencia, dos casos, decididos una sola vez** (`edu_plan_inicial`): *heredado* si la
+  instalación ya tenía instituciones al llegar la 1.14.0 —conserva todo, como hasta ahora: es
+  lo que protege a giro22— y *nuevo* si no, que queda solo con el núcleo. Si la consulta falla
+  no se decide nada, para no apagarle módulos a un colegio por un error de base.
+- **Vencer `actualizaciones_hasta` no apaga nada** (el sistema se vende con pago único). Superar
+  `limites.estudiantes` solo muestra un aviso en las pantallas del plugin.
+- **Módulo `entregas`**, separado de `tareas`: sin él, el docente publica y registra notas y el
+  estudiante solo consulta. Se valida en `Edu_Submission_Service::submit()` y
+  `submit_recovery()` (404 `module_disabled`), en las dos rutas REST de subida, en los handlers
+  `admin_post`, y se ocultan los botones en la SPA y en los portales congelados (corrección,
+  no función nueva). Depende de `tareas`: apagar una apaga la otra.
+- **Ajustes**: recuadro «Plan contratado», pegar/quitar licencia (auditado como
+  `licencia_actualizada`), módulos fuera del plan deshabilitados. Guardar ya no escribe 0 en
+  los módulos fuera del plan: si no, quedarían apagados el día que se contraten.
+- **`tools/emitir-licencia.php`**: herramienta de la agencia, sin WordPress.
+  `--generar-claves` crea el par (la privada en `%USERPROFILE%\.promowebec\`); luego emite
+  por edición (`--edicion=base --agregar=entregas`). Las plantillas de edición viven ahí, no
+  en el plugin.
+
+**Arreglo de paso en las pruebas.** `tests/bootstrap.php` hacía `exit(1)` en la primera función
+de cierre, y eso cancelaba todas las `edu_test_cleanup()`: **una prueba que fallaba dejaba su
+fixture escrito en la base**. Pasó en esta sesión (dejó `edu_modules` con Tareas apagado y tumbó
+la prueba siguiente); el valor original se recuperó del binlog de MySQL. Ahora la salida con
+error se re-registra para correr la última. `tests/run.php` repone también `sodium`.
+
+**Archivos tocados.** `includes/class-edu-plan.php` (nuevo), `tools/emitir-licencia.php`
+(nuevo), `tests/test-plan-licencia.php` (nuevo), `includes/helpers/class-edu-modules-helper.php`,
+`includes/class-edu-audit.php`, `includes/controllers/class-edu-settings-controller.php`,
+`includes/services/class-edu-submission-service.php`,
+`includes/api/routes/class-edu-api-write-routes.php`, `sistema-educativo.php`,
+`admin/views/ajustes.php`, `public/shortcodes/class-edu-shortcode-estudiante.php`,
+`public/shortcodes/class-edu-shortcode-tareas.php`, `public/spa/js/views/tareas.js`,
+`tests/bootstrap.php`, `tests/run.php`, `CLAUDE.md`, `docs/API_CONTRATO_V1.md`,
+`docs/MANUAL_PANTALLAS.md`.
+
+**Cambios de esquema.** Ninguno: solo opciones (`edu_plan_licencia`, `edu_plan_inicial`).
+`EDU_DB_VERSION` sigue en 1.0.9. No afecta a Flipbook.
+
+**Verificación.** `tests/test-plan-licencia.php`, 33 comprobaciones: firma válida, payload
+alterado, otra clave, otro dominio, comodín de subdominio, sin clave pública; el script emite
+licencias que el plugin acepta y rechaza `entregas` sin `tareas`; heredado conserva y nuevo solo
+núcleo; un filtro no enciende lo que el plan no incluye; `/me` informa `entregas`; sin entregas
+el servicio y la API rechazan la subida (404). Suite completa: **8 pruebas, 78 comprobaciones,
+en verde**, y la base queda como estaba. Ajustes renderizado en modo heredado y nuevo.
+
+**Riesgos / notas de despliegue.**
+- **Clave pública puesta** (`qP6WaKC9…`, generada por la agencia el 11 oct 2026). Probado de
+  punta a punta con la clave real: una licencia de edición base para `sistema-educativo.local`
+  valida con sus 7 módulos y se rechaza en otro dominio. giro22 y Local siguen como *heredados*
+  hasta que se les cargue una licencia; un colegio **nuevo** necesita la suya antes de usarse.
+  `--mostrar-publica` reimprime la pública desde la privada.
+- La clave privada no entra al repo. Si se pierde, hay que generar otra y publicar una versión
+  con la nueva pública; las licencias emitidas dejan de valer.
+- `tools/` no se sube a los servidores de los colegios.
+- La protección es la del contrato más las actualizaciones: el código es GPL y quien tenga acceso
+  al servidor puede modificarlo. Por eso el colegio recibe el rol `edu_rector`, no
+  `administrator`.
 
 ### 2026-08-19 — "Mis libros" en la app (v1.13.0)
 

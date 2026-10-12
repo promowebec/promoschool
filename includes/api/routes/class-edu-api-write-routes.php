@@ -530,7 +530,7 @@ class Edu_Api_Write_Routes {
 	 * ────────────────────────────────────────────────────────────────── */
 
 	public static function submit( WP_REST_Request $request ) {
-		$ready = self::ready( $request, 'tareas' );
+		$ready = self::ready( $request, 'entregas' );
 		if ( is_wp_error( $ready ) ) {
 			return $ready;
 		}
@@ -551,7 +551,7 @@ class Edu_Api_Write_Routes {
 	}
 
 	public static function submit_recovery( WP_REST_Request $request ) {
-		$ready = self::ready( $request, 'tareas' );
+		$ready = self::ready( $request, 'entregas' );
 		if ( is_wp_error( $ready ) ) {
 			return $ready;
 		}

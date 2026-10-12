@@ -25,7 +25,7 @@ una API REST `edu/v1` que consumirá un frontend propio. Ver `docs/API_CONTRATO_
   portales son plantillas PHP renderizadas por shortcodes.
 - **PDF:** mPDF vía Composer (única dependencia de peso).
 - **XLSX:** `Edu_Xlsx_Writer`, escritor propio sin dependencias (requiere `ext-zip`).
-- **Emails:** `wp_mail`. **WhatsApp:** Twilio o Meta Cloud API (módulo desactivable).
+- **Emails:** `wp_mail`. **WhatsApp:** Twilio, Meta Cloud API o WAHA, el servidor propio de la agencia que comparte con el CRM, con una sesión por colegio (módulo desactivable).
 - **Estándar:** WordPress Coding Standards. Código y comentarios **en español**.
 
 > **Regla de dependencias:** no se agregan paquetes de Composer sin preguntar. Ya se rechazó
@@ -202,7 +202,7 @@ do_action( 'edu_attendance_absence', $student_id, $fecha, $tipo );
 do_action( 'edu_account_suspended',  $user_id );
 do_action( 'edu_audit', $user_id, $action, $entity_type, $entity_id, $old, $new );
 
-apply_filters( 'edu_module_active', bool $activo, string $modulo );
+apply_filters( 'edu_module_active', bool $activo, string $modulo );  // solo puede apagar
 ```
 
 Cadena de recálculo: `edu_grade_logged` → parcial · `edu_partial_closed` → trimestre ·
@@ -239,10 +239,26 @@ ya causaron bugs en producción, uno de ellos dejó un listado vacío durante me
 
 ## Módulos activables
 
-`Edu_Modules` enciende y apaga 10 módulos desde Ajustes: `tareas`, `comunicados`, `asistencia`,
-`boletines`, `pagos`, `whatsapp`, `cuentas`, `exportes`, `pwa`, `textos`. Un módulo apagado
-desaparece del menú, de los tabs y no registra handlers ni cron. **Los datos nunca se borran.**
-En la API, un módulo apagado responde **404**, no 403.
+`Edu_Modules` gobierna 11 módulos: `tareas`, `entregas` (requiere `tareas`), `comunicados`,
+`asistencia`, `boletines`, `pagos`, `whatsapp`, `cuentas`, `exportes`, `pwa`, `textos`. Un módulo
+apagado desaparece del menú, de los tabs y no registra handlers ni cron. **Los datos nunca se
+borran.** En la API, un módulo apagado responde **404**, no 403.
+
+### Plan contratado (v1.14.0)
+
+Un módulo está activo solo si **el plan lo incluye** (`Edu_Plan`) **y** Ajustes no lo apagó:
+Ajustes solo puede apagar. El plan es una licencia firmada con Ed25519 que emite la agencia con
+`tools/emitir-licencia.php`; el plugin solo trae la clave pública (`Edu_Plan::CLAVE_PUBLICA`).
+La privada **nunca** entra al repositorio. Las ediciones (base, particular, fiscal, editorial)
+son plantillas del script, no código del plugin.
+
+- Sin licencia: una instalación **heredada** (ya tenía instituciones cuando llegó la 1.14.0,
+  como giro22) conserva todos sus módulos; una **nueva** queda solo con el núcleo.
+- El filtro `edu_module_active` corre antes del plan: puede apagar, no encender.
+- Vencer `actualizaciones_hasta` no apaga módulos (pago único).
+- Superar la capacidad (`limites.estudiantes`) solo muestra un aviso.
+- Un módulo nuevo del catálogo nace apagado para quien tenga licencia, hasta que la licencia
+  lo incluya. Al agregar uno, sumarlo también a `EDU_LIC_MODULOS` del script.
 
 ## Integración con Flipbook
 
@@ -330,7 +346,7 @@ portal: si algo falla, se vuelve a poner el shortcode.
 
 ## Estado actual
 
-**v1.13.0** · esquema `EDU_DB_VERSION` 1.0.9.
+**v1.14.0** · esquema `EDU_DB_VERSION` 1.0.9. Desde la 1.14.0 los módulos dependen del plan contratado (licencia firmada, ver «Plan contratado»).
 
 Fases 0–7 del plugin completas (calificaciones, tareas, comunicados, asistencia, PWA, cuentas,
 pagos Payphone, WhatsApp y exportes Mineduc), más la revisión de seguridad de julio de 2026.

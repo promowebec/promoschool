@@ -3,7 +3,7 @@
  * Plugin Name:       Sistema Educativo Integral
  * Plugin URI:        https://example.com/sistema-educativo
  * Description:       Gestión académica integral para unidades educativas en Ecuador: calificaciones (3 trimestres × 2 parciales 70% + examen 30%), tareas, lecciones, comunicados padres-docentes, asistencia, boletines y dashboard institucional.
- * Version:           1.13.0
+ * Version:           1.14.0
  * Requires at least: 6.0
  * Requires PHP:      8.2
  * Author:            Cowork
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EDU_VERSION', '1.13.0' );
+define( 'EDU_VERSION', '1.14.0' );
 define( 'EDU_DB_VERSION', '1.0.9' );
 
 define( 'EDU_PLUGIN_FILE', __FILE__ );
@@ -43,6 +43,7 @@ require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-grade-controller.p
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-subject-controller.php';
 require_once EDU_PLUGIN_DIR . 'includes/helpers/class-edu-import-helper.php';
 require_once EDU_PLUGIN_DIR . 'includes/helpers/class-edu-qualitativa-helper.php';
+require_once EDU_PLUGIN_DIR . 'includes/class-edu-plan.php';
 require_once EDU_PLUGIN_DIR . 'includes/helpers/class-edu-modules-helper.php';
 
 // Capa de servicios: lógica de negocio sin HTTP, compartida por los
@@ -122,6 +123,10 @@ function edu_bootstrap() {
 	Edu_I18n::load_textdomain();
 	Edu_Activator::maybe_migrate();
 
+	// Antes de cualquier Edu_Modules::is_active(): decide, una sola vez, si la
+	// instalación es heredada (conserva sus módulos sin licencia) o nueva.
+	Edu_Plan::registrar_estado_inicial();
+
 	// API REST: se registra siempre (el núcleo no es desactivable). Cada grupo
 	// de rutas verifica su propio módulo con Edu_Api::require_module().
 	Edu_Api::register();
@@ -187,6 +192,8 @@ function edu_bootstrap() {
 	$loader->add_action( 'admin_post_edu_toggle_account_status', 'Edu_Account_Controller',     'handle_toggle' );
 	$loader->add_action( 'admin_post_edu_bulk_account_status',   'Edu_Account_Controller',     'handle_bulk' );
 	$loader->add_action( 'admin_post_edu_save_settings',          'Edu_Settings_Controller',      'handle_save' );
+	$loader->add_action( 'admin_post_edu_save_license',           'Edu_Settings_Controller',      'handle_save_license' );
+	$loader->add_action( 'admin_notices',                         'Edu_Settings_Controller',      'capacity_notice' );
 
 	// Comunicados (módulo desactivable).
 	if ( Edu_Modules::is_active( 'comunicados' ) ) {
@@ -234,16 +241,21 @@ function edu_bootstrap() {
 		$loader->add_action( 'admin_post_edu_close_assignment_task',   'Edu_Assignment_Task_Controller', 'handle_close' );
 		$loader->add_action( 'admin_post_edu_delete_assignment_task',  'Edu_Assignment_Task_Controller', 'handle_delete' );
 		$loader->add_action( 'admin_post_edu_download_file',           'Edu_Assignment_Task_Controller', 'handle_download_file' );
-		$loader->add_action( 'admin_post_edu_submit_assignment',            'Edu_Submission_Controller',      'handle_submit' );
-		$loader->add_action( 'admin_post_nopriv_edu_submit_assignment',     'Edu_Submission_Controller',      'handle_submit' );
 		$loader->add_action( 'admin_post_edu_grade_submission',             'Edu_Submission_Controller',      'handle_grade' );
 		$loader->add_action( 'admin_post_edu_save_recovery_settings',       'Edu_Submission_Controller',      'handle_save_recovery_settings' );
 		$loader->add_action( 'admin_post_edu_grade_recovery',               'Edu_Submission_Controller',      'handle_grade_recovery' );
-		$loader->add_action( 'admin_post_edu_submit_recovery',              'Edu_Submission_Controller',      'handle_submit_recovery' );
-		$loader->add_action( 'admin_post_nopriv_edu_submit_recovery',       'Edu_Submission_Controller',      'handle_submit_recovery' );
 		$loader->add_action( 'admin_post_edu_download_sub_file',            'Edu_Submission_Controller',      'handle_download_submission_file' );
 		$loader->add_action( 'admin_post_nopriv_edu_download_sub_file',     'Edu_Submission_Controller',      'handle_download_submission_file' );
 		$loader->add_action( 'admin_post_nopriv_edu_download_file',         'Edu_Assignment_Task_Controller', 'handle_download_file' );
+	}
+
+	// Entregas del estudiante (módulo aparte: un colegio puede tener tareas en
+	// las que solo el docente registra la nota, sin que el estudiante suba nada).
+	if ( Edu_Modules::is_active( 'entregas' ) ) {
+		$loader->add_action( 'admin_post_edu_submit_assignment',        'Edu_Submission_Controller', 'handle_submit' );
+		$loader->add_action( 'admin_post_nopriv_edu_submit_assignment', 'Edu_Submission_Controller', 'handle_submit' );
+		$loader->add_action( 'admin_post_edu_submit_recovery',          'Edu_Submission_Controller', 'handle_submit_recovery' );
+		$loader->add_action( 'admin_post_nopriv_edu_submit_recovery',   'Edu_Submission_Controller', 'handle_submit_recovery' );
 	}
 
 	// Shortcodes portal (los 4 portales son núcleo; los sueltos siguen a su módulo).
@@ -276,6 +288,7 @@ function edu_bootstrap() {
 
 		// AJAX: prueba de conexión WhatsApp.
 		$loader->add_action( 'wp_ajax_edu_test_whatsapp', 'Edu_Settings_Controller', 'handle_test_whatsapp' );
+		$loader->add_action( 'wp_ajax_edu_waha', 'Edu_Settings_Controller', 'handle_waha' );
 	}
 
 	if ( Edu_Modules::is_active( 'pagos' ) ) {
