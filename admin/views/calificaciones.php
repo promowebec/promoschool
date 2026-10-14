@@ -52,6 +52,12 @@ $subject_id   = isset( $_GET['subject_id'] ) ? (int) $_GET['subject_id'] : 0;
 $trimester_id = isset( $_GET['trimester_id'] ) ? (int) $_GET['trimester_id'] : 0;
 $parcial_num  = isset( $_GET['parcial_num'] ) ? (int) $_GET['parcial_num'] : 0;
 
+// Modo «solo trimestre»: un único bloque de aportes, guardado como parcial 1.
+$modo_trimestre = Edu_Service::MODO_TRIMESTRE === Edu_Service::grading_mode();
+if ( $modo_trimestre ) {
+	$parcial_num = 1;
+}
+
 if ( $is_docente_user && $current_teacher_id ) {
 	$grades = $wpdb->get_results( $wpdb->prepare(
 		"SELECT DISTINCT g.id, g.name, g.paralelo
@@ -166,6 +172,10 @@ $ready    = ( $grade_id && $subject_id && $trimester_id && in_array( $parcial_nu
 			</select>
 		</label>
 
+		<?php if ( $modo_trimestre ) : ?>
+			<input type="hidden" name="parcial_num" value="1">
+			<span style="margin-left:12px;"><strong><?php esc_html_e( 'Aportes del trimestre', 'sistema-educativo' ); ?></strong></span>
+		<?php else : ?>
 		<label style="margin-left:12px;"><strong><?php esc_html_e( 'Parcial:', 'sistema-educativo' ); ?></strong>
 			<select name="parcial_num" onchange="this.form.submit()">
 				<option value="0"><?php esc_html_e( '— Seleccionar —', 'sistema-educativo' ); ?></option>
@@ -173,6 +183,7 @@ $ready    = ( $grade_id && $subject_id && $trimester_id && in_array( $parcial_nu
 				<option value="2" <?php selected( $parcial_num, 2 ); ?>><?php esc_html_e( 'Parcial 2', 'sistema-educativo' ); ?></option>
 			</select>
 		</label>
+		<?php endif; ?>
 	</form>
 
 	<?php if ( $grade_id && empty( $subjects ) ) : ?>
@@ -248,7 +259,11 @@ $ready    = ( $grade_id && $subject_id && $trimester_id && in_array( $parcial_nu
 		<div class="notice notice-info"><p><?php esc_html_e( 'El grado no tiene estudiantes activos.', 'sistema-educativo' ); ?></p></div>
 	<?php else : ?>
 
-	<?php if ( ! $weight_ok ) : ?>
+	<?php if ( $modo_trimestre ) : ?>
+		<div class="notice notice-info"><p>
+			<?php esc_html_e( 'Esta institución califica por trimestre: la nota de aportes es el promedio simple de todas las notas del trimestre. Los pesos de los componentes no se usan.', 'sistema-educativo' ); ?>
+		</p></div>
+	<?php elseif ( ! $weight_ok ) : ?>
 		<div class="notice notice-warning"><p>
 			<?php
 			/* translators: %s: suma actual de pesos */
@@ -271,11 +286,13 @@ $ready    = ( $grade_id && $subject_id && $trimester_id && in_array( $parcial_nu
 					<th><?php esc_html_e( 'Estudiante', 'sistema-educativo' ); ?></th>
 					<?php foreach ( $components as $c ) : ?>
 						<th>
-							<?php echo esc_html( $c->name ); ?><br>
-							<small style="font-weight:normal;">(<?php echo esc_html( number_format( (float) $c->weight, 2 ) ); ?>)</small>
+							<?php echo esc_html( $c->name ); ?>
+							<?php if ( ! $modo_trimestre ) : ?>
+								<br><small style="font-weight:normal;">(<?php echo esc_html( number_format( (float) $c->weight, 2 ) ); ?>)</small>
+							<?php endif; ?>
 						</th>
 					<?php endforeach; ?>
-					<th><?php esc_html_e( 'Nota parcial', 'sistema-educativo' ); ?></th>
+					<th><?php echo esc_html( $modo_trimestre ? __( 'Promedio de aportes', 'sistema-educativo' ) : __( 'Nota parcial', 'sistema-educativo' ) ); ?></th>
 					<th><?php esc_html_e( 'Cualitativa', 'sistema-educativo' ); ?></th>
 				</tr>
 			</thead>

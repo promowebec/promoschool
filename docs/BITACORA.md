@@ -152,7 +152,7 @@ Vista de supervisión para el rector: por asignación académica muestra compone
 
 ## 2.bis · Entradas de bitácora
 
-### 2026-10-14 — Modo de calificación «solo trimestre», etapa 1: servicio (sin versión aún)
+### 2026-10-14 — Modo de calificación «solo trimestre» (v1.16.0)
 
 **Qué se hizo.** Segundo modo de calificación, por institución, alineado con el aplicativo del
 Ministerio. Decisiones del usuario: en ese modo **los parciales desaparecen**, **los pesos se
@@ -190,10 +190,32 @@ Modo trimestre:  Nota_Trimestre = promedio_simple(todas las notas del trimestre)
 
 **Cambios de esquema:** ninguno.
 
+**Etapa 2 — interfaz (mismo día).** Todas las pantallas leen el modo; en modo trimestre:
+- wp-admin: Calificaciones, Componentes y Tareas sin selector de parcial (rotulan «Aportes del
+  trimestre» y avisan que los pesos no se usan); Examen final con una columna «Promedio de
+  aportes (70%)»; Cierres sin botones de parcial («Cierre de trimestre»); Panel de docentes sin
+  la columna P1/P2.
+- **Examen final calculaba su nota proyectada con una tercera copia de la fórmula**: ahora usa
+  `Edu_Service::trimester_score()` (mismo resultado en modo parciales).
+- SPA: `GET /me` publica `institution.grading_mode`; el selector del docente oculta el parcial,
+  la grilla rotula «Aportes» sin pesos, Cierres del rector ya no pide la grilla del parcial 2
+  (habría fallado entera) y Notas del estudiante/representante muestra una columna de aportes.
+- Boletín PDF: columna «Aport.» en vez de P1/P2.
+- La prueba renderiza las pantallas y el boletín en ambos modos: 47 comprobaciones.
+
+Archivos de la etapa 2: `admin/views/calificaciones.php`, `componentes.php`, `tareas.php`,
+`examen-final.php`, `cierres.php`, `panel-docentes.php`,
+`modules/boletines/class-edu-boletin-generator.php`,
+`includes/api/routes/class-edu-api-me-routes.php`, `public/spa/js/store.js`,
+`views/docente/selector.js`, `views/docente/calificaciones.js`, `views/rector/cierres.js`,
+`views/notas.js`, `sistema-educativo.php` (1.16.0), `docs/MANUAL_PANTALLAS.md`.
+
 **Riesgos / notas:**
-- **Falta la etapa 2 (interfaz):** las pantallas aún muestran el selector de parcial, la
-  columna P2 y el cierre de parciales; el boletín PDF imprime P1/P2. No activar el modo en un
-  colegio real hasta terminarla.
+- **La SPA no se probó en el navegador** (extensión de Chrome desconectada): solo compilan sus
+  plantillas y la API devuelve el modo. Revisarla en Local con un colegio en modo trimestre
+  antes de activarlo en uno real.
+- El portal shortcode del docente (congelado) aún ofrece el parcial 2: en modo trimestre
+  responde «no hay segundo parcial». Usar la app.
 - La nota anual sigue siendo el promedio de los trimestres con nota (igual en los dos modos).
 - Un trimestre **sin cerrar** de un período ya no activo se recalcularía con el modo nuevo si
   alguien registra una nota ahí; los cerrados no se tocan.
@@ -1372,6 +1394,7 @@ Las migraciones incrementales viven en `Edu_Activator::run_incremental_migration
 | 1.7.0 | (sin cambio de esquema) | Fase 2: app propia (Vue 3 sin build) para estudiante y representante |
 | 1.8.0 | (sin cambio de esquema) | Fase 2: portal del docente + escrituras de calificaciones en la API |
 | 1.9.0 | (sin cambio de esquema) | Fase 2 completa: portal del rector, descarga de adjuntos y arreglo de las descargas firmadas |
+| 1.16.0 | (sin cambio de esquema) | Modo de calificación «solo trimestre» por institución (1.10–1.15: ver entradas de la §2.bis) |
 
 ---
 

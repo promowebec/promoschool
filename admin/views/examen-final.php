@@ -160,7 +160,8 @@ $ready = ( $grade_id && $subject_id && $trimester_id );
 	<?php if ( $ready ) :
 		// Detectar si el grado usa evaluación sumativa (Media/Superior/Bach).
 		$grade_sub_level = $wpdb->get_var( $wpdb->prepare( "SELECT sub_level FROM $tg WHERE id = %d", $grade_id ) );
-		$usa_sumativa    = in_array( $grade_sub_level, array( 'media', 'superior', 'bg', 'bt' ), true );
+		$usa_sumativa    = Edu_Service::uses_sumativa( $grade_id );
+		$modo_trimestre  = Edu_Service::MODO_TRIMESTRE === Edu_Service::grading_mode_for_grade( $grade_id );
 
 		$students = $wpdb->get_results( $wpdb->prepare(
 			"SELECT st.id, st.user_id, u.display_name, st.cedula
@@ -228,9 +229,13 @@ $ready = ( $grade_id && $subject_id && $trimester_id );
 			<thead>
 				<tr>
 					<th><?php esc_html_e( 'Estudiante', 'sistema-educativo' ); ?></th>
+					<?php if ( $modo_trimestre ) : ?>
+					<th><?php esc_html_e( 'Promedio de aportes (70%)', 'sistema-educativo' ); ?></th>
+					<?php else : ?>
 					<th><?php esc_html_e( 'Parcial 1', 'sistema-educativo' ); ?></th>
 					<th><?php esc_html_e( 'Parcial 2', 'sistema-educativo' ); ?></th>
 					<th><?php esc_html_e( 'Promedio parciales (70%)', 'sistema-educativo' ); ?></th>
+					<?php endif; ?>
 					<?php if ( $usa_sumativa ) : ?>
 					<th><?php esc_html_e( 'Examen (15%)', 'sistema-educativo' ); ?></th>
 					<th><?php esc_html_e( 'Proyecto (15%)', 'sistema-educativo' ); ?></th>
@@ -254,7 +259,11 @@ $ready = ( $grade_id && $subject_id && $trimester_id );
 					$p1_disp = $has_p1 ? number_format( $p1_val, 2 ) : '—';
 					$p2_disp = $has_p2 ? number_format( $p2_val, 2 ) : '—';
 
-					if ( $has_p1 && $has_p2 ) {
+					if ( $modo_trimestre ) {
+						// Un solo bloque: el «parcial 1» es el promedio de aportes.
+						$p_avg      = $has_p1 ? $p1_val : null;
+						$p_avg_disp = $has_p1 ? number_format( $p1_val, 2 ) : '—';
+					} elseif ( $has_p1 && $has_p2 ) {
 						$p_avg      = ( $p1_val + $p2_val ) / 2;
 						$p_avg_disp = number_format( $p_avg, 2 );
 					} elseif ( $has_p1 ) {
@@ -269,11 +278,12 @@ $ready = ( $grade_id && $subject_id && $trimester_id );
 					$proy_val = $t_row ? number_format( (float) $t_row->proyecto_score,   2, '.', '' ) : '';
 
 					if ( $t_row && $p_avg !== null ) {
-						if ( $usa_sumativa ) {
-							$projected = number_format( $p_avg * 0.70 + ( ( (float) $t_row->final_exam_score + (float) $t_row->proyecto_score ) / 2 ) * 0.30, 2 );
-						} else {
-							$projected = number_format( $p_avg * 0.70 + (float) $t_row->final_exam_score * 0.30, 2 );
-						}
+						// Fórmula única del servicio. Con solo el P1, se proyecta como si el
+						// P2 fuera igual (lo que esta pantalla mostraba siempre).
+						$projected = number_format(
+							Edu_Service::trimester_score( $grade_id, $p1_val, $has_p2 ? $p2_val : $p1_val, (float) $t_row->final_exam_score, (float) $t_row->proyecto_score ),
+							2
+						);
 					} elseif ( $t_row && (float) $t_row->computed_score > 0 ) {
 						$projected = number_format( (float) $t_row->computed_score, 2 );
 					} else {
@@ -286,8 +296,10 @@ $ready = ( $grade_id && $subject_id && $trimester_id );
 						<?php if ( $st->cedula ) : ?><br><small><?php echo esc_html( $st->cedula ); ?></small><?php endif; ?>
 						<?php if ( $is_closed ) : ?><br><small style="color:#b00;"><?php esc_html_e( 'Trimestre cerrado', 'sistema-educativo' ); ?></small><?php endif; ?>
 					</td>
+					<?php if ( ! $modo_trimestre ) : ?>
 					<td><?php echo esc_html( $p1_disp ); ?></td>
 					<td><?php echo esc_html( $p2_disp ); ?></td>
+					<?php endif; ?>
 					<td><?php echo esc_html( $p_avg_disp ); ?></td>
 					<td>
 						<input type="number" step="0.01" min="0" max="10"
@@ -312,11 +324,20 @@ $ready = ( $grade_id && $subject_id && $trimester_id );
 		</table>
 
 		<p class="description" style="margin-top:8px;">
+			<?php if ( $modo_trimestre ) : ?>
+				<?php esc_html_e( 'Promedio de aportes: promedio simple de todas las notas del trimestre.', 'sistema-educativo' ); ?><br>
+				<?php if ( $usa_sumativa ) : ?>
+					<?php esc_html_e( 'Fórmula: Nota trimestre = Promedio de aportes × 0.70 + ((Examen + Proyecto) / 2) × 0.30', 'sistema-educativo' ); ?>
+				<?php else : ?>
+					<?php esc_html_e( 'Fórmula: Nota trimestre = Promedio de aportes × 0.70 + Examen × 0.30', 'sistema-educativo' ); ?>
+				<?php endif; ?>
+			<?php else : ?>
 			<?php esc_html_e( 'Parcial 1 y 2 muestran la nota calculada actual. * = solo parcial 1 disponible.', 'sistema-educativo' ); ?><br>
 			<?php if ( $usa_sumativa ) : ?>
 				<?php esc_html_e( 'Fórmula: Nota trimestre = Promedio parciales × 0.70 + ((Examen + Proyecto) / 2) × 0.30', 'sistema-educativo' ); ?>
 			<?php else : ?>
 				<?php esc_html_e( 'Fórmula: Nota trimestre = Promedio parciales × 0.70 + Examen × 0.30', 'sistema-educativo' ); ?>
+			<?php endif; ?>
 			<?php endif; ?>
 		</p>
 		<p class="submit">

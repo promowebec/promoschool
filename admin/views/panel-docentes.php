@@ -295,7 +295,7 @@ $base_url = add_query_arg(
 		?>
 			<tr>
 				<td>T<?php echo (int) $d->trim_num; ?></td>
-				<td>P<?php echo (int) $d->parcial_num; ?></td>
+				<td><?php echo Edu_Service::MODO_TRIMESTRE === Edu_Service::grading_mode() ? '—' : 'P' . (int) $d->parcial_num; ?></td>
 				<td><?php echo esc_html( $d->name ); ?></td>
 				<td><?php echo esc_html( number_format( (float) $d->weight, 2, '.', '' ) ); ?></td>
 				<td><?php echo (int) $d->created_by ? esc_html( $origen ) : '<strong>' . esc_html( $origen ) . '</strong>'; ?></td>

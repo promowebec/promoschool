@@ -5,10 +5,13 @@
  * desde la aplicación. Un parcial cerrado deja de recalcularse y no admite
  * notas nuevas. Por eso cada botón pide una confirmación explícita en dos
  * pasos, y el trimestre solo se puede cerrar cuando sus dos parciales lo están.
+ *
+ * En modo «solo trimestre» no hay parciales: se cierra el trimestre directamente
+ * y el servidor cierra con él el bloque de aportes.
  */
 
 import { eduApi } from '@edu/api.js';
-import { store, formatDate } from '@edu/store.js';
+import { store, formatDate, modoTrimestre as esModoTrimestre } from '@edu/store.js';
 
 export const VistaRectorCierres = {
 	data: () => ( {
@@ -50,8 +53,22 @@ export const VistaRectorCierres = {
 			return !! ( this.gradeId && this.subjectId && this.trimesterId );
 		},
 
+		modoTrimestre() {
+			return esModoTrimestre.value;
+		},
+
+		/** Parciales que se cierran a mano: ninguno en modo trimestre. */
+		listaParciales() {
+			return this.modoTrimestre ? [] : [ 1, 2 ];
+		},
+
+		/** Columnas de nota previas al examen: P1 y P2, o solo «Aportes». */
+		columnasParcial() {
+			return this.modoTrimestre ? [ 1 ] : [ 1, 2 ];
+		},
+
 		ambosCerrados() {
-			return this.parcialCerrado( 1 ) && this.parcialCerrado( 2 );
+			return this.modoTrimestre || ( this.parcialCerrado( 1 ) && this.parcialCerrado( 2 ) );
 		},
 
 		trimestreCerrado() {
@@ -100,13 +117,14 @@ export const VistaRectorCierres = {
 			};
 
 			try {
-				const [ p1, p2, trim ] = await Promise.all( [
-					eduApi.get( '/gradebook', { ...base, parcial_num: 1 } ),
-					eduApi.get( '/gradebook', { ...base, parcial_num: 2 } ),
+				// En modo trimestre el parcial 2 no existe: pedirlo daría error.
+				const [ trim, ...grillas ] = await Promise.all( [
 					eduApi.get( '/trimester-scores', base ),
+					...this.listaParciales.map( ( n ) => eduApi.get( '/gradebook', { ...base, parcial_num: n } ) ),
 				] );
 
-				this.parciales = { 1: p1, 2: p2 };
+				this.parciales = {};
+				this.listaParciales.forEach( ( n, k ) => { this.parciales[ n ] = grillas[ k ]; } );
 				this.trimestre = trim;
 			} catch ( e ) {
 				this.error = e;
@@ -258,7 +276,7 @@ export const VistaRectorCierres = {
 
 		<template v-else-if="trimestre">
 			<div class="edu-spa-cols">
-				<edu-card v-for="n in [1, 2]" :key="n" :titulo="'Parcial ' + n">
+				<edu-card v-for="n in listaParciales" :key="n" :titulo="'Parcial ' + n">
 					<div class="edu-stats-row">
 						<edu-stat label="Estudiantes" :value="estudiantes(n).length" />
 						<edu-stat label="Cerrados" :value="cerrados(n)"
@@ -298,7 +316,8 @@ export const VistaRectorCierres = {
 
 			<edu-card titulo="Trimestre">
 				<p class="edu-muted edu-small">
-					Solo se puede cerrar cuando los dos parciales están cerrados.
+					<template v-if="modoTrimestre">Tu institución califica por trimestre: se cierra directamente.</template>
+					<template v-else>Solo se puede cerrar cuando los dos parciales están cerrados.</template>
 					Al cerrar se recalcula la nota anual.
 				</p>
 
@@ -333,8 +352,11 @@ export const VistaRectorCierres = {
 						<thead>
 							<tr>
 								<th class="edu-col-alumno">Estudiante</th>
-								<th class="edu-th-num">P1</th>
-								<th class="edu-th-num">P2</th>
+								<th v-if="modoTrimestre" class="edu-th-num">Aportes</th>
+								<template v-else>
+									<th class="edu-th-num">P1</th>
+									<th class="edu-th-num">P2</th>
+								</template>
 								<th class="edu-th-num">Examen</th>
 								<th class="edu-th-num">Nota</th>
 								<th>Estado</th>
@@ -344,11 +366,11 @@ export const VistaRectorCierres = {
 							<template v-for="i in trimestre.items" :key="i.student_id">
 							<tr>
 								<td class="edu-col-alumno">{{ i.apellidos }} {{ i.nombres }}</td>
-								<td v-for="p in [1, 2]" :key="p" class="edu-td-num">
+								<td v-for="p in columnasParcial" :key="p" class="edu-td-num">
 									<button class="edu-enlace edu-celda-parcial"
 									        :class="{ 'is-open': desgloseAbierto === claveDesglose(i.student_id, p) }"
 									        @click="abrirDesglose(i.student_id, p)"
-									        :title="'Ver de dónde sale la nota del parcial ' + p">
+									        :title="modoTrimestre ? 'Ver de dónde salen los aportes' : 'Ver de dónde sale la nota del parcial ' + p">
 										{{ (p === 1 ? i.parcial1_score : i.parcial2_score) ?? '—' }}
 										<span class="edu-caret">▸</span>
 									</button>
@@ -364,7 +386,7 @@ export const VistaRectorCierres = {
 							</tr>
 
 							<tr v-if="desgloseAbierto && desgloseAbierto.startsWith(i.student_id + ':')">
-								<td colspan="6">
+								<td :colspan="4 + columnasParcial.length">
 									<div class="edu-desglose">
 										<div v-if="cargandoDesglose" class="edu-muted edu-small">Cargando desglose…</div>
 										<div v-else-if="errorDesglose" class="edu-texto-error edu-small">
@@ -372,16 +394,16 @@ export const VistaRectorCierres = {
 										</div>
 										<template v-else-if="desglose">
 											<h4 class="edu-desglose-titulo">
-												{{ i.apellidos }} {{ i.nombres }} · Parcial {{ desglose.parcial_num }}
+												{{ i.apellidos }} {{ i.nombres }} · {{ modoTrimestre ? 'Aportes del trimestre' : 'Parcial ' + desglose.parcial_num }}
 											</h4>
 											<p v-if="!desglose.components.length" class="edu-muted edu-small">
-												Este parcial no tiene componentes evaluables.
+												{{ modoTrimestre ? 'Este trimestre' : 'Este parcial' }} no tiene componentes evaluables.
 											</p>
 											<div v-for="c in desglose.components" :key="c.component_id"
 											     class="edu-desglose-comp">
 												<div class="edu-desglose-cab">
 													<strong>{{ c.name }}</strong>
-													<span class="edu-muted edu-small">peso {{ c.weight }}</span>
+													<span v-if="!modoTrimestre" class="edu-muted edu-small">peso {{ c.weight }}</span>
 													<span class="edu-desglose-prom">
 														{{ c.average === null ? '—' : c.average }}
 														<span class="edu-muted">({{ c.count }})</span>

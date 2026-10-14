@@ -131,6 +131,12 @@ if ( in_array( $action, array( 'new', 'edit' ), true ) ) {
 	$parcial_num_sel  = $assignment ? (int) $assignment->parcial_num  : ( isset( $_GET['parcial_num'] )  ? (int) $_GET['parcial_num']  : 1 );
 	$component_id_sel = $assignment ? (int) $assignment->component_id : 0;
 
+	// Modo «solo trimestre»: las tareas van al bloque único de aportes.
+	$modo_trimestre = Edu_Service::MODO_TRIMESTRE === Edu_Service::grading_mode();
+	if ( $modo_trimestre ) {
+		$parcial_num_sel = 1;
+	}
+
 	// Componentes del parcial seleccionado.
 	$tgc        = $wpdb->prefix . 'edu_grade_components';
 	$components = array();
@@ -240,6 +246,9 @@ if ( in_array( $action, array( 'new', 'edit' ), true ) ) {
 						</select>
 					</td>
 				</tr>
+				<?php if ( $modo_trimestre ) : ?>
+				<tr hidden><td><input type="hidden" name="parcial_num" value="1"></td></tr>
+				<?php else : ?>
 				<tr>
 					<th><?php esc_html_e( 'Parcial', 'sistema-educativo' ); ?></th>
 					<td>
@@ -253,6 +262,7 @@ if ( in_array( $action, array( 'new', 'edit' ), true ) ) {
 						</select>
 					</td>
 				</tr>
+				<?php endif; ?>
 				<tr>
 					<th><?php esc_html_e( 'Se evalúa como', 'sistema-educativo' ); ?></th>
 					<td>

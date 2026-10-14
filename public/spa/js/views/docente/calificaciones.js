@@ -60,6 +60,11 @@ export const VistaDocenteCalificaciones = {
 			return !! this.contexto?.is_closed;
 		},
 
+		/** Modo «solo trimestre»: lo dice el servidor en el contexto de la grilla. */
+		modoTrimestre() {
+			return this.contexto?.modo === 'trimestre';
+		},
+
 		hayCambios() {
 			return Object.keys( this.editado ).length > 0;
 		},
@@ -269,11 +274,15 @@ export const VistaDocenteCalificaciones = {
 
 		<template v-else-if="datos">
 			<div v-if="cerrado" class="edu-aviso edu-aviso-cerrado">
-				Este parcial está cerrado. La grilla es de solo lectura.
+				{{ modoTrimestre ? 'Este trimestre está cerrado.' : 'Este parcial está cerrado.' }} La grilla es de solo lectura.
 			</div>
 
 			<edu-empty v-if="!componentes.length"
-			           texto="Este parcial todavía no tiene componentes evaluables. Crea el primero abajo." />
+			           :texto="(modoTrimestre ? 'Este trimestre' : 'Este parcial') + ' todavía no tiene componentes evaluables. Crea el primero abajo.'" />
+
+			<p v-if="modoTrimestre && componentes.length" class="edu-muted edu-small">
+				Tu institución califica por trimestre: los aportes se promedian por igual, sin pesos.
+			</p>
 
 			<edu-card v-else>
 				<div class="edu-table-wrap">
@@ -283,9 +292,9 @@ export const VistaDocenteCalificaciones = {
 								<th class="edu-col-alumno">Estudiante</th>
 								<th v-for="c in componentes" :key="c.id" class="edu-th-num">
 									{{ c.name }}
-									<div class="edu-muted edu-small">peso {{ formatScore(c.weight) }}</div>
+									<div v-if="!modoTrimestre" class="edu-muted edu-small">peso {{ formatScore(c.weight) }}</div>
 								</th>
-								<th class="edu-th-num">Parcial</th>
+								<th class="edu-th-num">{{ modoTrimestre ? 'Aportes' : 'Parcial' }}</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -387,8 +396,9 @@ export const VistaDocenteCalificaciones = {
 
 			<edu-card v-if="!cerrado" titulo="Nuevo componente evaluable">
 				<p class="edu-muted edu-small">
-					Nace con peso 1.00, igual que los demás. Si ya existe uno con ese nombre en
-					este parcial, se reutiliza en vez de duplicarlo.
+					<template v-if="modoTrimestre">Si ya existe uno con ese nombre en este trimestre, se reutiliza en vez de duplicarlo.</template>
+					<template v-else>Nace con peso 1.00, igual que los demás. Si ya existe uno con ese nombre en
+					este parcial, se reutiliza en vez de duplicarlo.</template>
 				</p>
 				<div class="edu-fila-form">
 					<input class="edu-input" type="text" placeholder="Tareas, Lecciones, Prueba…"

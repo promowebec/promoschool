@@ -355,7 +355,7 @@ portal: si algo falla, se vuelve a poner el shortcode.
 
 ## Estado actual
 
-**v1.15.0** · esquema `EDU_DB_VERSION` 1.0.11. Desde la 1.14.0 los módulos dependen del plan contratado (licencia firmada, ver «Plan contratado»).
+**v1.16.0** · esquema `EDU_DB_VERSION` 1.0.11. Desde la 1.14.0 los módulos dependen del plan contratado (licencia firmada, ver «Plan contratado»). Desde la 1.16.0 cada institución elige modo de calificación «por parciales» o «solo trimestre».
 
 Fases 0–7 del plugin completas (calificaciones, tareas, comunicados, asistencia, PWA, cuentas,
 pagos Payphone, WhatsApp y exportes Mineduc), más la revisión de seguridad de julio de 2026.

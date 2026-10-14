@@ -61,6 +61,12 @@ $subject_id   = isset( $_GET['subject_id'] ) ? (int) $_GET['subject_id'] : 0;
 $trimester_id = isset( $_GET['trimester_id'] ) ? (int) $_GET['trimester_id'] : 0;
 $parcial_num  = isset( $_GET['parcial_num'] ) ? (int) $_GET['parcial_num'] : 0;
 
+// Modo «solo trimestre»: un único bloque de aportes, guardado como parcial 1.
+$modo_trimestre = Edu_Service::MODO_TRIMESTRE === Edu_Service::grading_mode();
+if ( $modo_trimestre ) {
+	$parcial_num = 1;
+}
+
 if ( $es_docente ) {
 	// Solo materias y trimestres de las asignaciones activas del docente.
 	$subjects = $wpdb->get_results( $wpdb->prepare(
@@ -198,6 +204,10 @@ $edu_origen_label = function ( $created_by ) {
 			</select>
 		</label>
 
+		<?php if ( $modo_trimestre ) : ?>
+			<input type="hidden" name="parcial_num" value="1">
+			<span style="margin-left:12px;"><strong><?php esc_html_e( 'Aportes del trimestre', 'sistema-educativo' ); ?></strong></span>
+		<?php else : ?>
 		<label style="margin-left:12px;"><strong><?php esc_html_e( 'Parcial:', 'sistema-educativo' ); ?></strong>
 			<select name="parcial_num" onchange="this.form.submit()">
 				<option value="0"><?php esc_html_e( '— Seleccionar —', 'sistema-educativo' ); ?></option>
@@ -205,7 +215,14 @@ $edu_origen_label = function ( $created_by ) {
 				<option value="2" <?php selected( $parcial_num, 2 ); ?>><?php esc_html_e( 'Parcial 2', 'sistema-educativo' ); ?></option>
 			</select>
 		</label>
+		<?php endif; ?>
 	</form>
+
+	<?php if ( $modo_trimestre ) : ?>
+		<div class="notice notice-info inline"><p>
+			<?php esc_html_e( 'Esta institución califica por trimestre: los componentes sirven para organizar las notas, pero el promedio de aportes es simple y los pesos no se usan.', 'sistema-educativo' ); ?>
+		</p></div>
+	<?php endif; ?>
 
 	<?php if ( $selected ) : ?>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="edu-components-form">

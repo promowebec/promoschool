@@ -65,7 +65,7 @@ $trimesters = $wpdb->get_results( $wpdb->prepare(
 $ready = ( $grade_id && $subject_id && $trimester_id );
 ?>
 <div class="wrap edu-wrap">
-	<h1><?php esc_html_e( 'Cierre de parciales y trimestre', 'sistema-educativo' ); ?></h1>
+	<h1><?php echo esc_html( Edu_Service::MODO_TRIMESTRE === Edu_Service::grading_mode() ? __( 'Cierre de trimestre', 'sistema-educativo' ) : __( 'Cierre de parciales y trimestre', 'sistema-educativo' ) ); ?></h1>
 	<?php require EDU_PLUGIN_DIR . 'admin/views/_institution-switcher.php'; ?>
 
 	<?php if ( 'parcial_closed' === $status ) : ?>
@@ -152,7 +152,12 @@ $ready = ( $grade_id && $subject_id && $trimester_id );
 			);
 		}
 
-		$both_closed = $parcial_info[1]['closed'] && $parcial_info[2]['closed'];
+		// Modo «solo trimestre»: no hay parciales que cerrar; el cierre del
+		// trimestre cierra también el bloque de aportes.
+		$modo_trimestre = Edu_Service::MODO_TRIMESTRE === Edu_Service::grading_mode_for_grade( $grade_id );
+		$parciales_vista = $modo_trimestre ? array() : array( 1, 2 );
+
+		$both_closed = $modo_trimestre || ( $parcial_info[1]['closed'] && $parcial_info[2]['closed'] );
 
 		// Estado del trimestre.
 		$trim_closed = (int) $wpdb->get_var( $wpdb->prepare(
@@ -172,7 +177,7 @@ $ready = ( $grade_id && $subject_id && $trimester_id );
 			</tr>
 		</thead>
 		<tbody>
-			<?php foreach ( array( 1, 2 ) as $pnum ) :
+			<?php foreach ( $parciales_vista as $pnum ) :
 				$info   = $parcial_info[ $pnum ];
 				$closed = $info['closed'];
 			?>
@@ -221,7 +226,7 @@ $ready = ( $grade_id && $subject_id && $trimester_id );
 
 			<tr style="background:#f9f9f9;">
 				<td><strong><?php esc_html_e( 'Trimestre', 'sistema-educativo' ); ?></strong></td>
-				<td>—</td>
+				<td><?php echo $modo_trimestre ? esc_html( $parcial_info[1]['with_score'] . ' / ' . $total_students ) : '—'; ?></td>
 				<td>
 					<?php if ( $trim_closed ) : ?>
 						<span style="color:green;">&#10003; <?php esc_html_e( 'Cerrado', 'sistema-educativo' ); ?></span>

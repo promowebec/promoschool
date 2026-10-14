@@ -263,6 +263,8 @@ class Edu_Api_Me_Routes {
 			'name'     => $row->name,
 			'logo_url' => $row->logo_url ? esc_url_raw( $row->logo_url ) : null,
 			'regime'   => $row->regime,
+			// 'parciales' | 'trimestre': la app oculta el parcial 2 en el segundo.
+			'grading_mode' => Edu_Service::grading_mode( (int) $row->id ),
 		);
 	}
 

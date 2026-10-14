@@ -59,6 +59,9 @@ Los ítems de módulos apagados desaparecen del menú (ver A.25 Ajustes).
 - **Superadmin Editorial:** listado de todas las instituciones con crear / editar / eliminar / activar.
 - **Rector:** formulario directo sobre su institución, sin selector.
 - Campos: nombre, RUC, dirección, teléfono, email, URL del logo, régimen (`sierra` / `costa`).
+- Bloque **Calificación** (v1.16.0): modo **Por parciales** (por defecto) o **Solo trimestre**
+  (aplicativo del Ministerio: sin parciales, promedio simple de aportes, pesos ignorados). Se
+  elige antes de calificar: con notas en el período activo ya no se puede cambiar.
 - Bloque **Certificado de promoción**: código AMIE, ciudad, nombres del rector/a y del
   secretario/a, e imágenes de las dos firmas y del sello (PNG/JPG, 1 MB). Las imágenes se
   guardan en la carpeta privada y se ven como vista previa; no tienen dirección pública.
@@ -309,6 +312,8 @@ Los ítems de módulos apagados desaparecen del menú (ver A.25 Ajustes).
 - Filtros encadenados: Grado → Materia → Trimestre → Parcial. El docente solo ve lo de sus asignaciones activas.
 - **Matriz estudiantes (filas) × componentes (columnas)**. Cada celda es un input 0–10 que muestra el promedio actual registrado en ese componente. Dejar la celda vacía = no modificar.
 - Columna final con la nota del parcial calculada y su equivalencia cualitativa (A+ … E-) con color.
+- **Modo «solo trimestre»:** no hay filtro de parcial; la matriz es la de todos los aportes del
+  trimestre, sin pesos, y la columna final es el **Promedio de aportes**.
 
 **Acciones:** Guardar notas (batch)
 
@@ -323,7 +328,7 @@ Los ítems de módulos apagados desaparecen del menú (ver A.25 Ajustes).
 - **Quién entra:** `edu_grade_students` o `edu_view_all`
 - **Para qué sirve:** capturar el 30% sumativo del trimestre.
 
-**Qué se ve:** filtros Grado → Materia → Trimestre. Tabla por estudiante con: Parcial 1, Parcial 2 (solo lectura), input **Examen final**, input **Proyecto** (solo si el subnivel es `media`, `superior`, `bg` o `bt`), y nota del trimestre calculada con su equivalencia cualitativa.
+**Qué se ve:** filtros Grado → Materia → Trimestre. Tabla por estudiante con: Parcial 1, Parcial 2 (solo lectura; en modo «solo trimestre», una única columna **Promedio de aportes**), input **Examen final**, input **Proyecto** (solo si el subnivel es `media`, `superior`, `bg` o `bt`), y nota del trimestre calculada con su equivalencia cualitativa.
 
 **Fórmula aplicada según subnivel**
 ```
@@ -379,6 +384,9 @@ media / superior / bg / bt:          ((P1+P2)/2) × 0.70 + ((Examen+Proyecto)/2)
 **Qué se ve:** filtros Grado → Materia → Trimestre. Tabla con el estado de cada parcial (abierto / cerrado, cuántos estudiantes ya tienen nota) y botones de cierre. El botón de **cierre de trimestre** solo se habilita cuando ambos parciales están cerrados.
 
 **Acciones:** Cerrar parcial 1 · Cerrar parcial 2 · Cerrar trimestre
+
+En modo «solo trimestre» la pantalla se titula *Cierre de trimestre*: no hay botones de
+parcial y el trimestre se cierra directamente (el servidor cierra con él el bloque de aportes).
 
 - **Tablas:** `parcial_scores.is_closed`, `trimester_scores.is_closed`
 - **Dispara:** `edu_partial_closed` → recálculo de trimestre · `edu_trimester_closed` → recálculo anual + notificación WhatsApp de notas

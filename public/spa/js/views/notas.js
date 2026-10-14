@@ -48,6 +48,15 @@ export const VistaNotas = {
 			return this.datos?.formula === 'sumativa_proyecto';
 		},
 
+		/** Modo «solo trimestre»: una sola columna de aportes en vez de P1 y P2. */
+		modoTrimestre() {
+			return this.datos?.modo === 'trimestre';
+		},
+
+		columnasParcial() {
+			return this.modoTrimestre ? [ 1 ] : [ 1, 2 ];
+		},
+
 		promedioGeneral() {
 			const notas = this.materias
 				.map( ( m ) => m.year?.average )
@@ -233,8 +242,11 @@ export const VistaNotas = {
 							<tr>
 								<th>Materia</th>
 								<th>Trim</th>
-								<th class="edu-th-num">Parcial 1</th>
-								<th class="edu-th-num">Parcial 2</th>
+								<th v-if="modoTrimestre" class="edu-th-num">Aportes</th>
+								<template v-else>
+									<th class="edu-th-num">Parcial 1</th>
+									<th class="edu-th-num">Parcial 2</th>
+								</template>
 								<th class="edu-th-num">Examen</th>
 								<th v-if="usaProyecto" class="edu-th-num">Proyecto</th>
 								<th class="edu-th-num">Nota</th>
@@ -246,11 +258,11 @@ export const VistaNotas = {
 								<tr>
 									<td>{{ m.subject_name }}</td>
 									<td>{{ t.number }}</td>
-									<td v-for="p in [1, 2]" :key="p" class="edu-td-num">
+									<td v-for="p in columnasParcial" :key="p" class="edu-td-num">
 										<button class="edu-enlace edu-celda-parcial"
 										        :class="{ 'is-open': abierto === claveDesglose(m, t, p) }"
 										        @click="abrirDesglose(m, t, p)"
-										        :title="'Ver de dónde sale la nota del parcial ' + p">
+										        :title="modoTrimestre ? 'Ver de dónde salen los aportes' : 'Ver de dónde sale la nota del parcial ' + p">
 											{{ formatScore(p === 1 ? t.parcial1_score : t.parcial2_score) }}
 											<span class="edu-caret">▸</span>
 										</button>
@@ -262,12 +274,12 @@ export const VistaNotas = {
 									</td>
 								</tr>
 
-								<tr v-for="p in [1, 2]" :key="'d-' + p"
+								<tr v-for="p in columnasParcial" :key="'d-' + p"
 								    v-show="abierto === claveDesglose(m, t, p)">
-									<td :colspan="usaProyecto ? 7 : 6">
+									<td :colspan="(usaProyecto ? 5 : 4) + columnasParcial.length">
 										<div class="edu-desglose">
 											<h4 class="edu-desglose-titulo">
-												{{ m.subject_name }} · Trimestre {{ t.number }} · Parcial {{ p }}
+												{{ m.subject_name }} · Trimestre {{ t.number }} · {{ modoTrimestre ? 'Aportes' : 'Parcial ' + p }}
 											</h4>
 
 											<div v-if="cargandoDesglose && !desgloses[claveDesglose(m, t, p)]"
@@ -280,14 +292,14 @@ export const VistaNotas = {
 											<template v-else>
 												<p v-if="!componentesDe(claveDesglose(m, t, p)).length"
 												   class="edu-muted edu-small">
-													Este parcial todavía no tiene componentes evaluables.
+													{{ modoTrimestre ? 'Este trimestre' : 'Este parcial' }} todavía no tiene componentes evaluables.
 												</p>
 
 												<div v-for="c in componentesDe(claveDesglose(m, t, p))"
 												     :key="c.component_id" class="edu-desglose-comp">
 													<div class="edu-desglose-cab">
 														<strong>{{ c.name }}</strong>
-														<span class="edu-muted edu-small">peso {{ c.weight }}</span>
+														<span v-if="!modoTrimestre" class="edu-muted edu-small">peso {{ c.weight }}</span>
 														<span class="edu-desglose-prom">
 															{{ c.average === null ? '—' : formatScore(c.average) }}
 															<span class="edu-muted">({{ c.count }})</span>
@@ -306,7 +318,11 @@ export const VistaNotas = {
 													<p v-else class="edu-muted edu-small">Sin notas todavía.</p>
 												</div>
 
-												<p class="edu-nota-formula">
+												<p v-if="modoTrimestre" class="edu-nota-formula">
+													Los aportes son el promedio de todas las notas del trimestre,
+													cada una con el mismo valor.
+												</p>
+												<p v-else class="edu-nota-formula">
 													La nota de cada componente es el promedio de sus notas. Los
 													componentes sin calificar no cuentan: sus pesos se reparten
 													entre los que sí tienen nota.
@@ -321,7 +337,13 @@ export const VistaNotas = {
 					</table>
 				</div>
 				<p class="edu-nota-formula">
-					<template v-if="usaProyecto">
+					<template v-if="modoTrimestre && usaProyecto">
+						Nota del trimestre = Aportes × 70% + ((Examen + Proyecto) ÷ 2) × 30%
+					</template>
+					<template v-else-if="modoTrimestre">
+						Nota del trimestre = Aportes × 70% + Examen × 30%
+					</template>
+					<template v-else-if="usaProyecto">
 						Nota del trimestre = ((P1 + P2) ÷ 2) × 70% + ((Examen + Proyecto) ÷ 2) × 30%
 					</template>
 					<template v-else>

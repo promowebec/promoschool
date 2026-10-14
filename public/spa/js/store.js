@@ -75,6 +75,13 @@ export function moduleActive( slug ) {
 	return store.me?.modules?.[ slug ] !== false;
 }
 
+/**
+ * ¿La institución califica «solo por trimestre»? Entonces no hay parcial 2:
+ * todo es un bloque de aportes guardado como parcial 1. El cálculo lo hace el
+ * servidor; aquí solo decide qué se muestra.
+ */
+export const modoTrimestre = computed( () => store.me?.institution?.grading_mode === 'trimestre' );
+
 /** Iniciales para el avatar. */
 export function initials( nombres, apellidos ) {
 	return ( ( nombres || '' ).charAt( 0 ) + ( apellidos || '' ).charAt( 0 ) ).toUpperCase() || '·';

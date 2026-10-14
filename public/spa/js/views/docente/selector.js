@@ -7,7 +7,7 @@
  * lista de materias se reduce a las que ese docente dicta ahí.
  */
 
-import { store, profile } from '@edu/store.js';
+import { store, profile, modoTrimestre as esModoTrimestre } from '@edu/store.js';
 
 export const EduSelectorCurso = {
 	props: {
@@ -53,6 +53,11 @@ export const EduSelectorCurso = {
 			return store.me?.active_period?.trimesters || [];
 		},
 
+		/** En modo «solo trimestre» no hay parcial que elegir: siempre el bloque 1. */
+		modoTrimestre() {
+			return esModoTrimestre.value;
+		},
+
 		completo() {
 			return !! this.gradeId &&
 				( ! this.conMateria || !! this.subjectId ) &&
@@ -64,7 +69,7 @@ export const EduSelectorCurso = {
 				grade_id: this.gradeId,
 				subject_id: this.subjectId,
 				trimester_id: this.trimesterId,
-				parcial_num: this.parcialNum,
+				parcial_num: this.modoTrimestre ? 1 : this.parcialNum,
 			};
 		},
 	},
@@ -145,7 +150,7 @@ export const EduSelectorCurso = {
 			</select>
 		</label>
 
-		<label v-if="conParcial">
+		<label v-if="conParcial && !modoTrimestre">
 			<span>Parcial</span>
 			<select v-model="parcialNum" class="edu-select">
 				<option :value="1">Parcial 1</option>

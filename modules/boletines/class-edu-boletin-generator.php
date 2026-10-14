@@ -91,7 +91,7 @@ class Edu_Boletin_Generator {
 
 		// ---- Datos del estudiante ----
 		$student = $wpdb->get_row( $wpdb->prepare(
-			"SELECT s.id, s.user_id, g.name AS grade_name, g.paralelo, g.level, g.sub_level
+			"SELECT s.id, s.user_id, g.name AS grade_name, g.paralelo, g.level, g.sub_level, g.institution_id
 			 FROM {$p}students s
 			 INNER JOIN {$p}grades g ON g.id = s.grade_id
 			 WHERE s.id = %d",
@@ -103,6 +103,9 @@ class Edu_Boletin_Generator {
 
 		$grade_sub_level      = (string) $student->sub_level;
 		$usa_sumativa_boletin = in_array( $grade_sub_level, array( 'media', 'superior', 'bg', 'bt' ), true );
+		// Modo «solo trimestre»: una columna de aportes en lugar de P1 y P2.
+		$modo_trimestre       = Edu_Service::MODO_TRIMESTRE === Edu_Service::grading_mode( (int) $student->institution_id );
+		$cols_trimestre       = ( $modo_trimestre ? 1 : 2 ) + ( $usa_sumativa_boletin ? 2 : 1 ) + 1;
 
 		$user       = get_userdata( (int) $student->user_id );
 		$first_name = $user ? ( $user->first_name ?: '' ) : '';
@@ -332,7 +335,7 @@ class Edu_Boletin_Generator {
     <tr>
       <th class="left" style="width:20%">Materia</th>
       <?php foreach ( $trimesters as $trim ) : ?>
-        <th colspan="<?php echo $usa_sumativa_boletin ? 5 : 4; ?>">Trimestre <?php echo (int) $trim->number; ?></th>
+        <th colspan="<?php echo (int) $cols_trimestre; ?>">Trimestre <?php echo (int) $trim->number; ?></th>
       <?php endforeach; ?>
       <th>Promedio<br>Anual</th>
       <th>Cuali.</th>
@@ -341,7 +344,7 @@ class Edu_Boletin_Generator {
     <tr>
       <th class="left"></th>
       <?php foreach ( $trimesters as $trim ) : ?>
-        <th>P1</th><th>P2</th>
+        <?php if ( $modo_trimestre ) : ?><th>Aport.</th><?php else : ?><th>P1</th><th>P2</th><?php endif; ?>
         <?php if ( $usa_sumativa_boletin ) : ?><th>Exam</th><th>Proy</th><?php else : ?><th>Exam</th><?php endif; ?>
         <th>Nota T<?php echo (int) $trim->number; ?></th>
       <?php endforeach; ?>
@@ -368,9 +371,11 @@ class Edu_Boletin_Generator {
         <td class="center <?php echo $ts ? '' : 'nota-nd'; ?>">
           <?php echo $ts ? esc_html( number_format( (float) $ts->parcial1_score, 2 ) ) : '—'; ?>
         </td>
+        <?php if ( ! $modo_trimestre ) : ?>
         <td class="center <?php echo $ts ? '' : 'nota-nd'; ?>">
           <?php echo $ts ? esc_html( number_format( (float) $ts->parcial2_score, 2 ) ) : '—'; ?>
         </td>
+        <?php endif; ?>
         <td class="center <?php echo $ts ? '' : 'nota-nd'; ?>">
           <?php echo $ts ? esc_html( number_format( (float) $ts->final_exam_score, 2 ) ) : '—'; ?>
         </td>

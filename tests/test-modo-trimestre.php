@@ -325,4 +325,55 @@ edu_assert(
 	null === $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$p}trimester_scores WHERE student_id = %d AND trimester_id = %d", $est_b, $tri_b ) )
 );
 
+/* ── 7. Interfaz: pantallas de wp-admin y boletín ────────────────────────── */
+
+edu_test_case( 'Las pantallas siguen el modo' );
+
+// Renderiza una vista de wp-admin con los filtros dados y devuelve su HTML.
+$vista = function ( $archivo, array $get ) {
+	$_GET = $get;
+	ob_start();
+	include EDU_PLUGIN_DIR . 'admin/views/' . $archivo . '.php';
+	return ob_get_clean();
+};
+
+$filtro_a = array( 'grade_id' => $elemental, 'subject_id' => $mat_a, 'trimester_id' => $tri_a );
+$filtro_b = array( 'grade_id' => $grado_b, 'subject_id' => $mat_b, 'trimester_id' => $tri_b );
+
+edu_test_as( $admin, $inst_a );
+Edu_Service::reset_grading_mode();
+
+$html = $vista( 'calificaciones', $filtro_a + array( 'parcial_num' => 2 ) );
+edu_assert( 'A grilla: sin selector de parcial', false === strpos( $html, 'name="parcial_num" onchange' ) );
+edu_assert( 'A grilla: rotula «Promedio de aportes»', false !== strpos( $html, 'Promedio de aportes' ) );
+edu_assert( 'A grilla: aunque pidan el P2, muestra los aportes', false !== strpos( $html, 'Lecciones' ) );
+
+$html = $vista( 'examen-final', $filtro_a );
+edu_assert( 'A examen: una columna de aportes', false !== strpos( $html, 'Promedio de aportes (70%)' ) && false === strpos( $html, '>Parcial 2<' ) );
+
+$html = $vista( 'cierres', $filtro_a );
+edu_assert( 'A cierres: sin botones de parcial', false === strpos( $html, 'edu_close_parcial' ) );
+edu_assert( 'A cierres: título de trimestre', false !== strpos( $html, 'Cierre de trimestre' ) );
+
+edu_test_as( $admin, $inst_b );
+
+$html = $vista( 'calificaciones', $filtro_b + array( 'parcial_num' => 1 ) );
+edu_assert( 'B grilla: conserva el selector de parcial', false !== strpos( $html, 'name="parcial_num" onchange' ) );
+
+$html = $vista( 'examen-final', $filtro_b );
+edu_assert( 'B examen: sigue con P1 y P2', false !== strpos( $html, 'Parcial 2' ) && false === strpos( $html, 'Promedio de aportes' ) );
+
+$html = $vista( 'cierres', $filtro_b );
+edu_assert( 'B cierres: sigue cerrando parciales', false !== strpos( $html, 'edu_close_parcial' ) );
+
+require_once EDU_PLUGIN_DIR . 'modules/boletines/class-edu-boletin-generator.php';
+$build = new ReflectionMethod( 'Edu_Boletin_Generator', 'build_html' );
+$build->setAccessible( true );
+
+$pdf_a = $build->invoke( new Edu_Boletin_Generator(), $est_e, $creado['periods'][0] );
+edu_assert( 'A boletín: columna «Aport.», sin P2', false !== strpos( $pdf_a, '<th>Aport.</th>' ) && false === strpos( $pdf_a, '<th>P2</th>' ) );
+
+$pdf_b = $build->invoke( new Edu_Boletin_Generator(), $est_b, $creado['periods'][1] );
+edu_assert( 'B boletín: sigue con P1 y P2', false !== strpos( $pdf_b, '<th>P1</th><th>P2</th>' ) );
+
 edu_test_finish();

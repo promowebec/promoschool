@@ -783,7 +783,7 @@ del esquema.
   "roles": ["edu_docente"],
   "capabilities": ["edu_grade_students", "edu_create_assignment", "..."],
   "account_status": "active",
-  "institution": { "id": 1, "name": "Unidad Educativa X", "logo_url": "...", "regime": "sierra" },
+  "institution": { "id": 1, "name": "Unidad Educativa X", "logo_url": "...", "regime": "sierra", "grading_mode": "parciales" },
   "active_period": { "id": 3, "name": "2026-2027", "num_trimesters": 3 },
   "modules": { "tareas": true, "comunicados": true, "asistencia": true, "pagos": false, "...": true },
   "profile": {
