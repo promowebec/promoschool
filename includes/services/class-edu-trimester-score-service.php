@@ -8,6 +8,10 @@
  *   media / superior / bg / bt:
  *       Nota_Trimestre = ((P1 + P2) / 2) × 0.70 + ((Examen + Proyecto) / 2) × 0.30
  *
+ * En modo «solo trimestre» (Edu_Service::grading_mode) el 70% es el promedio
+ * simple de los aportes, guardado como P1. La fórmula vive en
+ * Edu_Service::trimester_score().
+ *
  * @package SistemaEducativo
  */
 
@@ -126,13 +130,10 @@ class Edu_Trimester_Score_Service {
 			$exam_score = max( 0, min( 10, $exam_score ) );
 			$proy_score = max( 0, min( 10, $proy_score ) );
 
-			$p1       = $parcial_map[ $sid ][1] ?? 0.0;
-			$p2       = $parcial_map[ $sid ][2] ?? 0.0;
-			$parc_avg = ( $p1 + $p2 ) / 2;
+			$p1 = $parcial_map[ $sid ][1] ?? 0.0;
+			$p2 = $parcial_map[ $sid ][2] ?? 0.0;
 
-			$computed = $usa_sumativa
-				? round( $parc_avg * 0.70 + ( ( $exam_score + $proy_score ) / 2 ) * 0.30, 2 )
-				: round( $parc_avg * 0.70 + $exam_score * 0.30, 2 );
+			$computed = Edu_Service::trimester_score( $grade_id, $p1, $p2, $exam_score, $proy_score );
 
 			if ( $existing ) {
 				$result = $wpdb->update(
@@ -201,6 +202,7 @@ class Edu_Trimester_Score_Service {
 			'results'    => $results,
 			'db_error'   => $db_error,
 			'formula'    => $usa_sumativa ? 'sumativa_proyecto' : 'elemental',
+			'modo'       => Edu_Service::grading_mode_for_grade( $grade_id ),
 		);
 	}
 
@@ -298,6 +300,9 @@ class Edu_Trimester_Score_Service {
 	/**
 	 * Cierra el trimestre. Exige que los dos parciales estén cerrados.
 	 *
+	 * En modo «solo trimestre» no hay parciales que cerrar a mano: el bloque de
+	 * aportes se cierra aquí mismo, junto con el trimestre.
+	 *
 	 * @param array $input grade_id, subject_id, trimester_id.
 	 * @return array|WP_Error
 	 */
@@ -336,6 +341,18 @@ class Edu_Trimester_Score_Service {
 		$tps    = $wpdb->prefix . 'edu_parcial_scores';
 		$tts    = $wpdb->prefix . 'edu_trimester_scores';
 		$sid_in = implode( ',', $student_ids );
+
+		if ( Edu_Service::MODO_TRIMESTRE === Edu_Service::grading_mode_for_grade( $grade_id ) ) {
+			$wpdb->query(
+				$wpdb->prepare(
+					"UPDATE $tps SET is_closed = 1
+					 WHERE student_id IN ($sid_in)
+					   AND subject_id = %d AND trimester_id = %d",
+					$subject_id,
+					$trimester_id
+				)
+			);
+		}
 
 		/*
 		 * Se cuentan las filas abiertas, no los estudiantes. Un parcial sin
@@ -391,6 +408,119 @@ class Edu_Trimester_Score_Service {
 		return array(
 			'closed'   => true,
 			'students' => count( $student_ids ),
+		);
+	}
+
+	/* ─────────────────────────────────────────────────────────────────────
+	 * Modo de calificación
+	 * ────────────────────────────────────────────────────────────────── */
+
+	/**
+	 * Cambia el modo de calificación de una institución.
+	 *
+	 * El modo se elige antes de empezar a calificar el período: con notas ya
+	 * registradas, cambiarlo recalcularía con otra fórmula lo que el docente ya
+	 * vio y comunicó. Tampoco se pasa a «trimestre» si quedan componentes en el
+	 * segundo parcial, porque dejarían de verse en la grilla.
+	 *
+	 * @param array $input institution_id, modo ('parciales' | 'trimestre').
+	 * @return array|WP_Error
+	 */
+	public static function set_grading_mode( array $input ) {
+		$cap = Edu_Service::require_cap( 'edu_view_all' );
+		if ( is_wp_error( $cap ) ) {
+			return $cap;
+		}
+
+		$institution_id = isset( $input['institution_id'] ) ? (int) $input['institution_id'] : 0;
+		$modo           = isset( $input['modo'] ) ? (string) $input['modo'] : '';
+
+		if ( ! in_array( $modo, array( Edu_Service::MODO_PARCIALES, Edu_Service::MODO_TRIMESTRE ), true ) ) {
+			return Edu_Service::error( 'invalid_mode', __( 'Modo de calificación no válido.', 'sistema-educativo' ), 400 );
+		}
+
+		if ( ! $institution_id ) {
+			return Edu_Service::error( 'no_institution', __( 'No hay institución activa.', 'sistema-educativo' ), 409 );
+		}
+
+		if ( ! Edu_Context::is_superadmin_editorial() && Edu_Context::current_institution_id() !== $institution_id ) {
+			return Edu_Service::invalid_scope();
+		}
+
+		$anterior = Edu_Service::grading_mode( $institution_id );
+		if ( $anterior === $modo ) {
+			return array(
+				'modo'    => $modo,
+				'changed' => false,
+			);
+		}
+
+		global $wpdb;
+		$p = $wpdb->prefix . 'edu_';
+
+		// Trimestres de los períodos activos de la institución.
+		$tri_ids = array_map(
+			'intval',
+			(array) $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT t.id FROM {$p}trimesters t
+					 INNER JOIN {$p}periods pe ON pe.id = t.period_id
+					 WHERE pe.institution_id = %d AND pe.is_active = 1",
+					$institution_id
+				)
+			)
+		);
+
+		if ( $tri_ids ) {
+			$tri_in = implode( ',', $tri_ids );
+
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- IDs pasados por intval arriba.
+			$notas = (int) $wpdb->get_var(
+				"SELECT COUNT(*) FROM {$p}grades_log l
+				 INNER JOIN {$p}grade_components c ON c.id = l.component_id
+				 WHERE c.trimester_id IN ($tri_in)"
+			) + (int) $wpdb->get_var(
+				"SELECT COUNT(*) FROM {$p}trimester_scores WHERE trimester_id IN ($tri_in)"
+			);
+
+			$segundo = Edu_Service::MODO_TRIMESTRE === $modo ? (int) $wpdb->get_var(
+				"SELECT COUNT(*) FROM {$p}grade_components WHERE trimester_id IN ($tri_in) AND parcial_num = 2"
+			) : 0;
+			// phpcs:enable
+
+			if ( $notas > 0 ) {
+				return Edu_Service::error(
+					'mode_locked',
+					__( 'El período activo ya tiene notas registradas. El modo de calificación se elige antes de empezar a calificar.', 'sistema-educativo' ),
+					409,
+					array( 'notas' => $notas )
+				);
+			}
+
+			if ( $segundo > 0 ) {
+				return Edu_Service::error(
+					'second_parcial_components',
+					__( 'Hay componentes creados en el segundo parcial. Elimínalos o muévelos al primero antes de calificar por trimestre.', 'sistema-educativo' ),
+					409,
+					array( 'componentes' => $segundo )
+				);
+			}
+		}
+
+		update_option( Edu_Service::OPCION_MODO . $institution_id, $modo, false );
+		Edu_Service::reset_grading_mode();
+
+		Edu_Audit::log(
+			Edu_Audit::MODO_NOTAS,
+			'institution',
+			$institution_id,
+			array( 'modo' => $anterior ),
+			array( 'modo' => $modo )
+		);
+
+		return array(
+			'modo'    => $modo,
+			'changed' => true,
 		);
 	}
 

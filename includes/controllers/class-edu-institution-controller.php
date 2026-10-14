@@ -95,6 +95,20 @@ class Edu_Institution_Controller {
 			}
 		}
 
+		// Modo de calificación: va al final para que, si el servicio
+		// lo rechaza (período con notas), el resto del formulario ya quede guardado.
+		if ( isset( $_POST['modo_notas'] ) ) {
+			$r = Edu_Trimester_Score_Service::set_grading_mode(
+				array(
+					'institution_id' => $saved_id,
+					'modo'           => sanitize_key( wp_unslash( $_POST['modo_notas'] ) ),
+				)
+			);
+			if ( is_wp_error( $r ) ) {
+				self::redirect( array( 'action' => 'edit', 'id' => $saved_id, 'status' => 'error', 'code' => $r->get_error_code() ) );
+			}
+		}
+
 		self::redirect( array( 'action' => 'edit', 'id' => $saved_id, 'status' => 'updated' ) );
 	}
 

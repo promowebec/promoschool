@@ -68,6 +68,8 @@ $status_code = isset( $_GET['code'] ) ? sanitize_key( $_GET['code'] ) : '';
 				'invalid_image' => __( 'La firma y el sello deben ser imágenes PNG o JPG. Los demás datos sí se guardaron.', 'sistema-educativo' ),
 				'image_too_big' => __( 'La imagen supera 1 MB. Los demás datos sí se guardaron.', 'sistema-educativo' ),
 				'upload_failed' => __( 'No se pudo guardar la imagen. Los demás datos sí se guardaron.', 'sistema-educativo' ),
+				'mode_locked'   => __( 'No se cambió el modo de calificación: el período activo ya tiene notas. Los demás datos sí se guardaron.', 'sistema-educativo' ),
+				'second_parcial_components' => __( 'No se cambió el modo de calificación: hay componentes en el segundo parcial. Elimínalos o muévelos al primero. Los demás datos sí se guardaron.', 'sistema-educativo' ),
 			);
 			echo esc_html( $messages[ $status_code ] ?? __( 'Ocurrió un error.', 'sistema-educativo' ) );
 			?>
@@ -166,6 +168,27 @@ $status_code = isset( $_GET['code'] ) ? sanitize_key( $_GET['code'] ) : '';
 					<td>
 						<input id="edu-logo-url" name="logo_url" class="regular-text" type="url" value="<?php echo esc_attr( $institution->logo_url ?? '' ); ?>" placeholder="https://...">
 						<p class="description"><?php esc_html_e( 'Pega la URL del logo. El uploader de WP Media llega en Fase 1.5.', 'sistema-educativo' ); ?></p>
+					</td>
+				</tr>
+			</table>
+
+			<?php $edu_modo = $institution ? Edu_Service::grading_mode( (int) $institution->id ) : Edu_Service::MODO_PARCIALES; ?>
+			<h2><?php esc_html_e( 'Calificación', 'sistema-educativo' ); ?></h2>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Modo de calificación', 'sistema-educativo' ); ?></th>
+					<td>
+						<fieldset>
+							<label><input type="radio" name="modo_notas" value="<?php echo esc_attr( Edu_Service::MODO_PARCIALES ); ?>" <?php checked( $edu_modo, Edu_Service::MODO_PARCIALES ); ?>>
+								<?php esc_html_e( 'Por parciales', 'sistema-educativo' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Dos parciales por trimestre. Cada parcial pondera sus componentes por peso; el 70% es el promedio de los dos parciales.', 'sistema-educativo' ); ?></p>
+							<br>
+							<label><input type="radio" name="modo_notas" value="<?php echo esc_attr( Edu_Service::MODO_TRIMESTRE ); ?>" <?php checked( $edu_modo, Edu_Service::MODO_TRIMESTRE ); ?>>
+								<?php esc_html_e( 'Solo trimestre (aplicativo del Ministerio)', 'sistema-educativo' ); ?></label>
+							<p class="description"><?php esc_html_e( 'Sin parciales. El 70% es el promedio simple de todos los aportes del trimestre; los pesos de los componentes no se usan.', 'sistema-educativo' ); ?></p>
+						</fieldset>
+						<p class="description"><strong><?php esc_html_e( 'Se elige antes de empezar a calificar: con notas en el período activo ya no se puede cambiar.', 'sistema-educativo' ); ?></strong>
+							<?php esc_html_e( 'En los dos modos la evaluación sumativa (30%) sigue la regla de cada subnivel.', 'sistema-educativo' ); ?></p>
 					</td>
 				</tr>
 			</table>

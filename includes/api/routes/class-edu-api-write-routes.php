@@ -270,7 +270,7 @@ class Edu_Api_Write_Routes {
 
 		$subject_id   = (int) $request->get_param( 'subject_id' );
 		$trimester_id = (int) $request->get_param( 'trimester_id' );
-		$parcial_num  = (int) $request->get_param( 'parcial_num' );
+		$parcial_num  = Edu_Service::normalize_parcial( (int) $request->get_param( 'parcial_num' ), Edu_Service::subject_institution( $subject_id ) );
 		$nombre       = trim( (string) $request->get_param( 'name' ) );
 
 		if ( '' === $nombre ) {

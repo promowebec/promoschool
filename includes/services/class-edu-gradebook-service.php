@@ -449,6 +449,7 @@ class Edu_Gradebook_Service {
 			),
 			'parcial_num' => (int) $parcial_num,
 			'formula'     => Edu_Service::formula( $grade_id ),
+			'modo'        => Edu_Service::grading_mode_for_grade( $grade_id ),
 		);
 	}
 
@@ -521,6 +522,7 @@ class Edu_Gradebook_Service {
 		if ( empty( $students ) ) {
 			return array(
 				'formula' => Edu_Service::formula( $grade_id ),
+				'modo'    => Edu_Service::grading_mode_for_grade( $grade_id ),
 				'items'   => array(),
 			);
 		}
@@ -568,6 +570,7 @@ class Edu_Gradebook_Service {
 
 		return array(
 			'formula' => $formula,
+			'modo'    => Edu_Service::grading_mode_for_grade( $grade_id ),
 			'items'   => $items,
 		);
 	}
@@ -772,6 +775,7 @@ class Edu_Gradebook_Service {
 			'period_id'  => $period_id,
 			'grade_id'   => $grade_id,
 			'formula'    => $formula,
+			'modo'       => Edu_Service::grading_mode_for_grade( $grade_id ),
 			'subjects'   => array_values( $subjects ),
 		);
 	}

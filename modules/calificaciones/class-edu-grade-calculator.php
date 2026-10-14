@@ -48,29 +48,48 @@ class Edu_Grade_Calculator {
 			return false;
 		}
 
-		// Componentes del set.
-		$components = $wpdb->get_results( $wpdb->prepare(
-			"SELECT id, weight FROM $tc WHERE subject_id = %d AND trimester_id = %d AND parcial_num = %d",
-			$subject_id, $trimester_id, $parcial_num
-		) );
+		$modo_trimestre = Edu_Service::MODO_TRIMESTRE === self::modo_del_estudiante( $student_id );
 
-		$weighted_sum   = 0.0;
-		$weight_present = 0.0;
-
-		foreach ( $components as $c ) {
-			$score = $wpdb->get_var( $wpdb->prepare(
-				"SELECT AVG(score) FROM $tl WHERE student_id = %d AND component_id = %d",
-				$student_id, (int) $c->id
+		if ( $modo_trimestre ) {
+			/*
+			 * Modo «solo trimestre» (aplicativo del Ministerio): cada nota es un
+			 * aporte y se promedian todas por igual, sin pesos ni promedio previo
+			 * por componente. 10, 5, 5, 5 da 6.25 aunque tres estén en el mismo
+			 * componente.
+			 */
+			$avg = $wpdb->get_var( $wpdb->prepare(
+				"SELECT AVG(l.score) FROM $tl l
+				 INNER JOIN $tc c ON c.id = l.component_id
+				 WHERE l.student_id = %d AND c.subject_id = %d AND c.trimester_id = %d AND c.parcial_num = %d",
+				$student_id, $subject_id, $trimester_id, $parcial_num
 			) );
-			if ( null === $score ) {
-				continue; // Sin nota registrada: no se considera.
-			}
-			$w               = (float) $c->weight;
-			$weighted_sum   += (float) $score * $w;
-			$weight_present += $w;
-		}
 
-		$computed = ( $weight_present > 0 ) ? round( $weighted_sum / $weight_present, 2 ) : 0.0;
+			$computed = ( null !== $avg ) ? round( (float) $avg, 2 ) : 0.0;
+		} else {
+			// Componentes del set.
+			$components = $wpdb->get_results( $wpdb->prepare(
+				"SELECT id, weight FROM $tc WHERE subject_id = %d AND trimester_id = %d AND parcial_num = %d",
+				$subject_id, $trimester_id, $parcial_num
+			) );
+
+			$weighted_sum   = 0.0;
+			$weight_present = 0.0;
+
+			foreach ( $components as $c ) {
+				$score = $wpdb->get_var( $wpdb->prepare(
+					"SELECT AVG(score) FROM $tl WHERE student_id = %d AND component_id = %d",
+					$student_id, (int) $c->id
+				) );
+				if ( null === $score ) {
+					continue; // Sin nota registrada: no se considera.
+				}
+				$w               = (float) $c->weight;
+				$weighted_sum   += (float) $score * $w;
+				$weight_present += $w;
+			}
+
+			$computed = ( $weight_present > 0 ) ? round( $weighted_sum / $weight_present, 2 ) : 0.0;
+		}
 
 		if ( $existing ) {
 			$wpdb->update(
@@ -99,8 +118,9 @@ class Edu_Grade_Calculator {
 		// terminaran de ingresarse las notas de componentes), refrescar su
 		// computed_score para que boletines y portales no muestren un valor
 		// obsoleto. recalculate_trimester no toca trimestres cerrados.
+		// En modo trimestre no hay cierre de parcial que la cree: se refresca siempre.
 		$tts          = $wpdb->prefix . 'edu_trimester_scores';
-		$has_tri_row  = $wpdb->get_var( $wpdb->prepare(
+		$has_tri_row  = $modo_trimestre || $wpdb->get_var( $wpdb->prepare(
 			"SELECT id FROM $tts WHERE student_id = %d AND subject_id = %d AND trimester_id = %d",
 			$student_id, $subject_id, $trimester_id
 		) );
@@ -133,36 +153,30 @@ class Edu_Grade_Calculator {
 	}
 
 	/**
-	 * Subniveles que usan evaluación sumativa separada (examen + proyecto).
-	 * EGB Media (5–7), Superior (8–10), Bachillerato General y Técnico.
+	 * Grado del estudiante (decide subnivel e institución).
 	 */
-	private static $subniveles_sumativa = array( 'media', 'superior', 'bg', 'bt' );
-
-	/**
-	 * Devuelve true si el grado del estudiante usa la fórmula con evaluación sumativa.
-	 */
-	private static function usa_evaluacion_sumativa( $student_id ) {
+	private static function grado_del_estudiante( $student_id ) {
 		global $wpdb;
-		$sub_level = $wpdb->get_var( $wpdb->prepare(
-			"SELECT g.sub_level
-			 FROM {$wpdb->prefix}edu_students s
-			 INNER JOIN {$wpdb->prefix}edu_grades g ON g.id = s.grade_id
-			 WHERE s.id = %d",
+		return (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT grade_id FROM {$wpdb->prefix}edu_students WHERE id = %d",
 			(int) $student_id
 		) );
-		return in_array( $sub_level, self::$subniveles_sumativa, true );
+	}
+
+	/**
+	 * Modo de calificación de la institución del estudiante.
+	 */
+	private static function modo_del_estudiante( $student_id ) {
+		return Edu_Service::grading_mode_for_grade( self::grado_del_estudiante( $student_id ) );
 	}
 
 	/**
 	 * Recalcula y persiste la nota del trimestre para (estudiante, materia, trimestre).
 	 *
-	 * Fórmula Media/Superior/Bachillerato:
-	 *   ((P1+P2)/2) × 0.70 + ((Examen+Proyecto)/2) × 0.30
-	 *
-	 * Fórmula Elemental y otros:
-	 *   ((P1+P2)/2) × 0.70 + Examen × 0.30
-	 *
-	 * Solo calcula si hay al menos un parcial. Si el trimestre está cerrado no toca.
+	 * La fórmula vive en Edu_Service::trimester_score() (subnivel y modo de
+	 * calificación de la institución). En modo trimestre P1 es el promedio de
+	 * aportes y P2 no existe.
+	 * Si el trimestre está cerrado no toca.
 	 *
 	 * @return float|false Nota calculada o false si el trimestre está cerrado.
 	 */
@@ -195,15 +209,10 @@ class Edu_Grade_Calculator {
 		$exam    = $existing ? (float) $existing->final_exam_score : 0.0;
 		$proyecto = $existing ? (float) $existing->proyecto_score  : 0.0;
 
-		$p1_val      = ( null !== $p1 ) ? (float) $p1 : 0.0;
-		$p2_val      = ( null !== $p2 ) ? (float) $p2 : 0.0;
-		$parcial_avg = ( $p1_val + $p2_val ) / 2;
+		$p1_val = ( null !== $p1 ) ? (float) $p1 : 0.0;
+		$p2_val = ( null !== $p2 ) ? (float) $p2 : 0.0;
 
-		if ( self::usa_evaluacion_sumativa( $student_id ) ) {
-			$computed = round( $parcial_avg * 0.70 + ( ( $exam + $proyecto ) / 2 ) * 0.30, 2 );
-		} else {
-			$computed = round( $parcial_avg * 0.70 + $exam * 0.30, 2 );
-		}
+		$computed = Edu_Service::trimester_score( self::grado_del_estudiante( $student_id ), $p1_val, $p2_val, $exam, $proyecto );
 
 		if ( $existing ) {
 			$wpdb->update(

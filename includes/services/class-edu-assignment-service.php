@@ -89,6 +89,7 @@ class Edu_Assignment_Service {
 		if ( ! in_array( $parcial_num, array( 1, 2 ), true ) ) {
 			$parcial_num = 1;
 		}
+		$parcial_num = Edu_Service::normalize_parcial( $parcial_num );
 
 		$scope = Edu_Service::check_scope(
 			array(

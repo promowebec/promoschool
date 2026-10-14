@@ -646,6 +646,11 @@ Puntos fijados por el contrato:
   reimplementa la tabla del Instructivo 2025: si la escala cambia, cambia en un solo lugar.
 - `context.formula` ∈ `elemental` | `sumativa_proyecto`, derivada del `sub_level`. Le dice al
   cliente qué campos mostrar sin duplicar el `in_array(['media','superior','bg','bt'])`.
+- `context.modo` ∈ `parciales` | `trimestre` (v1.16.0): modo de calificación de la
+  institución. En `trimestre` no existe el parcial 2 (pedirlo responde `edu_invalid_parcial`),
+  la grilla del parcial 1 es la de **todos los aportes del trimestre** y la SPA debe ocultar el
+  selector de parcial y rotular «Aportes». También viaja en `GET /trimester-scores` y en la
+  boleta del estudiante.
 - `is_closed` a nivel de contexto: si es `true`, la SPA debe renderizar la matriz en solo lectura.
 
 ### 8.2 `POST /gradebook/scores` — captura batch
@@ -870,6 +875,11 @@ formula = "elemental"          → ((P1+P2)/2)×0.70 + Examen×0.30
 formula = "sumativa_proyecto"  → ((P1+P2)/2)×0.70 + ((Examen+Proyecto)/2)×0.30
 ```
 
+Con `modo = "trimestre"` (v1.16.0) el 70% deja de ser `(P1+P2)/2`: es el **promedio simple de
+todas las notas del trimestre**, sin pesos, y se devuelve como `parcial1_score`
+(`parcial2_score` = 0). La sumativa sigue la `formula` del subnivel. El modo lo cambia el
+rector en wp-admin → Institución; la API no lo escribe.
+
 Motivo: si la fórmula viviera también en JavaScript, un cambio del Instructivo obligaría a
 desplegar dos veces y abriría la puerta a que app y boletín PDF muestren notas distintas.
 
@@ -926,7 +936,7 @@ desplegar dos veces y abriría la puerta a que app y boletín PDF muestren notas
 | `edu_module_disabled` | 404 | El módulo está apagado en esta instalación |
 | `edu_not_found` | 404 | El recurso no existe |
 | `edu_invalid_params` | 400 | Validación de campos (ver `data.params`) |
-| `edu_invalid_parcial` | 400 | `parcial_num` distinto de 1 o 2 |
+| `edu_invalid_parcial` | 400 | `parcial_num` distinto de 1 o 2, o 2 en una institución en modo `trimestre` |
 | `edu_no_components` | 422 | El parcial no tiene componentes definidos |
 | `edu_partial_closed` | 409 | Parcial cerrado |
 | `edu_trimester_closed` | 409 | Trimestre cerrado |

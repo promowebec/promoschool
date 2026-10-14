@@ -313,6 +313,9 @@ class Edu_Curriculum_Service {
 			return null;
 		}
 
+		// Una llamada externa (Flipbook) no sabe del modo de la institución.
+		$parcial_num = Edu_Service::normalize_parcial( $parcial_num, Edu_Service::subject_institution( $subject_id ) );
+
 		// Caso 1: crear un componente nuevo.
 		if ( '' !== $nuevo_nombre ) {
 			if ( ! self::puede_crear_componente( $subject_id, $trimester_id ) ) {

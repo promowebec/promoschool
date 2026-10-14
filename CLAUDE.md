@@ -116,6 +116,13 @@ Nota_Anual = (Trim_1 + Trim_2 + Trim_3) / 3
 → reprueba remedial → gracia · reprueba gracia → reprobado
 ```
 
+### Modo «solo trimestre» (opcional por institución, desde la 1.16.0)
+
+Opción `edu_modo_notas_{id}`. Sin parciales: el 70% es el **promedio simple de todas las notas
+del trimestre**, sin pesos; la sumativa sigue por subnivel. Todo se guarda en `parcial_num = 1`.
+La fórmula vive **solo** en `Edu_Service::trimester_score()`; el modo se lee con
+`Edu_Service::grading_mode()` y no se puede cambiar con notas en el período activo.
+
 ### Cálculo del parcial — la regla que más se malinterpreta
 
 ```

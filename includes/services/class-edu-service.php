@@ -87,7 +87,99 @@ class Edu_Service {
 			return self::error( 'invalid_parcial', __( 'El parcial debe ser 1 o 2.', 'sistema-educativo' ), 400 );
 		}
 
+		// En modo «solo trimestre» todos los aportes viven en el bloque 1.
+		if ( 2 === (int) $parcial_num && self::MODO_TRIMESTRE === self::grading_mode() ) {
+			return self::error( 'invalid_parcial', __( 'Esta institución califica por trimestre: no hay segundo parcial.', 'sistema-educativo' ), 400 );
+		}
+
 		return true;
+	}
+
+	/* ─────────────────────────────────────────────────────────────────────
+	 * Modo de calificación de la institución
+	 *
+	 * «parciales» (por defecto): Parcial = Σ(nota×peso)/Σ(pesos con nota) y el
+	 * 70% es (P1+P2)/2.
+	 * «trimestre» (aplicativo del Ministerio): no hay parciales; el 70% es el
+	 * promedio simple de TODOS los aportes del trimestre y los pesos se ignoran.
+	 *
+	 * En los dos la sumativa sigue por subnivel y se redondea a 2 decimales.
+	 * Internamente el modo trimestre guarda todo en parcial_num = 1, así que
+	 * las tablas y las consultas por parcial no cambian.
+	 * ────────────────────────────────────────────────────────────────── */
+
+	const MODO_PARCIALES = 'parciales';
+	const MODO_TRIMESTRE = 'trimestre';
+	const OPCION_MODO    = 'edu_modo_notas_';
+
+	/** @var array Cache por request: institution_id => modo. */
+	private static $modos = array();
+
+	/**
+	 * Modo de calificación de una institución (0 = la activa).
+	 *
+	 * @param int $institution_id Institución.
+	 * @return string 'parciales' | 'trimestre'
+	 */
+	public static function grading_mode( $institution_id = 0 ) {
+		$institution_id = (int) ( $institution_id ? $institution_id : Edu_Context::current_institution_id() );
+
+		if ( ! $institution_id ) {
+			return self::MODO_PARCIALES;
+		}
+
+		if ( ! isset( self::$modos[ $institution_id ] ) ) {
+			$modo = get_option( self::OPCION_MODO . $institution_id, self::MODO_PARCIALES );
+
+			self::$modos[ $institution_id ] = self::MODO_TRIMESTRE === $modo ? self::MODO_TRIMESTRE : self::MODO_PARCIALES;
+		}
+
+		return self::$modos[ $institution_id ];
+	}
+
+	/** Modo de la institución dueña de un grado. */
+	public static function grading_mode_for_grade( $grade_id ) {
+		return self::grading_mode( self::grade_institution( $grade_id ) );
+	}
+
+	/**
+	 * Parcial donde debe caer una tarea o componente nuevo: en modo trimestre
+	 * todo va al bloque 1, venga lo que venga de una pantalla vieja.
+	 *
+	 * @param int $parcial_num    Parcial pedido.
+	 * @param int $institution_id Institución (0 = la activa).
+	 * @return int
+	 */
+	public static function normalize_parcial( $parcial_num, $institution_id = 0 ) {
+		return self::MODO_TRIMESTRE === self::grading_mode( $institution_id ) ? 1 : (int) $parcial_num;
+	}
+
+	/** Olvida la cache de modos (tras cambiarlo, o en las pruebas). */
+	public static function reset_grading_mode() {
+		self::$modos = array();
+	}
+
+	/**
+	 * Nota del trimestre. Única implementación de la fórmula: la usan el
+	 * recálculo por hooks y el guardado del examen.
+	 *
+	 * @param int   $grade_id Grado (decide subnivel e institución).
+	 * @param float $p1       Parcial 1, o promedio de aportes en modo trimestre.
+	 * @param float $p2       Parcial 2 (se ignora en modo trimestre).
+	 * @param float $exam     Examen.
+	 * @param float $proyecto Proyecto.
+	 * @return float
+	 */
+	public static function trimester_score( $grade_id, $p1, $p2, $exam, $proyecto ) {
+		$aportes = self::MODO_TRIMESTRE === self::grading_mode_for_grade( $grade_id )
+			? (float) $p1
+			: ( (float) $p1 + (float) $p2 ) / 2;
+
+		$sumativa = self::uses_sumativa( $grade_id )
+			? ( (float) $exam + (float) $proyecto ) / 2
+			: (float) $exam;
+
+		return round( $aportes * 0.70 + $sumativa * 0.30, 2 );
 	}
 
 	/**

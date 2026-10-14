@@ -152,6 +152,53 @@ Vista de supervisión para el rector: por asignación académica muestra compone
 
 ## 2.bis · Entradas de bitácora
 
+### 2026-10-14 — Modo de calificación «solo trimestre», etapa 1: servicio (sin versión aún)
+
+**Qué se hizo.** Segundo modo de calificación, por institución, alineado con el aplicativo del
+Ministerio. Decisiones del usuario: en ese modo **los parciales desaparecen**, **los pesos se
+ignoran**, la **sumativa sigue por subnivel** (Instructivo 2025) y se **redondea** como siempre
+(de 5 en adelante sube). Es opcional: «por parciales» sigue siendo el modo por defecto y nada
+cambia para quien no lo active (giro22).
+
+```
+Modo trimestre:  Nota_Trimestre = promedio_simple(todas las notas del trimestre) × 0.70 + sumativa × 0.30
+```
+
+- Opción `edu_modo_notas_{institución}` (`parciales` | `trimestre`), sin cambio de esquema.
+  Se elige en wp-admin → Institución → «Calificación». `Edu_Trimester_Score_Service::set_grading_mode()`
+  exige `edu_view_all` + la propia institución, y se niega con `mode_locked` si el período
+  activo ya tiene notas, o con `second_parcial_components` si hay componentes en el parcial 2.
+  Se audita (`modo_notas`).
+- Internamente todo vive en `parcial_num = 1`: `parcial_scores` del parcial 1 guarda el
+  promedio de aportes y `trimester_scores.parcial1_score` lo copia. Las tablas y las consultas
+  por parcial no cambian. `validate_parcial(2)` responde `invalid_parcial` en ese modo y
+  `Edu_Service::normalize_parcial()` manda al bloque 1 las tareas y componentes que pidan el 2
+  (incluidas las llamadas externas a `resolve_or_create_component()`).
+- **La fórmula del trimestre estaba duplicada** (`Edu_Grade_Calculator` y `save_exam`); ahora
+  vive solo en `Edu_Service::trimester_score()`.
+- En modo trimestre cada nota recalcula el trimestre al momento (no hay cierre de parcial que
+  lo cree), y `close_trimester()` cierra el bloque de aportes junto con el trimestre.
+- La API publica `modo` en el contexto de la grilla, en `/trimester-scores` y en la boleta.
+
+**Archivos tocados:** `includes/services/class-edu-service.php`,
+`class-edu-trimester-score-service.php`, `class-edu-gradebook-service.php`,
+`class-edu-assignment-service.php`, `class-edu-curriculum-service.php`,
+`modules/calificaciones/class-edu-grade-calculator.php`,
+`includes/api/routes/class-edu-api-write-routes.php`, `includes/class-edu-audit.php`,
+`includes/controllers/class-edu-institution-controller.php`, `admin/views/institucion.php`,
+`docs/API_CONTRATO_V1.md`, `tests/test-modo-trimestre.php` (nuevo, 36 comprobaciones).
+
+**Cambios de esquema:** ninguno.
+
+**Riesgos / notas:**
+- **Falta la etapa 2 (interfaz):** las pantallas aún muestran el selector de parcial, la
+  columna P2 y el cierre de parciales; el boletín PDF imprime P1/P2. No activar el modo en un
+  colegio real hasta terminarla.
+- La nota anual sigue siendo el promedio de los trimestres con nota (igual en los dos modos).
+- Un trimestre **sin cerrar** de un período ya no activo se recalcularía con el modo nuevo si
+  alguien registra una nota ahí; los cerrados no se tocan.
+- Los portales shortcode (congelados) no conocerán el modo.
+
 ### 2026-10-14 — Certificado de promoción (v1.14.0, esquema 1.0.11)
 
 **Qué se hizo.** PDF oficial de fin de año por estudiante, con firma del rector, firma del
