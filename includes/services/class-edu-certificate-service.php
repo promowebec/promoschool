@@ -21,6 +21,8 @@
  *     viven en uploads/edu-privado/certificados/{institución}/ y entran al PDF
  *     por ruta de disco: nunca tienen URL pública desde la que copiarlas.
  *   - Sin comportamiento: PromoSchool todavía no lo registra.
+ *   - Textos, cargos, columnas y color son una plantilla por institución
+ *     (opción edu_cert_plantilla_{id}); lo vacío vuelve al texto de fábrica.
  *
  * Una materia que nadie del grado tiene calificada (p. ej. Acompañamiento
  * integral, si el colegio no la evalúa) no cuenta; una que el resto del grado
@@ -40,6 +42,12 @@ class Edu_Certificate_Service {
 
 	/** Tamaño máximo de una imagen de firma o sello. */
 	const MAX_IMAGEN = 1048576;
+
+	/** Prefijo de la opción que guarda la plantilla de cada institución. */
+	const OPCION_PLANTILLA = 'edu_cert_plantilla_';
+
+	/** Marcadores que admiten los textos de la plantilla. */
+	const MARCADORES = array( 'institucion', 'el_estudiante', 'estudiante', 'grado', 'paralelo', 'periodo', 'promovido', 'grado_siguiente', 'ciudad', 'fecha' );
 
 	/* ─────────────────────────────────────────────────────────────────────
 	 * Firmas y sello
@@ -181,6 +189,145 @@ class Edu_Certificate_Service {
 		$mime = str_ends_with( $ruta, '.png' ) ? 'image/png' : 'image/jpeg';
 
 		return 'data:' . $mime . ';base64,' . base64_encode( (string) file_get_contents( $ruta ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+	}
+
+	/* ─────────────────────────────────────────────────────────────────────
+	 * Plantilla
+	 * ────────────────────────────────────────────────────────────────── */
+
+	/** Texto de fábrica. Lo que la institución deje vacío vuelve a esto. */
+	public static function plantilla_defecto() {
+		return array(
+			'titulo'         => 'CERTIFICADO DE PROMOCIÓN',
+			'introduccion'   => 'De conformidad con la normativa educativa vigente, el Rectorado y la Secretaría de la {institucion} certifican que {el_estudiante} {estudiante}, de {grado}, paralelo «{paralelo}», obtuvo las siguientes calificaciones durante el año lectivo {periodo}:',
+			'promocion'      => 'Por lo tanto, es {promovido} a {grado_siguiente}.',
+			'cierre'         => 'Para constancia de lo actuado, firman el Rector o la Rectora y el Secretario o la Secretaria del plantel.',
+			'cargo_rector'   => 'RECTOR/A',
+			'cargo_secretario' => 'SECRETARIO/A',
+			'mostrar_letras' => true,
+			'mostrar_cualitativa' => true,
+			'color'          => '#1e3a8a',
+		);
+	}
+
+	/**
+	 * Plantilla vigente de una institución (guardada sobre la de fábrica).
+	 *
+	 * @param int $institution_id Institución.
+	 * @return array
+	 */
+	public static function plantilla( $institution_id ) {
+		$guardada = (array) get_option( self::OPCION_PLANTILLA . (int) $institution_id, array() );
+		$plant    = self::plantilla_defecto();
+
+		foreach ( $plant as $k => $v ) {
+			if ( ! array_key_exists( $k, $guardada ) ) {
+				continue;
+			}
+			if ( is_bool( $v ) ) {
+				$plant[ $k ] = (bool) $guardada[ $k ];
+			} elseif ( '' !== trim( (string) $guardada[ $k ] ) ) {
+				$plant[ $k ] = (string) $guardada[ $k ];
+			}
+		}
+
+		return $plant;
+	}
+
+	/**
+	 * Guarda la plantilla. Texto plano: los saltos de línea se respetan, el HTML no.
+	 *
+	 * @param int   $institution_id Institución.
+	 * @param array $input          Campos de plantilla_defecto(); vacío = de fábrica.
+	 * @return array|WP_Error La plantilla vigente.
+	 */
+	public static function guardar_plantilla( $institution_id, array $input ) {
+		$ok = self::puede_configurar( $institution_id );
+		if ( is_wp_error( $ok ) ) {
+			return $ok;
+		}
+
+		$limpia = array();
+		foreach ( self::plantilla_defecto() as $k => $v ) {
+			if ( is_bool( $v ) ) {
+				$limpia[ $k ] = ! empty( $input[ $k ] );
+			} elseif ( 'color' === $k ) {
+				$limpia[ $k ] = (string) sanitize_hex_color( (string) ( $input[ $k ] ?? '' ) );
+			} elseif ( in_array( $k, array( 'titulo', 'cargo_rector', 'cargo_secretario' ), true ) ) {
+				$limpia[ $k ] = mb_substr( sanitize_text_field( (string) ( $input[ $k ] ?? '' ) ), 0, 80 );
+			} else {
+				$limpia[ $k ] = mb_substr( sanitize_textarea_field( (string) ( $input[ $k ] ?? '' ) ), 0, 1500 );
+			}
+		}
+
+		$antes = get_option( self::OPCION_PLANTILLA . (int) $institution_id, array() );
+		if ( $antes !== $limpia ) {
+			update_option( self::OPCION_PLANTILLA . (int) $institution_id, $limpia, false );
+			Edu_Audit::log( Edu_Audit::CERTIFICADO_FIRMAS, 'institution', (int) $institution_id, null, array( 'accion' => 'plantilla' ) );
+		}
+
+		return self::plantilla( $institution_id );
+	}
+
+	/**
+	 * Certificado de muestra con datos inventados, para ver la plantilla antes
+	 * de emitir uno real. Lleva marca de agua «MUESTRA».
+	 *
+	 * @param int $institution_id Institución.
+	 * @return array|WP_Error
+	 */
+	public static function muestra( $institution_id ) {
+		$ok = self::puede_configurar( $institution_id );
+		if ( is_wp_error( $ok ) ) {
+			return $ok;
+		}
+
+		global $wpdb;
+		$inst = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}edu_institutions WHERE id = %d", (int) $institution_id ) );
+		if ( ! $inst ) {
+			return Edu_Service::not_found();
+		}
+
+		$materias = array();
+		foreach ( array( 'Lengua y Literatura' => 8.5, 'Matemática' => 6.2, 'Ciencias Naturales' => 9.75, 'Estudios Sociales' => 9.0, 'Inglés' => 7.05 ) as $nombre => $nota ) {
+			$materias[] = array(
+				'materia'     => $nombre,
+				'nota'        => $nota,
+				'letras'      => self::en_letras( $nota ),
+				'cualitativa' => Edu_Qualitativa_Helper::codigo( $nota ),
+				'observacion' => 6.2 === $nota ? 'Supletorio: 7.50' : '',
+			);
+		}
+		$promedio = round( array_sum( array_column( $materias, 'nota' ) ) / count( $materias ), 2 );
+		$iid      = (int) $inst->id;
+
+		return array(
+			'muestra'          => true,
+			'student_id'       => 0,
+			'period_id'        => 0,
+			'institucion'      => (string) $inst->name,
+			'amie'             => (string) $inst->amie_code,
+			'logo_url'         => (string) $inst->logo_url,
+			'ciudad'           => (string) $inst->city,
+			'regimen'          => (string) $inst->regime,
+			'periodo'          => '2025-2026',
+			'estudiante'       => 'APELLIDO APELLIDO NOMBRE NOMBRE',
+			'sexo'             => 'F',
+			'grado'            => '5to EGB',
+			'paralelo'         => 'A',
+			'grado_siguiente'  => 'Sexto Grado de Educación General Básica',
+			'materias'         => $materias,
+			'promedio'         => $promedio,
+			'promedio_letras'  => self::en_letras( $promedio ),
+			'promedio_cualitativa' => Edu_Qualitativa_Helper::codigo( $promedio ),
+			'rector'           => (string) $inst->rector_name,
+			'secretario'       => (string) $inst->secretary_name,
+			'firma_rector'     => self::imagen( $iid, 'firma_rector' ),
+			'firma_secretario' => self::imagen( $iid, 'firma_secretario' ),
+			'sello'            => self::imagen( $iid, 'sello' ),
+			'fecha'            => self::fecha_larga( current_time( 'Y-m-d' ) ),
+			'plantilla'        => self::plantilla( $iid ),
+		);
 	}
 
 	/* ─────────────────────────────────────────────────────────────────────
@@ -381,6 +528,7 @@ class Edu_Certificate_Service {
 			'firma_secretario' => self::imagen( $iid, 'firma_secretario' ),
 			'sello'          => self::imagen( $iid, 'sello' ),
 			'fecha'          => self::fecha_larga( current_time( 'Y-m-d' ) ),
+			'plantilla'      => self::plantilla( $iid ),
 		);
 	}
 

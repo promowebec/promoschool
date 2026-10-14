@@ -3,7 +3,7 @@
  * Plugin Name:       Sistema Educativo Integral
  * Plugin URI:        https://example.com/sistema-educativo
  * Description:       Gestión académica integral para unidades educativas en Ecuador: calificaciones (3 trimestres × 2 parciales 70% + examen 30%), tareas, lecciones, comunicados padres-docentes, asistencia, boletines y dashboard institucional.
- * Version:           1.14.0
+ * Version:           1.15.0
  * Requires at least: 6.0
  * Requires PHP:      8.2
  * Author:            Cowork
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EDU_VERSION', '1.14.0' );
+define( 'EDU_VERSION', '1.15.0' );
 define( 'EDU_DB_VERSION', '1.0.11' );
 
 define( 'EDU_PLUGIN_FILE', __FILE__ );
@@ -217,6 +217,7 @@ function edu_bootstrap() {
 		$loader->add_action( 'admin_post_edu_download_boletin_padre',  'Edu_Boletin_Controller', 'handle_download_padre' );
 		$loader->add_action( 'admin_post_edu_download_certificado',      'Edu_Boletin_Controller', 'handle_download_certificado' );
 		$loader->add_action( 'admin_post_edu_download_certificados_zip', 'Edu_Boletin_Controller', 'handle_download_certificados_zip' );
+		$loader->add_action( 'admin_post_edu_preview_certificado',       'Edu_Institution_Controller', 'handle_preview_certificado' );
 	}
 
 	// Exportes Mineduc (módulo desactivable).

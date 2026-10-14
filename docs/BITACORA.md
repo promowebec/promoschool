@@ -200,6 +200,16 @@ Puede afectar a Flipbook si lee esas tablas con `SELECT *` (solo agrega columnas
 - El texto del certificado no es el formato oficial del Mineduc al pie de la letra; revisarlo
   con la secretaría del colegio piloto antes de imprimirlo en serie.
 
+**Plantilla editable (v1.15.0, mismo día).** Pedido del usuario: poder cambiar el diseño sin
+programar. En Institución → «Textos del certificado»: título, párrafos de introducción,
+promoción y cierre con marcadores (`{estudiante}`, `{grado_siguiente}`, …), cargos bajo las
+firmas, mostrar u ocultar las columnas de letras y cualitativa, y color principal. Se guarda en
+la opción `edu_cert_plantilla_{institución}` (sin cambio de esquema); un campo vacío vuelve al
+texto de fábrica. Texto plano: el generador escapa todo y solo pone en negrita los datos del
+estudiante. «Ver certificado de muestra» genera el PDF con datos inventados y marca de agua
+«MUESTRA». La auditoría registra los cambios (acción renombrada a «Configuración del
+certificado»). Prueba: 47 comprobaciones.
+
 ### 2026-10-12 — Cola de WhatsApp por lotes y tope diario (v1.14.0, esquema 1.0.10)
 
 **Qué se hizo.** Ningún WhatsApp se envía ya en línea: todo entra a una cola y sale por lotes.

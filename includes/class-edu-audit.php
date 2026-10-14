@@ -121,7 +121,7 @@ class Edu_Audit {
 			self::LICENCIA_ACTUALIZADA  => __( 'Licencia actualizada',  'sistema-educativo' ),
 			self::WHATSAPP_SESION       => __( 'Sesión de WhatsApp',    'sistema-educativo' ),
 			self::CERTIFICADO_EMITIDO   => __( 'Certificado emitido',   'sistema-educativo' ),
-			self::CERTIFICADO_FIRMAS    => __( 'Firmas del certificado', 'sistema-educativo' ),
+			self::CERTIFICADO_FIRMAS    => __( 'Configuración del certificado', 'sistema-educativo' ),
 		);
 		return $labels[ $action ] ?? esc_html( $action );
 	}

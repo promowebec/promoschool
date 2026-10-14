@@ -75,6 +75,11 @@ class Edu_Institution_Controller {
 			}
 		}
 
+		// Plantilla del certificado (solo llega si el formulario la trae).
+		if ( isset( $_POST['cert'] ) && is_array( $_POST['cert'] ) ) {
+			Edu_Certificate_Service::guardar_plantilla( $saved_id, wp_unslash( $_POST['cert'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- el servicio sanea cada campo.
+		}
+
 		// Firmas y sello del certificado: las valida y guarda el servicio.
 		foreach ( Edu_Certificate_Service::IMAGENES as $tipo ) {
 			if ( ! empty( $_POST[ 'borrar_' . $tipo ] ) ) {
@@ -91,6 +96,21 @@ class Edu_Institution_Controller {
 		}
 
 		self::redirect( array( 'action' => 'edit', 'id' => $saved_id, 'status' => 'updated' ) );
+	}
+
+	/**
+	 * Certificado de muestra con la plantilla guardada (marca de agua «MUESTRA»).
+	 */
+	public static function handle_preview_certificado() {
+		check_admin_referer( 'edu_preview_certificado' );
+
+		$d = Edu_Certificate_Service::muestra( isset( $_GET['id'] ) ? (int) $_GET['id'] : 0 );
+		if ( is_wp_error( $d ) ) {
+			wp_die( esc_html( $d->get_error_message() ), '', array( 'back_link' => true ) );
+		}
+
+		require_once EDU_PLUGIN_DIR . 'modules/boletines/class-edu-certificado-generator.php';
+		( new Edu_Certificado_Generator() )->stream( $d );
 	}
 
 	public static function handle_delete() {

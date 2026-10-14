@@ -348,7 +348,7 @@ portal: si algo falla, se vuelve a poner el shortcode.
 
 ## Estado actual
 
-**v1.14.0** · esquema `EDU_DB_VERSION` 1.0.11. Desde la 1.14.0 los módulos dependen del plan contratado (licencia firmada, ver «Plan contratado»).
+**v1.15.0** · esquema `EDU_DB_VERSION` 1.0.11. Desde la 1.14.0 los módulos dependen del plan contratado (licencia firmada, ver «Plan contratado»).
 
 Fases 0–7 del plugin completas (calificaciones, tareas, comunicados, asistencia, PWA, cuentas,
 pagos Payphone, WhatsApp y exportes Mineduc), más la revisión de seguridad de julio de 2026.
@@ -366,6 +366,7 @@ Verificado con 261 pruebas automatizadas más los 21 escenarios de adaptadores d
 **Certificado de promoción (14 oct 2026):** `Edu_Certificate_Service` + `Edu_Certificado_Generator`.
 Rector/secretaría y el representante (solo sus hijos); requiere año cerrado y todo aprobado; el texto «promovido a» sale de
 `grades.next_grade_name`; firmas y sello en `edu-privado/certificados/{institución}/`, nunca por URL.
+Textos, cargos, columnas y color: plantilla por institución en la opción `edu_cert_plantilla_{id}`.
 
 **Textos (19 ago 2026):** la SPA tiene la pestaña «Mis libros» en estudiante, docente y
 rector, sobre `GET /me/texts`. La asignación sigue siendo la del sitio (roles de WordPress);

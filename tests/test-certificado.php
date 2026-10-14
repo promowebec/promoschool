@@ -304,6 +304,54 @@ if ( ! is_wp_error( $d ) ) {
 edu_assert_ok( 'quitar una firma', Edu_Certificate_Service::borrar_imagen( $inst, 'firma_secretario' ) );
 edu_assert( 'la firma quitada ya no se usa', '' === Edu_Certificate_Service::imagen( $inst, 'firma_secretario' ) );
 
+/* ── Plantilla editable ──────────────────────────────────────────────────── */
+
+edu_test_case( 'Plantilla editable' );
+
+edu_test_cleanup(
+	function () use ( &$creado ) {
+		delete_option( Edu_Certificate_Service::OPCION_PLANTILLA . (int) $creado['inst'] );
+	}
+);
+
+edu_assert( 'sin guardar, la plantilla es la de fábrica', Edu_Certificate_Service::plantilla_defecto() === Edu_Certificate_Service::plantilla( $inst ) );
+
+$pl = Edu_Certificate_Service::guardar_plantilla(
+	$inst,
+	array(
+		'titulo'       => 'CERTIFICADO DE PROMOCIÓN ANUAL',
+		'introduccion' => "La {institucion} certifica que {estudiante} aprobó.\n<script>alert(1)</script>",
+		'promocion'    => '',
+		'cargo_rector' => 'DIRECTORA',
+		'color'        => 'rojo',
+		'mostrar_letras' => '1',
+	)
+);
+edu_assert( 'el título se guarda', ! is_wp_error( $pl ) && 'CERTIFICADO DE PROMOCIÓN ANUAL' === $pl['titulo'] );
+edu_assert( 'un texto vacío vuelve al de fábrica', ! is_wp_error( $pl ) && Edu_Certificate_Service::plantilla_defecto()['promocion'] === $pl['promocion'] );
+edu_assert( 'el HTML no se guarda', ! is_wp_error( $pl ) && false === strpos( $pl['introduccion'], '<script' ) );
+edu_assert( 'un color inválido vuelve al de fábrica', ! is_wp_error( $pl ) && '#1e3a8a' === $pl['color'] );
+edu_assert( 'casilla desmarcada = columna oculta', ! is_wp_error( $pl ) && true === $pl['mostrar_letras'] && false === $pl['mostrar_cualitativa'] );
+
+edu_test_as( $docente, $inst );
+edu_assert_error( 'el docente no edita la plantilla', Edu_Certificate_Service::guardar_plantilla( $inst, array() ), 'forbidden' );
+edu_assert_error( 'ni ve la muestra', Edu_Certificate_Service::muestra( $inst ), 'forbidden' );
+edu_test_as( $rector, $inst );
+
+$m = Edu_Certificate_Service::muestra( $inst );
+edu_assert( 'la muestra usa la plantilla guardada', ! is_wp_error( $m ) && ! empty( $m['muestra'] ) && 'DIRECTORA' === $m['plantilla']['cargo_rector'] );
+
+$d2 = Edu_Certificate_Service::datos( $a, $period );
+edu_assert( 'el certificado real también', ! is_wp_error( $d2 ) && 'CERTIFICADO DE PROMOCIÓN ANUAL' === $d2['plantilla']['titulo'] );
+
+if ( ! is_wp_error( $m ) ) {
+	require_once EDU_PLUGIN_DIR . 'modules/boletines/class-edu-certificado-generator.php';
+	$ruta = ( new Edu_Certificado_Generator() )->save( $m );
+	$pdf  = (string) file_get_contents( $ruta );
+	edu_assert( 'la muestra genera PDF', 0 === strpos( $pdf, '%PDF' ), strlen( $pdf ) . ' bytes' );
+	wp_delete_file( $ruta );
+}
+
 /* ── Nota en letras ──────────────────────────────────────────────────────── */
 
 edu_test_case( 'Nota en letras' );

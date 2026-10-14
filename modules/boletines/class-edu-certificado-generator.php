@@ -30,7 +30,7 @@ class Edu_Certificado_Generator {
 
 	/** Envía el PDF al navegador y termina. */
 	public function stream( array $d ): void {
-		$mpdf = $this->make_mpdf();
+		$mpdf = $this->make_mpdf( ! empty( $d['muestra'] ) );
 		$mpdf->WriteHTML( $this->html( $d ) );
 		$mpdf->Output( $this->filename( $d ), 'D' );
 		exit;
@@ -40,17 +40,17 @@ class Edu_Certificado_Generator {
 	public function save( array $d ): string {
 		$ruta = $this->tmp_dir . $this->filename( $d );
 
-		$mpdf = $this->make_mpdf();
+		$mpdf = $this->make_mpdf( ! empty( $d['muestra'] ) );
 		$mpdf->WriteHTML( $this->html( $d ) );
 		$mpdf->Output( $ruta, 'F' );
 
 		return $ruta;
 	}
 
-	private function make_mpdf(): \Mpdf\Mpdf {
+	private function make_mpdf( bool $muestra = false ): \Mpdf\Mpdf {
 		require_once EDU_PLUGIN_DIR . 'vendor/autoload.php';
 
-		return new \Mpdf\Mpdf( array(
+		$mpdf = new \Mpdf\Mpdf( array(
 			'mode'          => 'utf-8',
 			'format'        => 'A4',
 			'margin_top'    => 18,
@@ -59,10 +59,38 @@ class Edu_Certificado_Generator {
 			'margin_right'  => 20,
 			'tempDir'       => sys_get_temp_dir(),
 		) );
+
+		// La vista previa de la plantilla no debe poder pasar por un certificado.
+		if ( $muestra ) {
+			$mpdf->SetWatermarkText( 'MUESTRA', 0.12 );
+			$mpdf->showWatermarkText = true;
+		}
+
+		return $mpdf;
 	}
 
 	private function filename( array $d ): string {
+		if ( ! empty( $d['muestra'] ) ) {
+			return 'certificado_muestra.pdf';
+		}
 		return sprintf( 'certificado_promocion_%d_%d.pdf', (int) $d['student_id'], (int) $d['period_id'] );
+	}
+
+	/**
+	 * Texto de la plantilla con sus marcadores reemplazados. El texto se
+	 * escapa entero; los datos del estudiante van en negrita.
+	 */
+	private function texto( string $plantilla, array $vars ): string {
+		$html = esc_html( $plantilla );
+		foreach ( $vars as $k => $v ) {
+			$valor = esc_html( (string) $v );
+			if ( in_array( $k, array( 'estudiante', 'grado', 'grado_siguiente' ), true ) ) {
+				$valor = '<strong>' . $valor . '</strong>';
+			}
+			$html = str_replace( '{' . $k . '}', $valor, $html );
+		}
+
+		return nl2br( $html );
 	}
 
 	/** Etiqueta según el sexo registrado; sin dato, forma doble. */
@@ -84,9 +112,23 @@ class Edu_Certificado_Generator {
 	}
 
 	private function html( array $d ): string {
-		$el_estudiante = $this->genero( $d, 'el estudiante', 'la estudiante', 'el/la estudiante' );
-		$promovido     = $this->genero( $d, 'promovido', 'promovida', 'promovido/a' );
-		$regimen       = 'costa' === $d['regimen'] ? 'Costa-Galápagos' : 'Sierra-Amazonía';
+		$regimen = 'costa' === $d['regimen'] ? 'Costa-Galápagos' : 'Sierra-Amazonía';
+		$pl      = $d['plantilla'] ?? Edu_Certificate_Service::plantilla_defecto();
+		$color   = $pl['color'] ?: '#1e3a8a';
+		$vars    = array(
+			'institucion'     => $d['institucion'],
+			'el_estudiante'   => $this->genero( $d, 'el estudiante', 'la estudiante', 'el/la estudiante' ),
+			'estudiante'      => $d['estudiante'],
+			'grado'           => $d['grado'],
+			'paralelo'        => $d['paralelo'],
+			'periodo'         => $d['periodo'],
+			'promovido'       => $this->genero( $d, 'promovido', 'promovida', 'promovido/a' ),
+			'grado_siguiente' => $d['grado_siguiente'],
+			'ciudad'          => $d['ciudad'],
+			'fecha'           => $d['fecha'],
+		);
+		$letras = ! empty( $pl['mostrar_letras'] );
+		$cuali  = ! empty( $pl['mostrar_cualitativa'] );
 
 		ob_start();
 		?>
@@ -96,15 +138,15 @@ class Edu_Certificado_Generator {
 <meta charset="UTF-8">
 <style>
   body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 10pt; color: #111; }
-  .cab { width:100%; border-bottom:2px solid #1e3a8a; padding-bottom:8px; }
+  .cab { width:100%; border-bottom:2px solid <?php echo esc_html( $color ); ?>; padding-bottom:8px; }
   .cab td { vertical-align:middle; }
-  .inst { font-size:14pt; font-weight:bold; color:#1e3a8a; }
+  .inst { font-size:14pt; font-weight:bold; color:<?php echo esc_html( $color ); ?>; }
   .sub { font-size:8.5pt; color:#444; }
-  h1 { text-align:center; font-size:17pt; letter-spacing:2px; color:#1e3a8a; margin:22px 0 4px; }
+  h1 { text-align:center; font-size:17pt; letter-spacing:2px; color:<?php echo esc_html( $color ); ?>; margin:22px 0 4px; }
   .anio { text-align:center; font-size:10pt; color:#444; margin-bottom:18px; }
   p.cuerpo { text-align:justify; line-height:1.6; margin:0 0 12px; }
   table.notas { width:100%; border-collapse:collapse; font-size:9pt; margin:6px 0 14px; }
-  table.notas th { background:#1e3a8a; color:#fff; padding:6px; border:1px solid #1e3a8a; }
+  table.notas th { background:<?php echo esc_html( $color ); ?>; color:#fff; padding:6px; border:1px solid <?php echo esc_html( $color ); ?>; }
   table.notas td { padding:5px 6px; border:1px solid #9ca3af; }
   table.notas td.c { text-align:center; }
   table.notas tr.total td { font-weight:bold; background:#eef2ff; }
@@ -132,25 +174,18 @@ class Edu_Certificado_Generator {
   </tr>
 </table>
 
-<h1>CERTIFICADO DE PROMOCIÓN</h1>
+<h1><?php echo esc_html( $pl['titulo'] ); ?></h1>
 <div class="anio">Año lectivo <?php echo esc_html( $d['periodo'] ); ?></div>
 
-<p class="cuerpo">
-  De conformidad con la normativa educativa vigente, el Rectorado y la Secretaría de la
-  <?php echo esc_html( $d['institucion'] ); ?> certifican que <?php echo esc_html( $el_estudiante ); ?>
-  <strong><?php echo esc_html( $d['estudiante'] ); ?></strong>, de
-  <strong><?php echo esc_html( $d['grado'] ); ?></strong>, paralelo
-  «<?php echo esc_html( $d['paralelo'] ); ?>», obtuvo las siguientes calificaciones durante el
-  año lectivo <?php echo esc_html( $d['periodo'] ); ?>:
-</p>
+<p class="cuerpo"><?php echo $this->texto( $pl['introduccion'], $vars ); // phpcs:ignore WordPress.Security.EscapeOutput -- texto() escapa. ?></p>
 
 <table class="notas">
   <thead>
     <tr>
       <th style="text-align:left;">Asignatura</th>
       <th style="width:13%;">Número</th>
-      <th style="width:32%;">Letras</th>
-      <th style="width:11%;">Cualitativa</th>
+      <?php if ( $letras ) : ?><th style="width:32%;">Letras</th><?php endif; ?>
+      <?php if ( $cuali ) : ?><th style="width:11%;">Cualitativa</th><?php endif; ?>
     </tr>
   </thead>
   <tbody>
@@ -161,27 +196,21 @@ class Edu_Certificado_Generator {
         <?php if ( $m['observacion'] ) : ?><br><span style="font-size:7.5pt; color:#555;"><?php echo esc_html( $m['observacion'] ); ?></span><?php endif; ?>
       </td>
       <td class="c"><?php echo esc_html( number_format( $m['nota'], 2 ) ); ?></td>
-      <td class="c"><?php echo esc_html( $m['letras'] ); ?></td>
-      <td class="c"><?php echo esc_html( $m['cualitativa'] ); ?></td>
+      <?php if ( $letras ) : ?><td class="c"><?php echo esc_html( $m['letras'] ); ?></td><?php endif; ?>
+      <?php if ( $cuali ) : ?><td class="c"><?php echo esc_html( $m['cualitativa'] ); ?></td><?php endif; ?>
     </tr>
   <?php endforeach; ?>
     <tr class="total">
       <td>PROMEDIO GENERAL</td>
       <td class="c"><?php echo esc_html( number_format( $d['promedio'], 2 ) ); ?></td>
-      <td class="c"><?php echo esc_html( $d['promedio_letras'] ); ?></td>
-      <td class="c"><?php echo esc_html( $d['promedio_cualitativa'] ); ?></td>
+      <?php if ( $letras ) : ?><td class="c"><?php echo esc_html( $d['promedio_letras'] ); ?></td><?php endif; ?>
+      <?php if ( $cuali ) : ?><td class="c"><?php echo esc_html( $d['promedio_cualitativa'] ); ?></td><?php endif; ?>
     </tr>
   </tbody>
 </table>
 
-<p class="cuerpo">
-  Por lo tanto, es <?php echo esc_html( $promovido ); ?> a
-  <strong><?php echo esc_html( $d['grado_siguiente'] ); ?></strong>.
-</p>
-<p class="cuerpo">
-  Para constancia de lo actuado, firman el Rector o la Rectora y el Secretario o la Secretaria
-  del plantel.
-</p>
+<p class="cuerpo"><?php echo $this->texto( $pl['promocion'], $vars ); // phpcs:ignore WordPress.Security.EscapeOutput -- texto() escapa. ?></p>
+<p class="cuerpo"><?php echo $this->texto( $pl['cierre'], $vars ); // phpcs:ignore WordPress.Security.EscapeOutput -- texto() escapa. ?></p>
 <p class="cuerpo" style="text-align:right;">
   <?php echo esc_html( ( $d['ciudad'] ? $d['ciudad'] . ', ' : '' ) . $d['fecha'] ); ?>
 </p>
@@ -196,13 +225,13 @@ class Edu_Certificado_Generator {
     <td>
       <div class="linea">
         <?php echo esc_html( $d['rector'] ?: ' ' ); ?><br>
-        <span class="cargo">RECTOR/A</span>
+        <span class="cargo"><?php echo esc_html( $pl['cargo_rector'] ); ?></span>
       </div>
     </td>
     <td>
       <div class="linea">
         <?php echo esc_html( $d['secretario'] ?: ' ' ); ?><br>
-        <span class="cargo">SECRETARIO/A</span>
+        <span class="cargo"><?php echo esc_html( $pl['cargo_secretario'] ); ?></span>
       </div>
     </td>
   </tr>

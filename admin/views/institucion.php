@@ -212,6 +212,62 @@ $status_code = isset( $_GET['code'] ) ? sanitize_key( $_GET['code'] ) : '';
 				<?php endforeach; ?>
 			</table>
 
+			<?php if ( $institution ) : ?>
+				<?php
+				$edu_pl  = Edu_Certificate_Service::plantilla( (int) $institution->id );
+				$edu_def = Edu_Certificate_Service::plantilla_defecto();
+				?>
+				<h3><?php esc_html_e( 'Textos del certificado', 'sistema-educativo' ); ?></h3>
+				<p class="description">
+					<?php esc_html_e( 'Deje un campo vacío para volver al texto de fábrica. Marcadores que se reemplazan solos:', 'sistema-educativo' ); ?>
+					<code><?php echo esc_html( '{' . implode( '} {', Edu_Certificate_Service::MARCADORES ) . '}' ); ?></code>
+				</p>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row"><label for="edu-cert-titulo"><?php esc_html_e( 'Título', 'sistema-educativo' ); ?></label></th>
+						<td><input id="edu-cert-titulo" name="cert[titulo]" class="regular-text" type="text" maxlength="80" value="<?php echo esc_attr( $edu_pl['titulo'] ); ?>"></td>
+					</tr>
+					<?php
+					$edu_textos = array(
+						'introduccion' => __( 'Párrafo de introducción', 'sistema-educativo' ),
+						'promocion'    => __( 'Párrafo de promoción', 'sistema-educativo' ),
+						'cierre'       => __( 'Párrafo de cierre', 'sistema-educativo' ),
+					);
+					foreach ( $edu_textos as $edu_k => $edu_lbl ) :
+						?>
+						<tr>
+							<th scope="row"><label for="edu-cert-<?php echo esc_attr( $edu_k ); ?>"><?php echo esc_html( $edu_lbl ); ?></label></th>
+							<td><textarea id="edu-cert-<?php echo esc_attr( $edu_k ); ?>" name="cert[<?php echo esc_attr( $edu_k ); ?>]" rows="<?php echo 'introduccion' === $edu_k ? 4 : 2; ?>" class="large-text" placeholder="<?php echo esc_attr( $edu_def[ $edu_k ] ); ?>"><?php echo esc_textarea( $edu_pl[ $edu_k ] ); ?></textarea></td>
+						</tr>
+					<?php endforeach; ?>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Cargos bajo las firmas', 'sistema-educativo' ); ?></th>
+						<td>
+							<input name="cert[cargo_rector]" type="text" maxlength="80" value="<?php echo esc_attr( $edu_pl['cargo_rector'] ); ?>" aria-label="<?php esc_attr_e( 'Cargo del rector', 'sistema-educativo' ); ?>">
+							<input name="cert[cargo_secretario]" type="text" maxlength="80" value="<?php echo esc_attr( $edu_pl['cargo_secretario'] ); ?>" aria-label="<?php esc_attr_e( 'Cargo del secretario', 'sistema-educativo' ); ?>">
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Columnas de notas', 'sistema-educativo' ); ?></th>
+						<td>
+							<label><input type="checkbox" name="cert[mostrar_letras]" value="1" <?php checked( $edu_pl['mostrar_letras'] ); ?>> <?php esc_html_e( 'Nota en letras', 'sistema-educativo' ); ?></label>
+							&nbsp;&nbsp;
+							<label><input type="checkbox" name="cert[mostrar_cualitativa]" value="1" <?php checked( $edu_pl['mostrar_cualitativa'] ); ?>> <?php esc_html_e( 'Equivalencia cualitativa', 'sistema-educativo' ); ?></label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="edu-cert-color"><?php esc_html_e( 'Color principal', 'sistema-educativo' ); ?></label></th>
+						<td><input id="edu-cert-color" name="cert[color]" type="color" value="<?php echo esc_attr( $edu_pl['color'] ); ?>"></td>
+					</tr>
+				</table>
+				<p>
+					<a class="button" target="_blank" href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'edu_preview_certificado', 'id' => (int) $institution->id ), admin_url( 'admin-post.php' ) ), 'edu_preview_certificado' ) ); ?>">
+						<?php esc_html_e( 'Ver certificado de muestra', 'sistema-educativo' ); ?>
+					</a>
+					<span class="description"><?php esc_html_e( 'Usa lo último guardado: guarde los cambios antes de verlo.', 'sistema-educativo' ); ?></span>
+				</p>
+			<?php endif; ?>
+
 			<?php submit_button( $institution ? __( 'Guardar cambios', 'sistema-educativo' ) : __( 'Crear institución', 'sistema-educativo' ) ); ?>
 			<?php if ( $is_super ) : ?>
 				<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=edu-institucion' ) ); ?>"><?php esc_html_e( 'Cancelar', 'sistema-educativo' ); ?></a>

@@ -21,6 +21,32 @@ _(Sin cambios pendientes de tag.)_
 
 ---
 
+## [1.15.0] — 2026-10-14
+
+### Added
+- **Certificado de promoción** en PDF, con firmas del rector y del secretario/a y sello en
+  imagen. Corresponde cuando todas las materias calificadas tienen los trimestres cerrados y
+  están aprobadas. Lo descargan rector/secretaría (Boletines, individual o ZIP, y Reportes de
+  la app) y el representante, solo de sus hijos (Boletines de la app).
+- **Plantilla editable por institución**: título, tres párrafos con marcadores, cargos, columnas
+  de letras y cualitativa, color; botón «Ver certificado de muestra» con marca de agua.
+- API: `GET /reports/certificado`, `GET /reports/certificados` (61 rutas).
+
+### DB
+- Esquema **1.0.11**: `institutions` + `amie_code`, `city`, `rector_name`, `secretary_name`;
+  `grades` + `next_grade_name`. Migración automática.
+
+### Compat
+- Solo se agregan columnas a `wp_edu_institutions` y `wp_edu_grades`.
+
+## [1.14.0] — 2026-10-13
+
+### Added
+- Plan contratado por licencia firmada (Ed25519), módulo Entregas, WhatsApp por WAHA con
+  panel «Conectar número», cola de WhatsApp por lotes con tope diario. Esquema 1.0.10.
+
+---
+
 ## [1.12.0] — 2026-08-16
 
 Sin migración de base de datos.

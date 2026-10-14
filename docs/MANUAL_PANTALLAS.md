@@ -62,6 +62,10 @@ Los ítems de módulos apagados desaparecen del menú (ver A.25 Ajustes).
 - Bloque **Certificado de promoción**: código AMIE, ciudad, nombres del rector/a y del
   secretario/a, e imágenes de las dos firmas y del sello (PNG/JPG, 1 MB). Las imágenes se
   guardan en la carpeta privada y se ven como vista previa; no tienen dirección pública.
+- **Textos del certificado** (al editar): título, párrafos de introducción, promoción y cierre
+  con marcadores como `{estudiante}` o `{grado_siguiente}`, cargos bajo las firmas, columnas de
+  letras y cualitativa, y color. Vacío = texto de fábrica. Botón **Ver certificado de
+  muestra** (PDF con datos inventados y marca de agua «MUESTRA»).
 
 **Acciones:** Guardar · Eliminar · Activar (fija la institución de trabajo en `user_meta.edu_current_institution_id`)
 
