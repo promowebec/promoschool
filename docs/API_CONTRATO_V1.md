@@ -578,6 +578,8 @@ webhook— cambia el estado. `POST /payments/{id}/manual` es la única excepció
 |---|---|---|---|
 | GET | `/reports/boletin` 🔒 | `edu_generate_reports` \| representante | `?student_id&period_id` → PDF |
 | GET | `/reports/boletines.zip` | `edu_generate_reports` | `?grade_id&period_id` |
+| GET | `/reports/certificado` 🔒 | `edu_generate_reports` \| `edu_view_all` \| representante (solo sus hijos) | `?student_id&period_id` → URL firmada del certificado de promoción. 409 `edu_year_open` · `edu_not_promoted` · `edu_no_next_grade` si no corresponde |
+| GET | `/reports/certificados` | `edu_generate_reports` \| `edu_view_all` | `?grade_id&period_id` → `[{ student_id, elegible, code, message }]` de los estudiantes activos (v1.14.0) |
 | GET | `/reports/mineduc/{tipo}` | `edu_generate_reports` | `.xlsx`; tipo ∈ acta-consolidada · nomina-amie · distributivo-docente · asistencia-acumulada |
 | GET | `/dashboard/rector` | `edu_view_all` | métricas, rendimiento y alertas |
 | GET | `/dashboard/docente` | `edu_grade_students` | asistencia del día y pendientes |

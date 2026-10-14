@@ -59,6 +59,9 @@ Los ítems de módulos apagados desaparecen del menú (ver A.25 Ajustes).
 - **Superadmin Editorial:** listado de todas las instituciones con crear / editar / eliminar / activar.
 - **Rector:** formulario directo sobre su institución, sin selector.
 - Campos: nombre, RUC, dirección, teléfono, email, URL del logo, régimen (`sierra` / `costa`).
+- Bloque **Certificado de promoción**: código AMIE, ciudad, nombres del rector/a y del
+  secretario/a, e imágenes de las dos firmas y del sello (PNG/JPG, 1 MB). Las imágenes se
+  guardan en la carpeta privada y se ven como vista previa; no tienen dirección pública.
 
 **Acciones:** Guardar · Eliminar · Activar (fija la institución de trabajo en `user_meta.edu_current_institution_id`)
 
@@ -92,6 +95,8 @@ Los ítems de módulos apagados desaparecen del menú (ver A.25 Ajustes).
 
 **Qué se ve**
 - Tabla de grados: subnivel (`inicial`, `preparatoria`, `elemental`, `media`, `superior`, `bg`, `bt`), nombre, paralelo (A/B/C/D), especialidad (solo para `bt`), tutor.
+- Campo **Grado siguiente (certificado)**: el texto «es promovido a …» del certificado. Vacío
+  en 3ro de bachillerato, que no emite promoción.
 - Bloque de **importación CSV** con plantilla descargable.
 
 **Acciones:** Guardar · Eliminar · Descargar plantilla CSV · Importar CSV
@@ -406,6 +411,15 @@ reprueba supletorio → remedial · reprueba remedial → gracia · reprueba gra
 - **Para qué sirve:** emitir libretas oficiales.
 
 **Qué se ve:** selector de período + grado → lista de estudiantes con enlace de descarga individual y botón de **descarga masiva en ZIP** de todo el grado.
+
+**Certificado de promoción** (desde v1.14.0): columna por estudiante con el PDF si le
+corresponde, o el motivo si no («Año sin cerrar», «No promovido», «Falta grado siguiente»), y
+botón **Certificados de promoción (ZIP)** con los de todos los promovidos. Corresponde cuando
+todas las materias calificadas tienen los trimestres cerrados y están aprobadas. Lleva nota en
+número, en letras y cualitativa, promedio general, firmas y sello. Cada emisión se audita. En
+la app del rector está en **Reportes** (botón «Certificado»), y el representante lo descarga
+desde **Boletines** en la app (botón «Certificado de promoción»; si aún no corresponde, ve el
+motivo).
 
 **Contenido del PDF** (`Edu_Boletin_Generator`, mPDF): encabezado con datos y logo de la institución, datos del estudiante, tabla de materias con P1/P2/Examen/Proyecto/nota de trimestre por cada trimestre, promedio anual, equivalencia cualitativa, estado y observaciones.
 

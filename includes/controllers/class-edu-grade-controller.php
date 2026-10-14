@@ -30,6 +30,7 @@ class Edu_Grade_Controller {
 		$sub_level     = sanitize_key( $_POST['sub_level'] ?? '' );
 		$specialty     = sanitize_text_field( wp_unslash( $_POST['specialty'] ?? '' ) );
 		$tutor_user_id = isset( $_POST['tutor_user_id'] ) ? (int) $_POST['tutor_user_id'] : 0;
+		$next_grade    = sanitize_text_field( wp_unslash( $_POST['next_grade_name'] ?? '' ) );
 
 		// Validar tutor: debe ser docente de esta institución (o vacío = sin tutor).
 		if ( $tutor_user_id > 0 ) {
@@ -76,8 +77,9 @@ class Edu_Grade_Controller {
 			'paralelo'       => $paralelo,
 			'specialty'      => $specialty ?: null,
 			'tutor_user_id'  => $tutor_user_id ?: null,
+			'next_grade_name' => '' !== $next_grade ? mb_substr( $next_grade, 0, 100 ) : null,
 		);
-		$formats = array( '%d', '%s', '%s', '%s', '%s', '%s', '%d' );
+		$formats = array( '%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s' );
 
 		if ( $id > 0 ) {
 			$exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $t WHERE id = %d AND institution_id = %d", $id, $institution_id ) );

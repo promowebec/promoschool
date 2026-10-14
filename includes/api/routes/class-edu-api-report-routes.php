@@ -91,6 +91,35 @@ class Edu_Api_Report_Routes {
 
 		register_rest_route(
 			$ns,
+			'/reports/certificado',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( __CLASS__, 'certificado' ),
+				// Rector, secretaría o el representante de ese estudiante: lo decide el servicio.
+				'permission_callback' => array( 'Edu_Api', 'require_login' ),
+				'args'                => array(
+					'student_id' => array( 'type' => 'integer', 'required' => true, 'sanitize_callback' => 'absint' ),
+					'period_id'  => array( 'type' => 'integer', 'required' => true, 'sanitize_callback' => 'absint' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/reports/certificados',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( __CLASS__, 'certificados' ),
+				'permission_callback' => Edu_Api::require_cap( array( 'edu_generate_reports', 'edu_view_all' ) ),
+				'args'                => array(
+					'grade_id'  => array( 'type' => 'integer', 'required' => true, 'sanitize_callback' => 'absint' ),
+					'period_id' => array( 'type' => 'integer', 'required' => true, 'sanitize_callback' => 'absint' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			$ns,
 			'/reports/mineduc/(?P<tipo>[a-z\-]+)',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -279,6 +308,36 @@ class Edu_Api_Report_Routes {
 		);
 	}
 
+	/** URL firmada del certificado de promoción de un estudiante. */
+	public static function certificado( WP_REST_Request $request ) {
+		$institution = Edu_Api::resolve_institution( $request );
+		if ( is_wp_error( $institution ) ) {
+			return $institution;
+		}
+
+		return Edu_Api::from_service(
+			Edu_Certificate_Service::url(
+				(int) $request->get_param( 'student_id' ),
+				(int) $request->get_param( 'period_id' )
+			)
+		);
+	}
+
+	/** Quién del grado tiene derecho al certificado y, si no, por qué. */
+	public static function certificados( WP_REST_Request $request ) {
+		$institution = Edu_Api::resolve_institution( $request );
+		if ( is_wp_error( $institution ) ) {
+			return $institution;
+		}
+
+		return Edu_Api::from_service(
+			Edu_Certificate_Service::estado_grado(
+				(int) $request->get_param( 'grade_id' ),
+				(int) $request->get_param( 'period_id' )
+			)
+		);
+	}
+
 	public static function mineduc( WP_REST_Request $request ) {
 		$institution = Edu_Api::resolve_institution( $request );
 		if ( is_wp_error( $institution ) ) {
@@ -406,6 +465,21 @@ class Edu_Api_Report_Routes {
 					(int) $args['student_id'],
 					(int) ( $args['period_id'] ?? 0 )
 				);
+				return;
+
+			case 'certificado':
+				// emitir() revalida todo (permiso, alcance, año cerrado,
+				// promovido) y deja la emisión en la auditoría.
+				$d = Edu_Certificate_Service::emitir(
+					(int) ( $args['student_id'] ?? 0 ),
+					(int) ( $args['period_id'] ?? 0 )
+				);
+				if ( is_wp_error( $d ) ) {
+					return Edu_Api::from_service( $d );
+				}
+
+				require_once EDU_PLUGIN_DIR . 'modules/boletines/class-edu-certificado-generator.php';
+				( new Edu_Certificado_Generator() )->stream( $d );
 				return;
 
 			case 'mineduc':

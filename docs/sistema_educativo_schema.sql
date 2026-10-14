@@ -28,6 +28,10 @@ CREATE TABLE IF NOT EXISTS `wp_edu_institutions` (
   `email` VARCHAR(100),
   `logo_url` VARCHAR(255),
   `regime` ENUM('sierra','costa') DEFAULT 'sierra',
+  `amie_code` VARCHAR(10) NULL COMMENT 'Código AMIE del Mineduc (certificado de promoción, v1.0.11)',
+  `city` VARCHAR(100) NULL COMMENT 'Ciudad que encabeza la fecha del certificado',
+  `rector_name` VARCHAR(150) NULL COMMENT 'Firmante del certificado de promoción',
+  `secretary_name` VARCHAR(150) NULL COMMENT 'Firmante del certificado de promoción',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -65,6 +69,7 @@ CREATE TABLE IF NOT EXISTS `wp_edu_grades` (
   `paralelo` CHAR(2) NOT NULL COMMENT 'A, B, C, D...',
   `specialty` VARCHAR(100) NULL COMMENT 'Solo BT: Informática, Contabilidad, Electrónica, etc.',
   `tutor_user_id` BIGINT UNSIGNED NULL COMMENT 'Docente tutor (FK wp_users). Un docente puede ser tutor de N grados.',
+  `next_grade_name` VARCHAR(100) NULL COMMENT 'Grado al que se promueve (certificado de promoción, v1.0.11). NULL = no emite promoción',
   FOREIGN KEY (`institution_id`) REFERENCES `wp_edu_institutions`(`id`) ON DELETE CASCADE,
   INDEX idx_inst_level (`institution_id`,`level`,`sub_level`),
   INDEX idx_tutor (`tutor_user_id`)

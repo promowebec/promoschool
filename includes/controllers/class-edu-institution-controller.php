@@ -51,8 +51,13 @@ class Edu_Institution_Controller {
 			'email'    => sanitize_email( wp_unslash( $_POST['email'] ?? '' ) ),
 			'logo_url' => esc_url_raw( wp_unslash( $_POST['logo_url'] ?? '' ) ),
 			'regime'   => $regime,
+			// Certificado de promoción.
+			'amie_code'      => substr( strtoupper( preg_replace( '/[^A-Za-z0-9]/', '', (string) wp_unslash( $_POST['amie_code'] ?? '' ) ) ), 0, 10 ),
+			'city'           => sanitize_text_field( wp_unslash( $_POST['city'] ?? '' ) ),
+			'rector_name'    => sanitize_text_field( wp_unslash( $_POST['rector_name'] ?? '' ) ),
+			'secretary_name' => sanitize_text_field( wp_unslash( $_POST['secretary_name'] ?? '' ) ),
 		);
-		$formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s' );
+		$formats = array( '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' );
 
 		if ( $id > 0 ) {
 			$exists = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table WHERE id = %d", $id ) );
@@ -67,6 +72,21 @@ class Edu_Institution_Controller {
 			// Auto-seleccionar como institución activa para el superadmin que la creó.
 			if ( Edu_Context::is_superadmin_editorial() ) {
 				Edu_Context::set_current_institution_id( $saved_id );
+			}
+		}
+
+		// Firmas y sello del certificado: las valida y guarda el servicio.
+		foreach ( Edu_Certificate_Service::IMAGENES as $tipo ) {
+			if ( ! empty( $_POST[ 'borrar_' . $tipo ] ) ) {
+				Edu_Certificate_Service::borrar_imagen( $saved_id, $tipo );
+			}
+
+			$campo = 'cert_' . $tipo;
+			if ( isset( $_FILES[ $campo ] ) && UPLOAD_ERR_NO_FILE !== (int) $_FILES[ $campo ]['error'] ) {
+				$r = Edu_Certificate_Service::guardar_imagen( $saved_id, $tipo, $_FILES[ $campo ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- el servicio valida la imagen.
+				if ( is_wp_error( $r ) ) {
+					self::redirect( array( 'action' => 'edit', 'id' => $saved_id, 'status' => 'error', 'code' => $r->get_error_code() ) );
+				}
 			}
 		}
 

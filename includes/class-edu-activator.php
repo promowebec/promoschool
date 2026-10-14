@@ -214,6 +214,10 @@ class Edu_Activator {
 			email varchar(100) DEFAULT NULL,
 			logo_url varchar(255) DEFAULT NULL,
 			regime enum('sierra','costa') DEFAULT 'sierra',
+			amie_code varchar(10) DEFAULT NULL,
+			city varchar(100) DEFAULT NULL,
+			rector_name varchar(150) DEFAULT NULL,
+			secretary_name varchar(150) DEFAULT NULL,
 			created_at datetime DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
 			UNIQUE KEY uk_institutions_ruc (ruc)
@@ -254,6 +258,7 @@ class Edu_Activator {
 			paralelo char(2) NOT NULL,
 			specialty varchar(100) DEFAULT NULL,
 			tutor_user_id bigint(20) unsigned DEFAULT NULL,
+			next_grade_name varchar(100) DEFAULT NULL,
 			PRIMARY KEY  (id),
 			KEY idx_inst_level (institution_id,level,sub_level),
 			KEY idx_tutor (tutor_user_id)

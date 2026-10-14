@@ -7,7 +7,7 @@
  */
 
 import { eduApi } from '@edu/api.js';
-import { store, currentStudent } from '@edu/store.js';
+import { store, currentStudent, isParent } from '@edu/store.js';
 
 export const VistaBoletines = {
 	data: () => ( {
@@ -15,11 +15,17 @@ export const VistaBoletines = {
 		error: null,
 		periodos: [],
 		generando: null,
+		aviso: null,
 	} ),
 
 	computed: {
 		estudiante() {
 			return currentStudent.value;
+		},
+
+		// El certificado de promoción lo descarga el representante, no el estudiante.
+		esPadre() {
+			return isParent.value;
 		},
 	},
 
@@ -61,6 +67,27 @@ export const VistaBoletines = {
 				this.generando = null;
 			}
 		},
+
+		// Si aún no corresponde (año sin cerrar, no promovido) el servidor
+		// explica el motivo y se muestra como aviso, no como fallo.
+		async certificado( periodo ) {
+			if ( this.generando ) return;
+
+			this.generando = 'c' + periodo.id;
+			this.aviso = null;
+
+			try {
+				const r = await eduApi.get( '/reports/certificado', {
+					student_id: store.studentId,
+					period_id: periodo.id,
+				} );
+				window.open( r.url, '_blank', 'noopener' );
+			} catch ( e ) {
+				this.aviso = e.message || 'El certificado aún no está disponible.';
+			} finally {
+				this.generando = null;
+			}
+		},
 	},
 
 	template: `
@@ -95,11 +122,18 @@ export const VistaBoletines = {
 								        @click="descargar(p)">
 									{{ generando === p.id ? 'Generando…' : 'Descargar PDF' }}
 								</button>
+								<button v-if="esPadre"
+								        class="edu-btn"
+								        :disabled="generando === 'c' + p.id"
+								        @click="certificado(p)">
+									{{ generando === 'c' + p.id ? 'Generando…' : 'Certificado de promoción' }}
+								</button>
 							</td>
 						</tr>
 					</tbody>
 				</table>
 			</div>
+			<p v-if="aviso" class="edu-small" role="status">{{ aviso }}</p>
 			<p class="edu-muted edu-small">
 				El enlace de descarga es personal y caduca a los 5 minutos.
 			</p>

@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'EDU_VERSION', '1.14.0' );
-define( 'EDU_DB_VERSION', '1.0.10' );
+define( 'EDU_DB_VERSION', '1.0.11' );
 
 define( 'EDU_PLUGIN_FILE', __FILE__ );
 define( 'EDU_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -63,6 +63,7 @@ require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-attendance-service.ph
 require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-announcement-service.php';
 require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-payment-service.php';
 require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-report-service.php';
+require_once EDU_PLUGIN_DIR . 'includes/services/class-edu-certificate-service.php';
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-teacher-controller.php';
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-student-controller.php';
 require_once EDU_PLUGIN_DIR . 'includes/controllers/class-edu-assignment-controller.php';
@@ -214,6 +215,8 @@ function edu_bootstrap() {
 		$loader->add_action( 'admin_post_edu_download_boletin',        'Edu_Boletin_Controller', 'handle_download' );
 		$loader->add_action( 'admin_post_edu_download_boletines_zip',  'Edu_Boletin_Controller', 'handle_download_zip' );
 		$loader->add_action( 'admin_post_edu_download_boletin_padre',  'Edu_Boletin_Controller', 'handle_download_padre' );
+		$loader->add_action( 'admin_post_edu_download_certificado',      'Edu_Boletin_Controller', 'handle_download_certificado' );
+		$loader->add_action( 'admin_post_edu_download_certificados_zip', 'Edu_Boletin_Controller', 'handle_download_certificados_zip' );
 	}
 
 	// Exportes Mineduc (módulo desactivable).

@@ -5,6 +5,8 @@
  * Acciones:
  *   admin_post_edu_download_boletin       → descarga PDF de un estudiante
  *   admin_post_edu_download_boletines_zip → genera ZIP con todos los PDFs del grado
+ *   admin_post_edu_download_certificado   → certificado de promoción de un estudiante
+ *   admin_post_edu_download_certificados_zip → certificados de los promovidos del grado
  *
  * @package SistemaEducativo
  */
@@ -196,6 +198,90 @@ class Edu_Boletin_Controller {
 			if ( file_exists( $path ) ) {
 				unlink( $path );
 			}
+		}
+		exit;
+	}
+
+	/* ─── Certificado de promoción ─────────────────────────────────────── */
+
+	/**
+	 * Descarga el certificado de promoción de un estudiante.
+	 * Permiso, alcance y derecho al certificado los decide el servicio.
+	 */
+	public static function handle_download_certificado(): void {
+		check_admin_referer( 'edu_download_boletin' );
+
+		$d = Edu_Certificate_Service::emitir(
+			isset( $_GET['student_id'] ) ? (int) $_GET['student_id'] : 0,
+			isset( $_GET['period_id'] ) ? (int) $_GET['period_id'] : 0
+		);
+		if ( is_wp_error( $d ) ) {
+			wp_die( esc_html( $d->get_error_message() ), '', array( 'response' => (int) ( $d->get_error_data()['status'] ?? 400 ), 'back_link' => true ) );
+		}
+
+		require_once EDU_PLUGIN_DIR . 'modules/boletines/class-edu-certificado-generator.php';
+		( new Edu_Certificado_Generator() )->stream( $d );
+	}
+
+	/**
+	 * ZIP con los certificados de los estudiantes promovidos del grado.
+	 * Los que no tienen derecho se saltan; si ninguno lo tiene, se avisa.
+	 */
+	public static function handle_download_certificados_zip(): void {
+		check_admin_referer( 'edu_download_boletin' );
+
+		$grade_id  = isset( $_GET['grade_id'] ) ? (int) $_GET['grade_id'] : 0;
+		$period_id = isset( $_GET['period_id'] ) ? (int) $_GET['period_id'] : 0;
+
+		$estado = Edu_Certificate_Service::estado_grado( $grade_id, $period_id );
+		if ( is_wp_error( $estado ) ) {
+			wp_die( esc_html( $estado->get_error_message() ), '', array( 'back_link' => true ) );
+		}
+
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			wp_die( esc_html__( 'ZipArchive no disponible en este servidor.', 'sistema-educativo' ) );
+		}
+
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+		}
+		wp_raise_memory_limit( 'admin' );
+
+		require_once EDU_PLUGIN_DIR . 'modules/boletines/class-edu-certificado-generator.php';
+		$gen   = new Edu_Certificado_Generator();
+		$rutas = array();
+
+		foreach ( $estado as $fila ) {
+			if ( ! $fila['elegible'] ) {
+				continue;
+			}
+			$d = Edu_Certificate_Service::emitir( $fila['student_id'], $period_id );
+			if ( ! is_wp_error( $d ) ) {
+				$rutas[] = $gen->save( $d );
+			}
+		}
+
+		if ( ! $rutas ) {
+			wp_die( esc_html__( 'Ningún estudiante de este grado cumple aún las condiciones del certificado de promoción.', 'sistema-educativo' ), '', array( 'back_link' => true ) );
+		}
+
+		$zip_path = get_temp_dir() . 'certificados_grado_' . $grade_id . '_' . time() . '.zip';
+		$zip      = new ZipArchive();
+		$zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE );
+		foreach ( $rutas as $ruta ) {
+			$zip->addFile( $ruta, basename( $ruta ) );
+		}
+		$zip->close();
+
+		header( 'Content-Type: application/zip' );
+		header( 'Content-Disposition: attachment; filename="certificados_grado_' . $grade_id . '.zip"' );
+		header( 'Content-Length: ' . filesize( $zip_path ) );
+		header( 'Pragma: no-cache' );
+		readfile( $zip_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+
+		wp_delete_file( $zip_path );
+		foreach ( $rutas as $ruta ) {
+			wp_delete_file( $ruta );
 		}
 		exit;
 	}

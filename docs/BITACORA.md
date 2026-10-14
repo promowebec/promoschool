@@ -152,6 +152,54 @@ Vista de supervisión para el rector: por asignación académica muestra compone
 
 ## 2.bis · Entradas de bitácora
 
+### 2026-10-14 — Certificado de promoción (v1.14.0, esquema 1.0.11)
+
+**Qué se hizo.** PDF oficial de fin de año por estudiante, con firma del rector, firma del
+secretario/a y sello en imagen. Decisiones del usuario: firman rector + secretario/a; el grado
+al que se promueve lo escribe el rector por grado («grado siguiente»); sin comportamiento
+(PromoSchool aún no lo registra). Lo descargan rector/secretaría y —cambio pedido después— el
+representante, solo de sus hijos, desde la pestaña Boletines de la app; el estudiante y el
+docente no. La lista del grado sigue siendo solo de rector/secretaría.
+
+- `Edu_Certificate_Service` (servicio 16) decide el derecho: cada materia calificada del grado
+  con **todos** los trimestres cerrados (`trimester_scores.is_closed`, por estudiante; la
+  columna `trimesters.is_closed` no la marca ningún flujo) y `year_scores.status = 'aprobado'`
+  (incluye supletorio/remedial/gracia aprobados, que el PDF anota). Una materia que nadie del
+  grado tiene calificada no cuenta; una que el resto sí tiene y el estudiante no, bloquea.
+  Códigos: `year_open`, `not_promoted`, `no_next_grade`.
+- Firmas y sello en `uploads/edu-privado/certificados/{institución}/`, validados por cabecera
+  (PNG/JPG, 1 MB). Entran al PDF por ruta de disco y la vista previa de wp-admin es data URI:
+  nunca tienen URL. Subir/quitar y cada emisión quedan en la auditoría
+  (`certificado_firmas`, `certificado_emitido`).
+- `Edu_Certificado_Generator` (mPDF): nota en número, en letras («OCHO COMA CINCUENTA») y
+  cualitativa; promedio general; «es promovido/a a …» según `students.sexo`. No cita artículos
+  del reglamento: dice «de conformidad con la normativa educativa vigente».
+- wp-admin: Institución (AMIE, ciudad, firmantes, imágenes), Grados («grado siguiente»),
+  Boletines (columna de certificado con el motivo si no corresponde + ZIP de los promovidos).
+- API: `GET /reports/certificado` (URL firmada) y `GET /reports/certificados` (estado del
+  grado); caso `certificado` en `/files/download`, que revalida y audita. SPA del rector:
+  botón «Certificado» en Reportes.
+
+**Archivos tocados:** `includes/services/class-edu-certificate-service.php` (nuevo),
+`modules/boletines/class-edu-certificado-generator.php` (nuevo),
+`includes/controllers/class-edu-boletin-controller.php`, `class-edu-institution-controller.php`,
+`class-edu-grade-controller.php`, `admin/views/institucion.php`, `grados.php`, `boletines.php`,
+`includes/api/routes/class-edu-api-report-routes.php`, `includes/class-edu-audit.php`,
+`includes/class-edu-activator.php`, `public/spa/js/views/rector/reportes.js`,
+`sistema-educativo.php`, `tests/test-certificado.php` (nuevo, 32 comprobaciones).
+
+**Cambios de esquema (1.0.11):** `institutions` + `amie_code`, `city`, `rector_name`,
+`secretary_name`; `grades` + `next_grade_name`. Las agrega `dbDelta()` sola al subir archivos.
+Puede afectar a Flipbook si lee esas tablas con `SELECT *` (solo agrega columnas).
+
+**Riesgos / notas de despliegue:**
+- Antes de emitir, cada colegio debe llenar AMIE, ciudad, firmantes y subir las imágenes, y el
+  «grado siguiente» de **cada** grado (vacío en 3ro de bachillerato).
+- Si un colegio no cierra los trimestres desde Cierres, nadie tendrá certificado: el motivo
+  sale en Boletines («Año sin cerrar»).
+- El texto del certificado no es el formato oficial del Mineduc al pie de la letra; revisarlo
+  con la secretaría del colegio piloto antes de imprimirlo en serie.
+
 ### 2026-10-12 — Cola de WhatsApp por lotes y tope diario (v1.14.0, esquema 1.0.10)
 
 **Qué se hizo.** Ningún WhatsApp se envía ya en línea: todo entra a una cola y sale por lotes.
@@ -1270,7 +1318,7 @@ Las migraciones incrementales viven en `Edu_Activator::run_incremental_migration
 
 ---
 
-## 4. Inventario de base de datos (30 tablas)
+## 4. Inventario de base de datos (31 tablas)
 
 **Core institucional (7):** `institutions`, `periods`, `trimesters`, `grades`, `subjects_catalog`, `subjects`, `grade_subjects`
 
@@ -1290,13 +1338,13 @@ Las migraciones incrementales viven en `Edu_Activator::run_incremental_migration
 
 ## 5. Inventario de código
 
-### Servicios — `includes/services/` (15)
+### Servicios — `includes/services/` (16)
 Base: `Edu_Service` (capabilities, `check_scope()`, alcance personal).
 Escritura: `Edu_Score_Service`, `Edu_Trimester_Score_Service`, `Edu_Curriculum_Service`,
 `Edu_Assignment_Service`, `Edu_Submission_Service`, `Edu_Attendance_Service`,
 `Edu_Announcement_Service`, `Edu_Payment_Service`, `Edu_File_Service`.
 Lectura: `Edu_Catalog_Service`, `Edu_People_Service`, `Edu_Gradebook_Service`,
-`Edu_Activity_Service`, `Edu_Report_Service`.
+`Edu_Activity_Service`, `Edu_Report_Service`, `Edu_Certificate_Service`.
 Lógica de negocio sin HTTP, compartida por los controllers y la API REST.
 
 ### API REST — `includes/api/` (10)

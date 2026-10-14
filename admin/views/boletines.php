@@ -79,6 +79,18 @@ if ( $grade_sel && $period_sel ) {
 	) );
 }
 
+// Derecho al certificado de promoción de cada estudiante activo.
+$certificados = array();
+if ( $students ) {
+	$edu_estado = Edu_Certificate_Service::estado_grado( $grade_sel, $period_sel );
+	if ( ! is_wp_error( $edu_estado ) ) {
+		foreach ( $edu_estado as $fila ) {
+			$certificados[ $fila['student_id'] ] = $fila;
+		}
+	}
+}
+$hay_promovidos = (bool) array_filter( array_column( $certificados, 'elegible' ) );
+
 $nonce       = wp_create_nonce( 'edu_download_boletin' );
 $base_dl     = admin_url( 'admin-post.php' );
 
@@ -165,6 +177,17 @@ $mpdf_ok = file_exists( EDU_PLUGIN_DIR . 'vendor/autoload.php' );
 		   class="button button-primary">
 			&#11015; <?php esc_html_e( 'Descargar todos (ZIP)', 'sistema-educativo' ); ?>
 		</a>
+		<?php if ( $hay_promovidos ) : ?>
+		<a href="<?php echo esc_url( add_query_arg( array(
+			'action'    => 'edu_download_certificados_zip',
+			'grade_id'  => $grade_sel,
+			'period_id' => $period_sel,
+			'_wpnonce'  => $nonce,
+		), $base_dl ) ); ?>"
+		   class="button">
+			&#127891; <?php esc_html_e( 'Certificados de promoción (ZIP)', 'sistema-educativo' ); ?>
+		</a>
+		<?php endif; ?>
 		<span style="margin-left:10px; color:#666; font-size:13px;">
 			<?php printf( esc_html__( '%d estudiante(s)', 'sistema-educativo' ), count( $students ) ); ?>
 		</span>
@@ -172,13 +195,14 @@ $mpdf_ok = file_exists( EDU_PLUGIN_DIR . 'vendor/autoload.php' );
 	<?php endif; ?>
 
 	<!-- Lista de estudiantes -->
-	<table class="widefat striped" style="max-width:700px;">
+	<table class="widefat striped" style="max-width:900px;">
 		<thead>
 			<tr>
 				<th><?php esc_html_e( 'Estudiante', 'sistema-educativo' ); ?></th>
 				<th style="text-align:center;"><?php esc_html_e( 'Materias con nota', 'sistema-educativo' ); ?></th>
 				<th style="text-align:center;"><?php esc_html_e( 'Estado global', 'sistema-educativo' ); ?></th>
 				<th style="text-align:center;"><?php esc_html_e( 'Boletín PDF', 'sistema-educativo' ); ?></th>
+				<th style="text-align:center;"><?php esc_html_e( 'Certificado de promoción', 'sistema-educativo' ); ?></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -212,6 +236,33 @@ $mpdf_ok = file_exists( EDU_PLUGIN_DIR . 'vendor/autoload.php' );
 					</a>
 					<?php else : ?>
 					<span style="color:#999; font-size:12px;"><?php esc_html_e( 'mPDF requerido', 'sistema-educativo' ); ?></span>
+					<?php endif; ?>
+				</td>
+				<td style="text-align:center;">
+					<?php
+					$edu_cert = $certificados[ (int) $st->id ] ?? null;
+					if ( $mpdf_ok && $edu_cert && $edu_cert['elegible'] ) :
+						$cert_url = add_query_arg( array(
+							'action'     => 'edu_download_certificado',
+							'student_id' => (int) $st->id,
+							'period_id'  => $period_sel,
+							'_wpnonce'   => $nonce,
+						), $base_dl );
+						?>
+						<a href="<?php echo esc_url( $cert_url ); ?>" class="button button-small" target="_blank">&#127891; PDF</a>
+					<?php elseif ( $edu_cert ) : ?>
+						<span style="color:#888; font-size:12px;" title="<?php echo esc_attr( $edu_cert['message'] ); ?>">
+							<?php
+							$edu_motivos = array(
+								'year_open'     => __( 'Año sin cerrar', 'sistema-educativo' ),
+								'not_promoted'  => __( 'No promovido', 'sistema-educativo' ),
+								'no_next_grade' => __( 'Falta grado siguiente', 'sistema-educativo' ),
+							);
+							echo esc_html( $edu_motivos[ $edu_cert['code'] ] ?? __( 'No disponible', 'sistema-educativo' ) );
+							?>
+						</span>
+					<?php else : ?>
+						<span style="color:#bbb;">—</span>
 					<?php endif; ?>
 				</td>
 			</tr>

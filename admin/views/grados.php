@@ -368,6 +368,13 @@ $sub_levels = array(
 						</p>
 					</td>
 				</tr>
+				<tr>
+					<th><label for="edu-next-grade"><?php esc_html_e( 'Grado siguiente (certificado)', 'sistema-educativo' ); ?></label></th>
+					<td>
+						<input id="edu-next-grade" name="next_grade_name" type="text" class="regular-text" maxlength="100" value="<?php echo esc_attr( $grade->next_grade_name ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Sexto Grado de Educación General Básica', 'sistema-educativo' ); ?>">
+						<p class="description"><?php esc_html_e( 'Texto exacto que aparece en el certificado de promoción: «es promovido a …». Déjelo vacío en 3ro de Bachillerato: ese año no emite promoción.', 'sistema-educativo' ); ?></p>
+					</td>
+				</tr>
 			</table>
 
 			<?php submit_button( $grade ? __( 'Guardar cambios', 'sistema-educativo' ) : __( 'Crear grado', 'sistema-educativo' ) ); ?>

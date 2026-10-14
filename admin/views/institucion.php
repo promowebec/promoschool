@@ -65,6 +65,9 @@ $status_code = isset( $_GET['code'] ) ? sanitize_key( $_GET['code'] ) : '';
 				'name_required' => __( 'El nombre/razón social es obligatorio.', 'sistema-educativo' ),
 				'not_found'     => __( 'Institución no encontrada.', 'sistema-educativo' ),
 				'invalid_id'    => __( 'ID inválido.', 'sistema-educativo' ),
+				'invalid_image' => __( 'La firma y el sello deben ser imágenes PNG o JPG. Los demás datos sí se guardaron.', 'sistema-educativo' ),
+				'image_too_big' => __( 'La imagen supera 1 MB. Los demás datos sí se guardaron.', 'sistema-educativo' ),
+				'upload_failed' => __( 'No se pudo guardar la imagen. Los demás datos sí se guardaron.', 'sistema-educativo' ),
 			);
 			echo esc_html( $messages[ $status_code ] ?? __( 'Ocurrió un error.', 'sistema-educativo' ) );
 			?>
@@ -122,7 +125,7 @@ $status_code = isset( $_GET['code'] ) ? sanitize_key( $_GET['code'] ) : '';
 			</tbody>
 		</table>
 	<?php else : ?>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="edu-form">
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="edu-form" enctype="multipart/form-data">
 			<?php wp_nonce_field( 'edu_save_institution' ); ?>
 			<input type="hidden" name="action" value="edu_save_institution">
 			<?php if ( $institution ) : ?>
@@ -165,6 +168,48 @@ $status_code = isset( $_GET['code'] ) ? sanitize_key( $_GET['code'] ) : '';
 						<p class="description"><?php esc_html_e( 'Pega la URL del logo. El uploader de WP Media llega en Fase 1.5.', 'sistema-educativo' ); ?></p>
 					</td>
 				</tr>
+			</table>
+
+			<h2><?php esc_html_e( 'Certificado de promoción', 'sistema-educativo' ); ?></h2>
+			<p class="description"><?php esc_html_e( 'Datos que aparecen en el certificado. Las firmas y el sello se guardan en la carpeta privada del sistema: no tienen dirección pública y solo se usan al generar el PDF.', 'sistema-educativo' ); ?></p>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="edu-amie"><?php esc_html_e( 'Código AMIE', 'sistema-educativo' ); ?></label></th>
+					<td><input id="edu-amie" name="amie_code" class="regular-text" type="text" maxlength="10" value="<?php echo esc_attr( $institution->amie_code ?? '' ); ?>" placeholder="17H00000"></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="edu-city"><?php esc_html_e( 'Ciudad', 'sistema-educativo' ); ?></label></th>
+					<td><input id="edu-city" name="city" class="regular-text" type="text" maxlength="100" value="<?php echo esc_attr( $institution->city ?? '' ); ?>" placeholder="Quito"></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="edu-rector-name"><?php esc_html_e( 'Rector/a (nombre para la firma)', 'sistema-educativo' ); ?></label></th>
+					<td><input id="edu-rector-name" name="rector_name" class="regular-text" type="text" maxlength="150" value="<?php echo esc_attr( $institution->rector_name ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Mgs. Nombre Apellido', 'sistema-educativo' ); ?>"></td>
+				</tr>
+				<tr>
+					<th scope="row"><label for="edu-secretary-name"><?php esc_html_e( 'Secretario/a (nombre para la firma)', 'sistema-educativo' ); ?></label></th>
+					<td><input id="edu-secretary-name" name="secretary_name" class="regular-text" type="text" maxlength="150" value="<?php echo esc_attr( $institution->secretary_name ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Lic. Nombre Apellido', 'sistema-educativo' ); ?>"></td>
+				</tr>
+				<?php
+				$edu_cert_imgs = array(
+					'firma_rector'     => __( 'Firma del rector/a', 'sistema-educativo' ),
+					'firma_secretario' => __( 'Firma del secretario/a', 'sistema-educativo' ),
+					'sello'            => __( 'Sello de la institución', 'sistema-educativo' ),
+				);
+				foreach ( $edu_cert_imgs as $edu_tipo => $edu_label ) :
+					$edu_prev = $institution ? Edu_Certificate_Service::vista_previa( (int) $institution->id, $edu_tipo ) : '';
+					?>
+					<tr>
+						<th scope="row"><label for="edu-cert-<?php echo esc_attr( $edu_tipo ); ?>"><?php echo esc_html( $edu_label ); ?></label></th>
+						<td>
+							<?php if ( $edu_prev ) : ?>
+								<img src="<?php echo esc_attr( $edu_prev ); ?>" alt="" style="max-height:70px; max-width:200px; border:1px solid #dcdcde; padding:4px; background:#fff; display:block; margin-bottom:6px;">
+								<label><input type="checkbox" name="borrar_<?php echo esc_attr( $edu_tipo ); ?>" value="1"> <?php esc_html_e( 'Quitar', 'sistema-educativo' ); ?></label><br>
+							<?php endif; ?>
+							<input id="edu-cert-<?php echo esc_attr( $edu_tipo ); ?>" name="cert_<?php echo esc_attr( $edu_tipo ); ?>" type="file" accept="image/png,image/jpeg">
+							<p class="description"><?php esc_html_e( 'PNG o JPG de hasta 1 MB. Mejor PNG con fondo transparente.', 'sistema-educativo' ); ?></p>
+						</td>
+					</tr>
+				<?php endforeach; ?>
 			</table>
 
 			<?php submit_button( $institution ? __( 'Guardar cambios', 'sistema-educativo' ) : __( 'Crear institución', 'sistema-educativo' ) ); ?>

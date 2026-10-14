@@ -82,9 +82,9 @@ sistema-educativo/
 │   ├── class-edu-audit.php      # escritura en wp_edu_audit
 │   ├── class-edu-roles.php      # 4 roles + 17 capabilities
 │   ├── class-edu-activator.php  # dbDelta + migraciones incrementales
-│   ├── services/                # 15 clases — LA LÓGICA VIVE AQUÍ
+│   ├── services/                # 16 clases — LA LÓGICA VIVE AQUÍ
 │   ├── controllers/             # 21 clases — adaptadores de formulario
-│   ├── api/                     # 10 clases — API REST edu/v1 (59 rutas)
+│   ├── api/                     # 10 clases — API REST edu/v1 (61 rutas)
 │   └── helpers/
 ├── admin/views/                 # 26 pantallas de wp-admin
 ├── public/shortcodes/           # 4 portales + 2 shortcodes sueltos
@@ -348,7 +348,7 @@ portal: si algo falla, se vuelve a poner el shortcode.
 
 ## Estado actual
 
-**v1.14.0** · esquema `EDU_DB_VERSION` 1.0.10. Desde la 1.14.0 los módulos dependen del plan contratado (licencia firmada, ver «Plan contratado»).
+**v1.14.0** · esquema `EDU_DB_VERSION` 1.0.11. Desde la 1.14.0 los módulos dependen del plan contratado (licencia firmada, ver «Plan contratado»).
 
 Fases 0–7 del plugin completas (calificaciones, tareas, comunicados, asistencia, PWA, cuentas,
 pagos Payphone, WhatsApp y exportes Mineduc), más la revisión de seguridad de julio de 2026.
@@ -362,6 +362,10 @@ dominio de WordPress** (decisión de agosto de 2026: evita CORS y el problema de
 `Authorization` en Apache) y se autentica con cookie + `X-WP-Nonce`.
 
 Verificado con 261 pruebas automatizadas más los 21 escenarios de adaptadores de wp-admin.
+
+**Certificado de promoción (14 oct 2026):** `Edu_Certificate_Service` + `Edu_Certificado_Generator`.
+Rector/secretaría y el representante (solo sus hijos); requiere año cerrado y todo aprobado; el texto «promovido a» sale de
+`grades.next_grade_name`; firmas y sello en `edu-privado/certificados/{institución}/`, nunca por URL.
 
 **Textos (19 ago 2026):** la SPA tiene la pestaña «Mis libros» en estudiante, docente y
 rector, sobre `GET /me/texts`. La asignación sigue siendo la del sitio (roles de WordPress);

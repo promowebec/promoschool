@@ -23,6 +23,7 @@ export const VistaRectorReportes = {
 		error: null,
 		grados: [],
 		estudiantes: [],
+		certificados: {},
 		gradeId: null,
 		periodId: null,
 		generando: null,
@@ -78,6 +79,31 @@ export const VistaRectorReportes = {
 			} catch ( e ) {
 				this.estudiantes = [];
 			}
+
+			await this.cargarCertificados();
+		},
+
+		// El servidor decide quién tiene derecho; aquí solo se muestra.
+		async cargarCertificados() {
+			this.certificados = {};
+			if ( ! this.hayBoletines || ! this.gradeId || ! this.periodId ) return;
+
+			try {
+				const lista = await eduApi.get( '/reports/certificados', {
+					grade_id: this.gradeId,
+					period_id: this.periodId,
+				} );
+				this.certificados = Object.fromEntries( lista.map( ( c ) => [ c.student_id, c ] ) );
+			} catch ( e ) {
+				this.certificados = {};
+			}
+		},
+
+		async certificado( estudiante ) {
+			await this.abrir( 'c' + estudiante.id, '/reports/certificado', {
+				student_id: estudiante.id,
+				period_id: this.periodId,
+			} );
 		},
 
 		async boletin( estudiante ) {
@@ -174,6 +200,17 @@ export const VistaRectorReportes = {
 									        @click="boletin(e)">
 										{{ generando === 'b' + e.id ? 'Generando…' : 'Boletín PDF' }}
 									</button>
+									<button v-if="certificados[e.id]?.elegible"
+									        class="edu-btn edu-btn-primary"
+									        :disabled="generando === 'c' + e.id"
+									        @click="certificado(e)">
+										{{ generando === 'c' + e.id ? 'Generando…' : 'Certificado' }}
+									</button>
+									<span v-else-if="certificados[e.id]"
+									      class="edu-muted edu-small"
+									      :title="certificados[e.id].message">
+										Sin certificado
+									</span>
 								</td>
 							</tr>
 						</tbody>

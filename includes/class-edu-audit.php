@@ -32,6 +32,8 @@ class Edu_Audit {
 	const CUENTA_ACTIVADA         = 'cuenta_activada';
 	const LICENCIA_ACTUALIZADA    = 'licencia_actualizada';
 	const WHATSAPP_SESION         = 'whatsapp_sesion';
+	const CERTIFICADO_EMITIDO     = 'certificado_emitido';
+	const CERTIFICADO_FIRMAS      = 'certificado_firmas';
 
 	/**
 	 * Registra una entrada en el log de auditoría.
@@ -118,6 +120,8 @@ class Edu_Audit {
 			self::CUENTA_ACTIVADA       => __( 'Cuenta activada',       'sistema-educativo' ),
 			self::LICENCIA_ACTUALIZADA  => __( 'Licencia actualizada',  'sistema-educativo' ),
 			self::WHATSAPP_SESION       => __( 'Sesión de WhatsApp',    'sistema-educativo' ),
+			self::CERTIFICADO_EMITIDO   => __( 'Certificado emitido',   'sistema-educativo' ),
+			self::CERTIFICADO_FIRMAS    => __( 'Firmas del certificado', 'sistema-educativo' ),
 		);
 		return $labels[ $action ] ?? esc_html( $action );
 	}
@@ -141,6 +145,8 @@ class Edu_Audit {
 			self::CUENTA_ACTIVADA       => '#16a34a',
 			self::LICENCIA_ACTUALIZADA  => '#7c3aed',
 			self::WHATSAPP_SESION       => '#16a34a',
+			self::CERTIFICADO_EMITIDO   => '#0369a1',
+			self::CERTIFICADO_FIRMAS    => '#b45309',
 		);
 		return $colors[ $action ] ?? '#374151';
 	}
