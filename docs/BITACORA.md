@@ -210,10 +210,16 @@ Archivos de la etapa 2: `admin/views/calificaciones.php`, `componentes.php`, `ta
 `views/docente/selector.js`, `views/docente/calificaciones.js`, `views/rector/cierres.js`,
 `views/notas.js`, `sistema-educativo.php` (1.16.0), `docs/MANUAL_PANTALLAS.md`.
 
+**Revisión en el navegador (mismo día).** Con Unidad Giro22 de Local en modo trimestre de forma
+temporal: Cierres de la app (columna «Aportes», desglose sin pesos, sin errores en consola),
+Calificaciones, Examen final y Cierres de wp-admin, todo correcto. Destapó un **fallo previo
+en Cierres de wp-admin**: los conteos y el «trimestre cerrado» no filtraban por grado, así que
+otro grado con la misma materia inflaba «Estudiantes con nota» (6 / 4) y, si ya había cerrado
+su trimestre, ocultaba el botón de cierre de este. Corregido en ambos modos.
+
 **Riesgos / notas:**
-- **La SPA no se probó en el navegador** (extensión de Chrome desconectada): solo compilan sus
-  plantillas y la API devuelve el modo. Revisarla en Local con un colegio en modo trimestre
-  antes de activarlo en uno real.
+- No se vieron en el navegador la grilla del docente ni las notas del estudiante/representante
+  de la app (piden iniciar sesión con esos usuarios); compilan y usan el mismo `modo`.
 - El portal shortcode del docente (congelado) aún ofrece el parcial 2: en modo trimestre
   responde «no hay segundo parcial». Usar la app.
 - La nota anual sigue siendo el promedio de los trimestres con nota (igual en los dos modos).

@@ -133,18 +133,21 @@ $ready = ( $grade_id && $subject_id && $trimester_id );
 			$grade_id
 		) );
 
-		// Estado de cada parcial.
+		// Estado de cada parcial. Solo cuentan los estudiantes activos de ESTE
+		// grado: la materia puede dictarse en varios grados del mismo trimestre.
 		$parcial_info = array();
 		foreach ( array( 1, 2 ) as $pnum ) {
 			$closed = (int) $wpdb->get_var( $wpdb->prepare(
-				"SELECT COUNT(*) FROM $tps
-				 WHERE subject_id = %d AND trimester_id = %d AND parcial_num = %d AND is_closed = 1",
-				$subject_id, $trimester_id, $pnum
+				"SELECT COUNT(*) FROM $tps ps
+				 INNER JOIN $tst st ON st.id = ps.student_id AND st.grade_id = %d AND st.status = 'active'
+				 WHERE ps.subject_id = %d AND ps.trimester_id = %d AND ps.parcial_num = %d AND ps.is_closed = 1",
+				$grade_id, $subject_id, $trimester_id, $pnum
 			) );
 			$with_score = (int) $wpdb->get_var( $wpdb->prepare(
-				"SELECT COUNT(*) FROM $tps
-				 WHERE subject_id = %d AND trimester_id = %d AND parcial_num = %d",
-				$subject_id, $trimester_id, $pnum
+				"SELECT COUNT(*) FROM $tps ps
+				 INNER JOIN $tst st ON st.id = ps.student_id AND st.grade_id = %d AND st.status = 'active'
+				 WHERE ps.subject_id = %d AND ps.trimester_id = %d AND ps.parcial_num = %d",
+				$grade_id, $subject_id, $trimester_id, $pnum
 			) );
 			$parcial_info[ $pnum ] = array(
 				'closed'     => $closed > 0,
@@ -161,9 +164,10 @@ $ready = ( $grade_id && $subject_id && $trimester_id );
 
 		// Estado del trimestre.
 		$trim_closed = (int) $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM $tts
-			 WHERE subject_id = %d AND trimester_id = %d AND is_closed = 1",
-			$subject_id, $trimester_id
+			"SELECT COUNT(*) FROM $tts ts
+			 INNER JOIN $tst st ON st.id = ts.student_id AND st.grade_id = %d AND st.status = 'active'
+			 WHERE ts.subject_id = %d AND ts.trimester_id = %d AND ts.is_closed = 1",
+			$grade_id, $subject_id, $trimester_id
 		) ) > 0;
 	?>
 
