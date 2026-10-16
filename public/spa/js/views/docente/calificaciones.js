@@ -2,8 +2,8 @@
  * Grilla de calificaciones: estudiantes × componentes evaluables.
  *
  * Reglas del negocio que la pantalla respeta al pie de la letra:
- * - Una celda vacía significa SIN CALIFICAR, no cero. Se excluye del cálculo y
- *   los pesos se renormalizan, así que no hace falta que sumen 1.00.
+ * - Una celda vacía significa SIN CALIFICAR, no cero: no entra en el promedio.
+ *   El parcial es el promedio simple de todas sus notas (lo calcula el servidor).
  * - Solo se envían las celdas que el docente tocó. Enviar una celda vacía no
  *   borra la nota anterior.
  * - Una celda mala no tumba el guardado: el servidor guarda el resto y devuelve
@@ -67,10 +67,6 @@ export const VistaDocenteCalificaciones = {
 
 		hayCambios() {
 			return Object.keys( this.editado ).length > 0;
-		},
-
-		sumaPesos() {
-			return this.componentes.reduce( ( t, c ) => t + Number( c.weight || 0 ), 0 );
 		},
 	},
 
@@ -280,10 +276,6 @@ export const VistaDocenteCalificaciones = {
 			<edu-empty v-if="!componentes.length"
 			           :texto="(modoTrimestre ? 'Este trimestre' : 'Este parcial') + ' todavía no tiene componentes evaluables. Crea el primero abajo.'" />
 
-			<p v-if="modoTrimestre && componentes.length" class="edu-muted edu-small">
-				Tu institución califica por trimestre: los aportes se promedian por igual, sin pesos.
-			</p>
-
 			<edu-card v-else>
 				<div class="edu-table-wrap">
 					<table class="edu-table edu-gradebook">
@@ -292,7 +284,6 @@ export const VistaDocenteCalificaciones = {
 								<th class="edu-col-alumno">Estudiante</th>
 								<th v-for="c in componentes" :key="c.id" class="edu-th-num">
 									{{ c.name }}
-									<div v-if="!modoTrimestre" class="edu-muted edu-small">peso {{ formatScore(c.weight) }}</div>
 								</th>
 								<th class="edu-th-num">{{ modoTrimestre ? 'Aportes' : 'Parcial' }}</th>
 							</tr>
@@ -342,7 +333,6 @@ export const VistaDocenteCalificaciones = {
 											</h4>
 											<div class="edu-desglose-comp">
 												<div class="edu-desglose-cab">
-													<span class="edu-muted edu-small">peso {{ formatScore(desgloseCelda.weight) }}</span>
 													<span class="edu-desglose-prom">
 														{{ desgloseCelda.average === null ? '—' : formatScore(desgloseCelda.average) }}
 														<span class="edu-muted">({{ desgloseCelda.count }})</span>
@@ -367,8 +357,8 @@ export const VistaDocenteCalificaciones = {
 				</div>
 
 				<p class="edu-muted edu-small">
-					Suma de pesos: {{ formatScore(sumaPesos) }}.
-					El cálculo renormaliza sobre los componentes con nota, así que no necesita sumar 1.00.
+					{{ modoTrimestre ? 'Los aportes son' : 'El parcial es' }} el promedio simple de todas las notas:
+					cada nota vale igual, sin importar el componente. Una celda vacía no cuenta como cero.
 				</p>
 			</edu-card>
 
@@ -397,8 +387,8 @@ export const VistaDocenteCalificaciones = {
 			<edu-card v-if="!cerrado" titulo="Nuevo componente evaluable">
 				<p class="edu-muted edu-small">
 					<template v-if="modoTrimestre">Si ya existe uno con ese nombre en este trimestre, se reutiliza en vez de duplicarlo.</template>
-					<template v-else>Nace con peso 1.00, igual que los demás. Si ya existe uno con ese nombre en
-					este parcial, se reutiliza en vez de duplicarlo.</template>
+					<template v-else>Si ya existe uno con ese nombre en este parcial, se reutiliza en vez de
+					duplicarlo.</template>
 				</p>
 				<div class="edu-fila-form">
 					<input class="edu-input" type="text" placeholder="Tareas, Lecciones, Prueba…"

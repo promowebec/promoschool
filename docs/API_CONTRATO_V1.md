@@ -482,7 +482,8 @@ el propio estudiante, sus materias; el representante, las de sus hijos; el docen
 materias que dicta en ese grado. Cuidado al tocarlo: usar `can_view_grade_subject()` aquí
 rebota al estudiante y al representante, porque ese helper exige asignación docente.
 
-`POST /components` replica la lógica de v1.1.0: peso por defecto **1.00**, y si ya existe un
+`POST /components` replica la lógica de v1.1.0: peso por defecto **1.00** (desde la 1.17.0 el
+peso se acepta y se devuelve por compatibilidad, pero ningún cálculo lo usa), y si ya existe un
 componente con el mismo nombre en el mismo `(subject_id, trimester_id, parcial_num)` **no
 duplica** — devuelve `200` con el existente y `"reused": true` en vez de `201`.
 
@@ -637,9 +638,10 @@ Puntos fijados por el contrato:
 
 - `scores` es un **mapa `component_id → nota|null`**, no un array. Evita que el cliente tenga
   que cruzar índices.
-- Una nota `null` significa **componente sin calificar**, y el cálculo lo **excluye y
-  renormaliza los pesos** — no cuenta como cero. Es la regla vigente del motor y la API no
-  la puede contradecir.
+- Una nota `null` significa **componente sin calificar**, y el cálculo lo **excluye** — no
+  cuenta como cero. Desde la 1.17.0 el parcial es el **promedio simple de todas sus notas**
+  (cada fila de `grades_log` vale igual) y el campo `weight` de los componentes es solo
+  informativo. Es la regla vigente del motor y la API no la puede contradecir.
 - El valor de `scores` es el **promedio** de todas las filas de `grades_log` de ese
   `(student_id, component_id)`, no la última. Corrige el bug ya resuelto en el plugin.
 - `cualitativa` viene **calculada por el servidor** con `Edu_Qualitativa_Helper`. La SPA no

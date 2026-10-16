@@ -120,13 +120,14 @@ class Edu_Curriculum_Service {
 	 *   son intocables.
 	 *
 	 * Un componente con notas registradas nunca se elimina.
-	 * Los pesos no necesitan sumar 1.00: el cálculo renormaliza.
+	 * El peso ya no interviene en el cálculo (1.17.0): si la fila no lo trae
+	 * se conserva el que tenía, y una nueva nace con 1.00.
 	 *
 	 * @param array $input {
 	 *     @type int   $subject_id
 	 *     @type int   $trimester_id
 	 *     @type int   $parcial_num
-	 *     @type array $rows Lista de array( id, name, weight ).
+	 *     @type array $rows Lista de array( id, name[, weight] ).
 	 *                       Las filas ausentes del set se eliminan si se puede.
 	 * }
 	 * @return array|WP_Error
@@ -192,8 +193,10 @@ class Edu_Curriculum_Service {
 				continue;
 			}
 
-			$weight = self::normalize_weight( $row_in['weight'] ?? '' );
 			$id     = isset( $row_in['id'] ) ? (int) $row_in['id'] : 0;
+			$weight = array_key_exists( 'weight', $row_in )
+				? self::normalize_weight( $row_in['weight'] )
+				: ( isset( $existentes[ $id ] ) ? (float) $existentes[ $id ]->weight : 1.00 );
 
 			if ( $id && isset( $existentes[ $id ] ) ) {
 				if ( ! $es_editable( $existentes[ $id ] ) ) {

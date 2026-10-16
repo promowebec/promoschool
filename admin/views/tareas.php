@@ -287,7 +287,7 @@ if ( in_array( $action, array( 'new', 'edit' ), true ) ) {
 								<?php disabled( $is_closed ); ?>>
 							<input type="hidden" name="component_new_weight" value="1.00">
 							<p class="description">
-								<?php esc_html_e( 'Se crea al guardar la tarea, con el mismo peso que los demás componentes del parcial. Si escribes un nombre que ya existe, se reutiliza ese componente y las notas se promedian.', 'sistema-educativo' ); ?>
+								<?php esc_html_e( 'Se crea al guardar la tarea. Si escribes un nombre que ya existe, se reutiliza ese componente.', 'sistema-educativo' ); ?>
 							</p>
 						</div>
 

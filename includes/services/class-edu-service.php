@@ -98,10 +98,11 @@ class Edu_Service {
 	/* ─────────────────────────────────────────────────────────────────────
 	 * Modo de calificación de la institución
 	 *
-	 * «parciales» (por defecto): Parcial = Σ(nota×peso)/Σ(pesos con nota) y el
-	 * 70% es (P1+P2)/2.
+	 * «parciales» (por defecto): Parcial = promedio simple de todas sus notas y
+	 * el 70% es (P1+P2)/2.
 	 * «trimestre» (aplicativo del Ministerio): no hay parciales; el 70% es el
-	 * promedio simple de TODOS los aportes del trimestre y los pesos se ignoran.
+	 * promedio simple de TODOS los aportes del trimestre.
+	 * Desde la 1.17.0 ningún modo usa los pesos de los componentes.
 	 *
 	 * En los dos la sumativa sigue por subnivel y se redondea a 2 decimales.
 	 * Internamente el modo trimestre guarda todo en parcial_num = 1, así que

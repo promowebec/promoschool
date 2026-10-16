@@ -35,6 +35,7 @@ class Edu_Audit {
 	const CERTIFICADO_EMITIDO     = 'certificado_emitido';
 	const CERTIFICADO_FIRMAS      = 'certificado_firmas';
 	const MODO_NOTAS              = 'modo_notas';
+	const RECALCULO_SIN_PESOS     = 'recalculo_sin_pesos';
 
 	/**
 	 * Registra una entrada en el log de auditoría.
@@ -124,6 +125,7 @@ class Edu_Audit {
 			self::CERTIFICADO_EMITIDO   => __( 'Certificado emitido',   'sistema-educativo' ),
 			self::CERTIFICADO_FIRMAS    => __( 'Configuración del certificado', 'sistema-educativo' ),
 			self::MODO_NOTAS            => __( 'Modo de calificación', 'sistema-educativo' ),
+			self::RECALCULO_SIN_PESOS   => __( 'Recálculo sin pesos', 'sistema-educativo' ),
 		);
 		return $labels[ $action ] ?? esc_html( $action );
 	}
@@ -150,6 +152,7 @@ class Edu_Audit {
 			self::CERTIFICADO_EMITIDO   => '#0369a1',
 			self::CERTIFICADO_FIRMAS    => '#b45309',
 			self::MODO_NOTAS            => '#7c3aed',
+			self::RECALCULO_SIN_PESOS   => '#7c3aed',
 		);
 		return $colors[ $action ] ?? '#374151';
 	}

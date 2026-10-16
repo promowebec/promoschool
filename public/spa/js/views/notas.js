@@ -299,7 +299,6 @@ export const VistaNotas = {
 												     :key="c.component_id" class="edu-desglose-comp">
 													<div class="edu-desglose-cab">
 														<strong>{{ c.name }}</strong>
-														<span v-if="!modoTrimestre" class="edu-muted edu-small">peso {{ c.weight }}</span>
 														<span class="edu-desglose-prom">
 															{{ c.average === null ? '—' : formatScore(c.average) }}
 															<span class="edu-muted">({{ c.count }})</span>
@@ -318,14 +317,10 @@ export const VistaNotas = {
 													<p v-else class="edu-muted edu-small">Sin notas todavía.</p>
 												</div>
 
-												<p v-if="modoTrimestre" class="edu-nota-formula">
-													Los aportes son el promedio de todas las notas del trimestre,
+												<p class="edu-nota-formula">
+													{{ modoTrimestre ? 'Los aportes son el promedio de todas las notas del trimestre'
+													                 : 'El parcial es el promedio de todas sus notas' }},
 													cada una con el mismo valor.
-												</p>
-												<p v-else class="edu-nota-formula">
-													La nota de cada componente es el promedio de sus notas. Los
-													componentes sin calificar no cuentan: sus pesos se reparten
-													entre los que sí tienen nota.
 												</p>
 											</template>
 										</div>

@@ -471,7 +471,7 @@ export const VistaDocenteTareas = {
 					<input class="edu-input" type="text" v-model="formulario.component_name"
 					       placeholder="Tareas, Lecciones, Prueba…">
 					<span class="edu-muted edu-small">
-						Nace con peso 1.00. Si ya existe uno con ese nombre, se reutiliza.
+						Si ya existe uno con ese nombre, se reutiliza.
 					</span>
 				</label>
 

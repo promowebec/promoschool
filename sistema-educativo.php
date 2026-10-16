@@ -3,7 +3,7 @@
  * Plugin Name:       Sistema Educativo Integral
  * Plugin URI:        https://example.com/sistema-educativo
  * Description:       Gestión académica integral para unidades educativas en Ecuador: calificaciones (3 trimestres × 2 parciales 70% + examen 30%), tareas, lecciones, comunicados padres-docentes, asistencia, boletines y dashboard institucional.
- * Version:           1.16.0
+ * Version:           1.17.0
  * Requires at least: 6.0
  * Requires PHP:      8.2
  * Author:            Cowork
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EDU_VERSION', '1.16.0' );
+define( 'EDU_VERSION', '1.17.0' );
 define( 'EDU_DB_VERSION', '1.0.11' );
 
 define( 'EDU_PLUGIN_FILE', __FILE__ );
@@ -141,6 +141,7 @@ function edu_bootstrap() {
 		$loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue' );
 		$loader->add_action( 'admin_init',           $admin, 'redirect_non_admin_roles' );
 		$loader->add_action( 'admin_init',           'Edu_Roles', 'maybe_sync_roles' );
+		$loader->add_action( 'admin_init',           'Edu_Grade_Calculator', 'maybe_recalcular_sin_pesos' );
 		Edu_User_Profile::register();
 	}
 

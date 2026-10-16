@@ -373,18 +373,22 @@ class Edu_Shortcode_Docente {
 
 				// Promedio de notas por (student, component) — múltiples tareas del mismo componente se promedian.
 				$notas_raw = $wpdb->get_results( $wpdb->prepare(
-					"SELECT student_id, component_id, AVG(score) AS score
+					"SELECT student_id, component_id, AVG(score) AS score, SUM(score) AS suma, COUNT(*) AS n
 					 FROM {$p}grades_log
 					 WHERE component_id IN ($comp_ph) AND student_id IN ($est_ph)
 					 GROUP BY student_id, component_id",
 					...array_merge( $comp_ids, $est_ids )
 				) );
 				$notas_idx = array();
+				$suma_idx  = array();
 				foreach ( $notas_raw as $n ) {
 					$notas_idx[ (int) $n->student_id ][ (int) $n->component_id ] = (float) $n->score;
+					$suma_idx[ (int) $n->student_id ]['suma'] = ( $suma_idx[ (int) $n->student_id ]['suma'] ?? 0 ) + (float) $n->suma;
+					$suma_idx[ (int) $n->student_id ]['n']    = ( $suma_idx[ (int) $n->student_id ]['n'] ?? 0 ) + (int) $n->n;
 				}
 				foreach ( $estudiantes_notas as &$est ) {
-					$est->notas = $notas_idx[ (int) $est->id ] ?? array();
+					$est->notas      = $notas_idx[ (int) $est->id ] ?? array();
+					$est->suma_notas = $suma_idx[ (int) $est->id ] ?? array( 'suma' => 0, 'n' => 0 );
 				}
 				unset( $est );
 			}
@@ -1385,7 +1389,6 @@ class Edu_Shortcode_Docente {
 							<?php foreach ( $componentes as $c ) : ?>
 								<th class="center" style="min-width:110px;">
 									<?php echo esc_html( $c->name ); ?>
-									<div style="font-weight:400; font-size:10px; color:#9ca3af;">(<?php echo number_format( (float) $c->weight * 100, 0 ); ?>%)</div>
 								</th>
 							<?php endforeach; ?>
 							<th class="center bg-blue" style="min-width:80px;"><?php esc_html_e( 'Parcial', 'sistema-educativo' ); ?></th>
@@ -1394,19 +1397,10 @@ class Edu_Shortcode_Docente {
 					</thead>
 					<tbody>
 					<?php foreach ( $estudiantes_notas as $est ) :
-						$parcial_score = null;
-						$peso_total    = 0;
-						$suma_pond     = 0;
-						foreach ( $componentes as $c ) {
-							$nota = $est->notas[ (int) $c->id ] ?? null;
-							if ( null !== $nota ) {
-								$suma_pond  += $nota * (float) $c->weight;
-								$peso_total += (float) $c->weight;
-							}
-						}
-						if ( $peso_total > 0 ) {
-							$parcial_score = round( $suma_pond / $peso_total, 2 );
-						}
+						// Promedio simple de todas las notas del parcial, como Edu_Grade_Calculator.
+						$parcial_score = $est->suma_notas['n'] > 0
+							? round( $est->suma_notas['suma'] / $est->suma_notas['n'], 2 )
+							: null;
 						$color_p = null === $parcial_score ? '#9ca3af' : ( $parcial_score >= 7 ? '#1d4ed8' : '#dc2626' );
 					?>
 						<tr>

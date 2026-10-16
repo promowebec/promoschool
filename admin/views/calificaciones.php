@@ -192,7 +192,7 @@ $ready    = ( $grade_id && $subject_id && $trimester_id && in_array( $parcial_nu
 
 	<?php if ( $ready ) :
 		$components = $wpdb->get_results( $wpdb->prepare(
-			"SELECT id, name, weight FROM $tc WHERE subject_id = %d AND trimester_id = %d AND parcial_num = %d ORDER BY id",
+			"SELECT id, name FROM $tc WHERE subject_id = %d AND trimester_id = %d AND parcial_num = %d ORDER BY id",
 			$subject_id, $trimester_id, $parcial_num
 		) );
 
@@ -239,12 +239,6 @@ $ready    = ( $grade_id && $subject_id && $trimester_id && in_array( $parcial_nu
 			}
 		}
 
-		$weight_sum = 0;
-		foreach ( $components as $c ) {
-			$weight_sum += (float) $c->weight;
-		}
-		$weight_ok = ( abs( $weight_sum - 1.0 ) <= 0.01 );
-
 		// Sub-nivel del grado para equivalencia cualitativa.
 		$grade_sub_level = (string) $wpdb->get_var( $wpdb->prepare(
 			"SELECT sub_level FROM $tg WHERE id = %d", $grade_id
@@ -259,18 +253,15 @@ $ready    = ( $grade_id && $subject_id && $trimester_id && in_array( $parcial_nu
 		<div class="notice notice-info"><p><?php esc_html_e( 'El grado no tiene estudiantes activos.', 'sistema-educativo' ); ?></p></div>
 	<?php else : ?>
 
-	<?php if ( $modo_trimestre ) : ?>
-		<div class="notice notice-info"><p>
-			<?php esc_html_e( 'Esta institución califica por trimestre: la nota de aportes es el promedio simple de todas las notas del trimestre. Los pesos de los componentes no se usan.', 'sistema-educativo' ); ?>
-		</p></div>
-	<?php elseif ( ! $weight_ok ) : ?>
-		<div class="notice notice-warning"><p>
-			<?php
-			/* translators: %s: suma actual de pesos */
-			echo esc_html( sprintf( __( 'Atención: la suma de pesos de los componentes es %s (debería ser 1.00). El cálculo del parcial se normalizará proporcionalmente.', 'sistema-educativo' ), number_format( $weight_sum, 2 ) ) );
-			?>
-		</p></div>
-	<?php endif; ?>
+	<div class="notice notice-info"><p>
+		<?php
+		echo esc_html(
+			$modo_trimestre
+				? __( 'Esta institución califica por trimestre: la nota de aportes es el promedio simple de todas las notas del trimestre, y cada nota vale igual.', 'sistema-educativo' )
+				: __( 'La nota del parcial es el promedio simple de todas sus notas: cada nota vale igual, sin importar el componente.', 'sistema-educativo' )
+		);
+		?>
+	</p></div>
 
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<?php wp_nonce_field( 'edu_save_scores' ); ?>
@@ -287,9 +278,6 @@ $ready    = ( $grade_id && $subject_id && $trimester_id && in_array( $parcial_nu
 					<?php foreach ( $components as $c ) : ?>
 						<th>
 							<?php echo esc_html( $c->name ); ?>
-							<?php if ( ! $modo_trimestre ) : ?>
-								<br><small style="font-weight:normal;">(<?php echo esc_html( number_format( (float) $c->weight, 2 ) ); ?>)</small>
-							<?php endif; ?>
 						</th>
 					<?php endforeach; ?>
 					<th><?php echo esc_html( $modo_trimestre ? __( 'Promedio de aportes', 'sistema-educativo' ) : __( 'Nota parcial', 'sistema-educativo' ) ); ?></th>

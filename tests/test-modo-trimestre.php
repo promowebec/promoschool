@@ -7,8 +7,8 @@
  *   · Colegio B en el modo por defecto (parciales), para comprobar que no cambia.
  *
  * Caso de aportes: Tareas (peso 1.00) = 10 y Lecciones (peso 0.50) = 5, 5, 5.
- *   Por parciales:  (10×1 + 5×0.5) / 1.5 = 8.33
- *   Solo trimestre: (10 + 5 + 5 + 5) / 4  = 6.25   ← pesos ignorados
+ *   En los dos modos: (10 + 5 + 5 + 5) / 4 = 6.25   ← pesos ignorados
+ *   (hasta la 1.16.0 el modo por parciales ponderaba y daba 8.33)
  *
  * @package SistemaEducativo
  */
@@ -319,7 +319,7 @@ $nota( $est_b, $lecciones_b, 5 );
 $nota( $est_b, $lecciones_b, 5 );
 Edu_Grade_Calculator::recalculate_parcial( $est_b, $mat_b, $tri_b, 1 );
 $p1_b = (float) $wpdb->get_var( $wpdb->prepare( "SELECT computed_score FROM {$p}parcial_scores WHERE student_id = %d AND subject_id = %d AND trimester_id = %d AND parcial_num = 1", $est_b, $mat_b, $tri_b ) );
-edu_assert( 'B: los mismos aportes dan 8.33 ponderado', abs( $p1_b - 8.33 ) < 0.001, (string) $p1_b );
+edu_assert( 'B: los mismos aportes dan 6.25, sin ponderar', abs( $p1_b - 6.25 ) < 0.001, (string) $p1_b );
 edu_assert(
 	'B: sin examen ni cierre no se crea el trimestre',
 	null === $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$p}trimester_scores WHERE student_id = %d AND trimester_id = %d", $est_b, $tri_b ) )

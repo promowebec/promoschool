@@ -62,7 +62,7 @@ Pantallas y controllers para Institución, Períodos lectivos (+ trimestres), Gr
 El corazón del sistema.
 
 - `Pensum` (`wp_edu_grade_subjects`): qué materias se dictan en cada grado y con cuántas horas/semana.
-- `Componentes evaluables` (`wp_edu_grade_components`): filas nombre + peso por (materia, trimestre, parcial).
+- `Componentes evaluables` (`wp_edu_grade_components`): filas por (materia, trimestre, parcial); el peso dejó de usarse en la 1.17.0.
 - `Calificaciones`: matriz estudiantes × componentes; cada celda genera una fila en `wp_edu_grades_log`.
 - `Examen final`: captura del examen y del proyecto por (grado, materia, trimestre).
 - `Cierres`: cierre de parcial y de trimestre con bloqueo de escritura.
@@ -77,8 +77,8 @@ edu_partial_closed    → Edu_Grade_Calculator::on_partial_closed    → recalcu
 edu_trimester_closed  → Edu_Grade_Calculator::on_trimester_closed  → recalculate_year
 ```
 
-Regla de cálculo del parcial: `Σ(nota_componente × peso) ÷ Σ(pesos con nota)`.
-Los componentes sin nota **se excluyen** (no cuentan como cero) y la suma de pesos se **renormaliza**, por lo que no es obligatorio que los pesos sumen 1.00.
+Regla de cálculo del parcial (desde la 1.17.0): **promedio simple de todas las notas del parcial**; cada nota vale igual.
+Hasta la 1.16.0 era `Σ(nota_componente × peso) ÷ Σ(pesos con nota)`, con los componentes sin nota excluidos y los pesos renormalizados.
 
 ### Fase 3 — Tareas y entregas ✅
 - `Edu_Assignment_Task_Controller` (CRUD de tareas + adjuntos) y `Edu_Submission_Controller` (entregas y calificación).
@@ -151,6 +151,57 @@ Vista de supervisión para el rector: por asignación académica muestra compone
 ---
 
 ## 2.bis · Entradas de bitácora
+
+### 2026-10-16 — Parciales sin ponderación (v1.17.0)
+
+**Qué se hizo.** Decisión del usuario: en los parciales **todas las notas valen igual**, sin
+pesos. Vale para **todos los colegios** (es la regla estándar, no una opción) y coincide con el
+cálculo del aplicativo del Ministerio auditado en agosto. El 70% sigue siendo `(P1+P2)/2`.
+
+```
+Nota_Parcial = promedio simple de todas las notas del parcial
+Ej.: Tareas 10, 8, 9 · Prueba 6 → (10+8+9+6)/4 = 8.25   (antes, con pesos 1 y 2: 7.00)
+```
+
+- `Edu_Grade_Calculator::recalculate_parcial()` usa en los dos modos el mismo `AVG` sobre todas
+  las filas de `grades_log` del parcial (antes solo el modo trimestre). Cada nota cuenta igual,
+  también cuando un componente tiene varias (decisión del usuario: no se promedia antes por
+  componente).
+- **Recálculo de las notas existentes** (decisión del usuario): `maybe_recalcular_sin_pesos()`
+  corre una sola vez en `admin_init`, por tandas de 100 y con tope de 10 s por visita, sobre los
+  parciales **abiertos** cuyo trimestre tampoco está cerrado; refresca también el trimestre.
+  Los cerrados no se tocan. Progreso en la opción `edu_recalculo_sin_pesos` (cursor →
+  `hecho`) y una entrada de auditoría `recalculo_sin_pesos` con `revisados` / `cambiados`.
+- Pesos fuera de las pantallas: Componentes (sin columna ni suma), Calificaciones (sin aviso de
+  suma ni peso en la cabecera), Panel de docentes, Institución, Tareas; en la app, grilla del
+  docente, desglose de Notas y de Cierres. La columna `weight` se conserva en la tabla y en la
+  API (`POST /components` la sigue aceptando) por compatibilidad; guardar componentes sin peso
+  conserva el que tenían.
+- **Portal shortcode del docente (corrección):** su columna «Parcial» repetía la fórmula
+  ponderada en la vista; ahora es el promedio simple, como el servidor.
+- **Fallo de la 1.16.0 corregido:** en la grilla del docente de la app, en modo trimestre la
+  tabla de notas no aparecía: el aviso «sin pesos» quedó entre `edu-empty` y `edu-card v-else`
+  y se quedó con el `v-else`. Se quitó el aviso y el texto va dentro de la tarjeta.
+
+**Archivos tocados:** `modules/calificaciones/class-edu-grade-calculator.php`,
+`includes/class-edu-audit.php`, `sistema-educativo.php` (1.17.0 + hook),
+`includes/services/class-edu-curriculum-service.php`, `class-edu-score-service.php`,
+`class-edu-service.php`, `includes/controllers/class-edu-curriculum-controller.php`,
+`admin/views/componentes.php`, `calificaciones.php`, `panel-docentes.php`, `institucion.php`,
+`tareas.php`, `public/shortcodes/class-edu-shortcode-docente.php`,
+`public/spa/js/views/docente/calificaciones.js`, `docente/tareas.js`, `notas.js`,
+`rector/cierres.js`, `tests/test-parcial-sin-pesos.php` (nuevo, 19 comprobaciones),
+`tests/test-modo-trimestre.php`, CLAUDE.md, contrato y manual.
+
+**Cambios de esquema:** ninguno.
+
+**Riesgos / notas de despliegue:**
+- **Cambia notas visibles en giro22:** al entrar a wp-admin después de subir los archivos, los
+  parciales abiertos con componentes de pesos distintos cambian de valor. Avisar al colegio
+  antes. Los boletines ya emitidos de trimestres cerrados no cambian.
+- El recálculo necesita que alguien entre a wp-admin; con muchos datos termina en varias
+  visitas. Hasta entonces conviven valores viejos y nuevos en los parciales abiertos.
+- La nota anual no se recalcula aquí: se sigue actualizando al cerrar cada trimestre.
 
 ### 2026-10-14 — Modo de calificación «solo trimestre» (v1.16.0)
 
@@ -1401,6 +1452,7 @@ Las migraciones incrementales viven en `Edu_Activator::run_incremental_migration
 | 1.8.0 | (sin cambio de esquema) | Fase 2: portal del docente + escrituras de calificaciones en la API |
 | 1.9.0 | (sin cambio de esquema) | Fase 2 completa: portal del rector, descarga de adjuntos y arreglo de las descargas firmadas |
 | 1.16.0 | (sin cambio de esquema) | Modo de calificación «solo trimestre» por institución (1.10–1.15: ver entradas de la §2.bis) |
+| 1.17.0 | (sin cambio de esquema) | Parciales sin ponderación: cada nota vale igual; recálculo único de las notas abiertas |
 
 ---
 

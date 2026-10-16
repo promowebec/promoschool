@@ -403,7 +403,6 @@ export const VistaRectorCierres = {
 											     class="edu-desglose-comp">
 												<div class="edu-desglose-cab">
 													<strong>{{ c.name }}</strong>
-													<span v-if="!modoTrimestre" class="edu-muted edu-small">peso {{ c.weight }}</span>
 													<span class="edu-desglose-prom">
 														{{ c.average === null ? '—' : c.average }}
 														<span class="edu-muted">({{ c.count }})</span>

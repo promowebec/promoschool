@@ -8,7 +8,7 @@
  * avance de calificación sobre el total de estudiantes y última actividad.
  *
  * Con ?edu_pd_detail=<ta_id> se expande el detalle de componentes de esa
- * asignación: peso, origen, notas registradas, promedio y tareas vinculadas.
+ * asignación: origen, notas registradas, promedio y tareas vinculadas.
  *
  * @package SistemaEducativo
  */
@@ -155,7 +155,7 @@ if ( $detail_id ) {
 		$trim_ids = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM $tt WHERE period_id = %d", (int) $detalle_row->period_id ) );
 		$in       = empty( $trim_ids ) ? '0' : implode( ',', array_map( 'intval', $trim_ids ) );
 		$detalle  = $wpdb->get_results( $wpdb->prepare(
-			"SELECT c.id, c.name, c.weight, c.created_by, c.parcial_num, t.number AS trim_num,
+			"SELECT c.id, c.name, c.created_by, c.parcial_num, t.number AS trim_num,
 			        (SELECT COUNT(*)   FROM $tl l INNER JOIN $tst st ON st.id = l.student_id WHERE l.component_id = c.id AND st.grade_id = %d) AS n_notas,
 			        (SELECT AVG(l.score) FROM $tl l INNER JOIN $tst st ON st.id = l.student_id WHERE l.component_id = c.id AND st.grade_id = %d) AS promedio,
 			        (SELECT GROUP_CONCAT(a.title SEPARATOR ' · ') FROM $ta a WHERE a.component_id = c.id AND a.grade_id = %d) AS tareas
@@ -275,7 +275,6 @@ $base_url = add_query_arg(
 				<th><?php esc_html_e( 'Trimestre', 'sistema-educativo' ); ?></th>
 				<th><?php esc_html_e( 'Parcial', 'sistema-educativo' ); ?></th>
 				<th><?php esc_html_e( 'Componente', 'sistema-educativo' ); ?></th>
-				<th><?php esc_html_e( 'Peso', 'sistema-educativo' ); ?></th>
 				<th><?php esc_html_e( 'Origen', 'sistema-educativo' ); ?></th>
 				<th><?php esc_html_e( 'Notas', 'sistema-educativo' ); ?></th>
 				<th><?php esc_html_e( 'Promedio', 'sistema-educativo' ); ?></th>
@@ -284,7 +283,7 @@ $base_url = add_query_arg(
 		</thead>
 		<tbody>
 		<?php if ( empty( $detalle ) ) : ?>
-			<tr><td colspan="8"><?php esc_html_e( 'Esta materia aún no tiene componentes evaluables en el período.', 'sistema-educativo' ); ?></td></tr>
+			<tr><td colspan="7"><?php esc_html_e( 'Esta materia aún no tiene componentes evaluables en el período.', 'sistema-educativo' ); ?></td></tr>
 		<?php else : foreach ( $detalle as $d ) :
 			if ( (int) $d->created_by ) {
 				$u_creador = get_userdata( (int) $d->created_by );
@@ -297,7 +296,6 @@ $base_url = add_query_arg(
 				<td>T<?php echo (int) $d->trim_num; ?></td>
 				<td><?php echo Edu_Service::MODO_TRIMESTRE === Edu_Service::grading_mode() ? '—' : 'P' . (int) $d->parcial_num; ?></td>
 				<td><?php echo esc_html( $d->name ); ?></td>
-				<td><?php echo esc_html( number_format( (float) $d->weight, 2, '.', '' ) ); ?></td>
 				<td><?php echo (int) $d->created_by ? esc_html( $origen ) : '<strong>' . esc_html( $origen ) . '</strong>'; ?></td>
 				<td><?php echo (int) $d->n_notas; ?></td>
 				<td>

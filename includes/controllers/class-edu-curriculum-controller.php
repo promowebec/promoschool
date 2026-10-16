@@ -59,14 +59,12 @@ class Edu_Curriculum_Controller {
 
 		$ids     = isset( $_POST['ids'] ) ? (array) wp_unslash( $_POST['ids'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- el servicio castea y sanea cada fila.
 		$names   = isset( $_POST['names'] ) ? (array) wp_unslash( $_POST['names'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$weights = isset( $_POST['weights'] ) ? (array) wp_unslash( $_POST['weights'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 		$rows = array();
 		foreach ( $names as $idx => $name ) {
 			$rows[] = array(
-				'id'     => isset( $ids[ $idx ] ) ? (int) $ids[ $idx ] : 0,
-				'name'   => $name,
-				'weight' => $weights[ $idx ] ?? '',
+				'id'   => isset( $ids[ $idx ] ) ? (int) $ids[ $idx ] : 0,
+				'name' => $name,
 			);
 		}
 
@@ -82,11 +80,6 @@ class Edu_Curriculum_Controller {
 			$args['status']     = 'warning';
 			$args['code']       = 'has_grades';
 			$args['protegidos'] = $result['protegidos'];
-		} elseif ( abs( $result['weight_sum'] - 1.0 ) > 0.01 ) {
-			// Aviso informativo: el cálculo renormaliza, pero se muestra la suma.
-			$args['status']    = 'warning';
-			$args['code']      = 'weight_sum';
-			$args['weightsum'] = number_format( $result['weight_sum'], 2, '.', '' );
 		} else {
 			$args['status'] = 'updated';
 		}

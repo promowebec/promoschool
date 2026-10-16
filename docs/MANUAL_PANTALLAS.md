@@ -60,7 +60,7 @@ Los ítems de módulos apagados desaparecen del menú (ver A.25 Ajustes).
 - **Rector:** formulario directo sobre su institución, sin selector.
 - Campos: nombre, RUC, dirección, teléfono, email, URL del logo, régimen (`sierra` / `costa`).
 - Bloque **Calificación** (v1.16.0): modo **Por parciales** (por defecto) o **Solo trimestre**
-  (aplicativo del Ministerio: sin parciales, promedio simple de aportes, pesos ignorados). Se
+  (aplicativo del Ministerio: sin parciales, promedio simple de aportes). Se
   elige antes de calificar: con notas en el período activo ya no se puede cambiar.
 - Bloque **Certificado de promoción**: código AMIE, ciudad, nombres del rector/a y del
   secretario/a, e imágenes de las dos firmas y del sello (PNG/JPG, 1 MB). Las imágenes se
@@ -235,17 +235,16 @@ Los ítems de módulos apagados desaparecen del menú (ver A.25 Ajustes).
 
 **Qué se ve**
 - Tres selectores: Materia → Trimestre → Parcial (1 o 2).
-- Tabla editable con columnas: **Componente** · **Peso (0.00 – 1.00)** · **Origen** · **Notas** · acción Quitar.
-- Pie con la suma de pesos en verde si es 1.00, en ámbar si no.
+- Tabla editable con columnas: **Componente** · **Origen** · **Notas** · acción Quitar.
+- Aviso: la nota del parcial es el promedio simple de todas sus notas.
 - Botón **+ Agregar componente**.
 
 **Reglas de negocio**
 - **Origen institucional** (`created_by = 0`): lo define el rectorado; el docente lo ve en gris, solo lectura.
 - **Origen docente** (`created_by = user_id`): el docente lo crea, edita y borra libremente.
 - Un componente con notas registradas **no se puede eliminar** (candado 🔒 con el número de notas).
-- **Los pesos no tienen que sumar 1.00.** El cálculo renormaliza dividiendo por la suma de los pesos que sí tienen nota, y los componentes sin nota se excluyen (no cuentan como cero).
-- **Solo importa la proporción entre los pesos.** Dejarlos todos en 1.00 equivale a dejarlos todos en 0.33: todos pesan igual. El peso por defecto es 1.00.
-- **Esta pantalla es opcional para el docente.** Desde v1.1.0 puede crear el componente directamente al crear la tarea (A.13). Aquí se revisa el set completo del parcial y se ajustan pesos.
+- **Sin pesos (desde v1.17.0).** Los componentes solo organizan las notas: el parcial es el promedio simple de todas sus notas y cada nota vale igual. Un componente sin notas no cuenta como cero.
+- **Esta pantalla es opcional para el docente.** Desde v1.1.0 puede crear el componente directamente al crear la tarea (A.13). Aquí se revisa el set completo del parcial.
 
 - **Tablas:** `grade_components` (lee `grades_log` para el conteo)
 - **Captura:** sí — es la pantalla que explica el modelo de evaluación.
@@ -269,7 +268,7 @@ Los ítems de módulos apagados desaparecen del menú (ver A.25 Ajustes).
 4. Parcial (1 o 2)
 5. **Se evalúa como** — un solo campo con tres modos:
    - un componente ya existente de esa materia/trimestre/parcial,
-   - **`➕ Crear componente nuevo…`** (opción por defecto) → aparece un campo de nombre y el componente se crea al guardar la tarea, con el mismo peso que los demás,
+   - **`➕ Crear componente nuevo…`** (opción por defecto) → aparece un campo de nombre y el componente se crea al guardar la tarea,
    - *Sin vincular (no cuenta para la nota)*.
 6. Título, descripción
 7. Fecha de entrega, nota máxima (10.00 por defecto)
@@ -368,7 +367,7 @@ media / superior / bg / bt:          ((P1+P2)/2) × 0.70 + ((Examen+Proyecto)/2)
 **Qué se ve**
 - Filtros por grado y por docente.
 - Una fila por asignación académica (docente + grado + materia) con: número de componentes del parcial (institucionales y propios), tareas creadas y cuántas alimentan notas, notas registradas, **% de avance de calificación** sobre el total de estudiantes, última actividad.
-- Con `?edu_pd_detail=<id>` se expande el detalle por componente: peso, origen, notas registradas, promedio y tareas vinculadas.
+- Con `?edu_pd_detail=<id>` se expande el detalle por componente: origen, notas registradas, promedio y tareas vinculadas.
 
 - **Tablas:** lectura sobre `teacher_assignments`, `grade_components`, `grades_log`, `assignments`, `students`
 - **Captura:** sí — **es el argumento de venta para el rector**: control real de la carga de notas.

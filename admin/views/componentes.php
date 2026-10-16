@@ -2,7 +2,7 @@
 /**
  * Vista: ABM de componentes evaluables por (materia + trimestre + parcial).
  *
- * Tres selectors → tabla editable de filas (nombre + peso). Guardado por ID
+ * Tres selectors → tabla editable de filas (nombre). Guardado por ID
  * (upsert) vía Edu_Curriculum_Controller::handle_save_components() para
  * preservar los vínculos con wp_edu_grades_log.
  *
@@ -12,8 +12,9 @@
  * - Docente (edu_grade_students): solo materias de sus asignaciones activas;
  *   ve las filas institucionales en solo-lectura y gestiona las propias.
  *
- * Los pesos no necesitan sumar 1.00: el cálculo del parcial renormaliza
- * dividiendo por la suma de pesos con nota (Edu_Grade_Calculator).
+ * Desde la 1.17.0 los componentes no tienen peso: el parcial es el promedio
+ * simple de todas sus notas (Edu_Grade_Calculator). La columna `weight` sigue
+ * en la tabla, pero ya no se pide ni se usa.
  *
  * @package SistemaEducativo
  */
@@ -107,14 +108,13 @@ if ( $es_docente ) {
 
 $status     = isset( $_GET['status'] ) ? sanitize_key( $_GET['status'] ) : '';
 $code       = isset( $_GET['code'] ) ? sanitize_key( $_GET['code'] ) : '';
-$weight_sum = isset( $_GET['weightsum'] ) ? sanitize_text_field( wp_unslash( $_GET['weightsum'] ) ) : '';
 $protegidos = isset( $_GET['protegidos'] ) ? (int) $_GET['protegidos'] : 0;
 
 $selected = ( $subject_id && $trimester_id && in_array( $parcial_num, array( 1, 2 ), true ) );
 $rows     = array();
 if ( $selected ) {
 	$rows = $wpdb->get_results( $wpdb->prepare(
-		"SELECT c.id, c.name, c.weight, c.created_by,
+		"SELECT c.id, c.name, c.created_by,
 		        (SELECT COUNT(*) FROM $tl l WHERE l.component_id = c.id) AS n_notas
 		 FROM $tc c
 		 WHERE c.subject_id = %d AND c.trimester_id = %d AND c.parcial_num = %d
@@ -142,13 +142,6 @@ $edu_origen_label = function ( $created_by ) {
 
 	<?php if ( 'updated' === $status ) : ?>
 		<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Componentes guardados.', 'sistema-educativo' ); ?></p></div>
-	<?php elseif ( 'warning' === $status && 'weight_sum' === $code ) : ?>
-		<div class="notice notice-warning"><p>
-			<?php
-			/* translators: %s: suma actual de pesos */
-			echo esc_html( sprintf( __( 'Componentes guardados. La suma de pesos es %s: el cálculo del parcial renormaliza automáticamente para que equivalga al 100%%.', 'sistema-educativo' ), $weight_sum ) );
-			?>
-		</p></div>
 	<?php elseif ( 'warning' === $status && 'has_grades' === $code ) : ?>
 		<div class="notice notice-warning"><p>
 			<?php
@@ -171,12 +164,12 @@ $edu_origen_label = function ( $created_by ) {
 
 	<?php if ( $es_docente ) : ?>
 		<p class="description" style="max-width:720px;">
-			<?php esc_html_e( 'Los componentes institucionales los define la dirección y no se pueden modificar. Puedes agregar tus propios componentes de evaluación: los pesos se renormalizan automáticamente para que el parcial siempre equivalga al 100%.', 'sistema-educativo' ); ?>
+			<?php esc_html_e( 'Los componentes institucionales los define la dirección y no se pueden modificar. Puedes agregar tus propios componentes de evaluación.', 'sistema-educativo' ); ?>
 		</p>
 	<?php endif; ?>
 
 	<p class="description" style="max-width:720px;">
-		<?php esc_html_e( 'No es obligatorio pasar por aquí: al crear una tarea puedes escribir el nombre del componente y se crea solo. Esta pantalla sirve para revisar el set completo del parcial y para ajustar pesos.', 'sistema-educativo' ); ?>
+		<?php esc_html_e( 'No es obligatorio pasar por aquí: al crear una tarea puedes escribir el nombre del componente y se crea solo. Esta pantalla sirve para revisar y ordenar el set completo del parcial.', 'sistema-educativo' ); ?>
 	</p>
 
 	<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" style="margin:16px 0;">
@@ -218,11 +211,15 @@ $edu_origen_label = function ( $created_by ) {
 		<?php endif; ?>
 	</form>
 
-	<?php if ( $modo_trimestre ) : ?>
-		<div class="notice notice-info inline"><p>
-			<?php esc_html_e( 'Esta institución califica por trimestre: los componentes sirven para organizar las notas, pero el promedio de aportes es simple y los pesos no se usan.', 'sistema-educativo' ); ?>
-		</p></div>
-	<?php endif; ?>
+	<div class="notice notice-info inline"><p>
+		<?php
+		echo esc_html(
+			$modo_trimestre
+				? __( 'Los componentes sirven para organizar las notas: el promedio de aportes del trimestre es el promedio simple de todas sus notas, y cada nota vale igual.', 'sistema-educativo' )
+				: __( 'Los componentes sirven para organizar las notas: la nota del parcial es el promedio simple de todas sus notas, y cada nota vale igual.', 'sistema-educativo' )
+		);
+		?>
+	</p></div>
 
 	<?php if ( $selected ) : ?>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="edu-components-form">
@@ -236,7 +233,6 @@ $edu_origen_label = function ( $created_by ) {
 			<thead>
 				<tr>
 					<th><?php esc_html_e( 'Componente', 'sistema-educativo' ); ?></th>
-					<th style="width:140px;"><?php esc_html_e( 'Peso (0.00 - 1.00)', 'sistema-educativo' ); ?></th>
 					<th style="width:160px;"><?php esc_html_e( 'Origen', 'sistema-educativo' ); ?></th>
 					<th style="width:110px;"><?php esc_html_e( 'Notas', 'sistema-educativo' ); ?></th>
 					<th style="width:80px;"></th>
@@ -256,7 +252,6 @@ $edu_origen_label = function ( $created_by ) {
 							<input type="hidden" name="ids[]" value="<?php echo (int) $r->id; ?>">
 							<input type="text" name="names[]" value="<?php echo esc_attr( $r->name ); ?>" class="regular-text">
 						</td>
-						<td><input type="number" name="weights[]" value="<?php echo esc_attr( number_format( (float) $r->weight, 2, '.', '' ) ); ?>" step="0.01" min="0" max="1" class="edu-weight" style="width:100px;"></td>
 						<td><?php echo (int) $r->created_by ? esc_html( $origen ) : '<strong>' . esc_html( $origen ) . '</strong>'; ?></td>
 						<td>
 							<?php if ( (int) $r->n_notas > 0 ) : ?>
@@ -274,7 +269,6 @@ $edu_origen_label = function ( $created_by ) {
 					<?php else : ?>
 					<tr class="edu-component-row-fixed" style="background:#f8fafc;">
 						<td style="padding-left:12px;"><?php echo esc_html( $r->name ); ?></td>
-						<td><span class="edu-weight-fixed" data-weight="<?php echo esc_attr( number_format( (float) $r->weight, 2, '.', '' ) ); ?>"><?php echo esc_html( number_format( (float) $r->weight, 2, '.', '' ) ); ?></span></td>
 						<td><strong><?php echo esc_html( $origen ); ?></strong></td>
 						<td><?php echo (int) $r->n_notas > 0 ? (int) $r->n_notas : '—'; ?></td>
 						<td><span class="description"><?php esc_html_e( 'Solo lectura', 'sistema-educativo' ); ?></span></td>
@@ -288,20 +282,12 @@ $edu_origen_label = function ( $created_by ) {
 							<input type="hidden" name="ids[]" value="0">
 							<input type="text" name="names[]" value="" class="regular-text" placeholder="<?php esc_attr_e( 'Ej. Tareas', 'sistema-educativo' ); ?>">
 						</td>
-						<td><input type="number" name="weights[]" value="1.00" step="0.01" min="0.01" max="1" class="edu-weight" style="width:100px;"></td>
 						<td><?php echo $puede_todo ? '<strong>' . esc_html__( 'Institucional', 'sistema-educativo' ) . '</strong>' : esc_html( wp_get_current_user()->display_name ); ?></td>
 						<td>—</td>
 						<td><button type="button" class="button edu-remove-row"><?php esc_html_e( 'Quitar', 'sistema-educativo' ); ?></button></td>
 					</tr>
 				<?php endif; ?>
 			</tbody>
-			<tfoot>
-				<tr>
-					<th style="text-align:right;"><?php esc_html_e( 'Suma de pesos:', 'sistema-educativo' ); ?></th>
-					<th><span id="edu-weight-sum">0.00</span></th>
-					<th colspan="3" class="description"><?php esc_html_e( 'Solo importa la proporción entre los pesos: dejarlos todos en 1.00 significa que todos los componentes pesan igual. El cálculo renormaliza automáticamente.', 'sistema-educativo' ); ?></th>
-				</tr>
-			</tfoot>
 		</table>
 
 		<p>
@@ -317,7 +303,6 @@ $edu_origen_label = function ( $created_by ) {
 					<input type="hidden" name="ids[]" value="0">
 					<input type="text" name="names[]" value="" class="regular-text">
 				</td>
-				<td><input type="number" name="weights[]" value="1.00" step="0.01" min="0.01" max="1" class="edu-weight" style="width:100px;"></td>
 				<td><?php echo $puede_todo ? '<strong>' . esc_html__( 'Institucional', 'sistema-educativo' ) . '</strong>' : esc_html( wp_get_current_user()->display_name ); ?></td>
 				<td>—</td>
 				<td><button type="button" class="button edu-remove-row"><?php esc_html_e( 'Quitar', 'sistema-educativo' ); ?></button></td>
@@ -330,39 +315,16 @@ $edu_origen_label = function ( $created_by ) {
 		var tbody = document.querySelector('#edu-components-table tbody');
 		var tpl   = document.getElementById('edu-component-template');
 		var addBtn = document.getElementById('edu-add-row');
-		var sumEl = document.getElementById('edu-weight-sum');
-
-		function recalc() {
-			var s = 0;
-			tbody.querySelectorAll('.edu-weight').forEach(function(i){
-				var v = parseFloat(i.value);
-				if (!isNaN(v)) s += v;
-			});
-			tbody.querySelectorAll('.edu-weight-fixed').forEach(function(el){
-				var v = parseFloat(el.dataset.weight);
-				if (!isNaN(v)) s += v;
-			});
-			sumEl.textContent = s.toFixed(2);
-			sumEl.style.color = Math.abs(s - 1) < 0.01 ? 'green' : '#b45309';
-		}
 
 		addBtn.addEventListener('click', function(){
 			tbody.appendChild(tpl.content.cloneNode(true));
-			recalc();
 		});
 
 		tbody.addEventListener('click', function(e){
 			if (e.target.classList.contains('edu-remove-row')) {
 				e.target.closest('tr').remove();
-				recalc();
 			}
 		});
-
-		tbody.addEventListener('input', function(e){
-			if (e.target.classList.contains('edu-weight')) recalc();
-		});
-
-		recalc();
 	})();
 	</script>
 	<?php endif; ?>

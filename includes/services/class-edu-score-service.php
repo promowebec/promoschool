@@ -6,9 +6,8 @@
  * y recalcula el parcial una sola vez por estudiante al terminar el lote.
  *
  * Regla de cálculo, delegada en Edu_Grade_Calculator:
- *   nota_parcial = Σ(nota_componente × peso) ÷ Σ(pesos con nota)
- * Los componentes sin nota se excluyen y los pesos se renormalizan, así que
- * NO es obligatorio que los pesos sumen 1.00.
+ *   nota_parcial = promedio simple de todas las notas del parcial.
+ * Cada nota vale igual y una celda sin nota no cuenta como cero.
  *
  * @package SistemaEducativo
  */

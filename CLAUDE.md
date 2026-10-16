@@ -119,21 +119,27 @@ Nota_Anual = (Trim_1 + Trim_2 + Trim_3) / 3
 ### Modo «solo trimestre» (opcional por institución, desde la 1.16.0)
 
 Opción `edu_modo_notas_{id}`. Sin parciales: el 70% es el **promedio simple de todas las notas
-del trimestre**, sin pesos; la sumativa sigue por subnivel. Todo se guarda en `parcial_num = 1`.
+del trimestre**; la sumativa sigue por subnivel. Todo se guarda en `parcial_num = 1`.
 La fórmula vive **solo** en `Edu_Service::trimester_score()`; el modo se lee con
 `Edu_Service::grading_mode()` y no se puede cambiar con notas en el período activo.
 
 ### Cálculo del parcial — la regla que más se malinterpreta
 
 ```
-Nota_Parcial = Σ(nota_componente × peso) ÷ Σ(pesos de los componentes CON nota)
+Nota_Parcial = promedio simple de TODAS las notas del parcial      (desde la 1.17.0)
 ```
 
-Los componentes **sin calificar se excluyen** y los pesos se **renormalizan**: no cuentan como
-cero. Por eso **no es obligatorio que los pesos sumen 1.00**. Un estudiante con un solo
-componente calificado en 7 saca 7.00, no una fracción.
+**Cada nota vale igual:** no hay pesos ni promedio previo por componente. Tareas 10, 8, 9 y
+una prueba 6 dan (10+8+9+6)/4 = 8.25. La columna `grade_components.weight` sigue en la tabla
+y en la API por compatibilidad, pero **ningún cálculo la usa** (decisión del usuario, 16 oct
+2026). Hasta la 1.16.0 era `Σ(nota_componente × peso) ÷ Σ(pesos con nota)`.
 
-Varias notas en un mismo componente se **promedian** (`AVG`), no se sobrescriben.
+Un componente **sin calificar no cuenta como cero**: simplemente no aporta notas. Un
+estudiante con una sola nota de 7 saca 7.00, no una fracción.
+
+Al actualizar a la 1.17.0, `Edu_Grade_Calculator::maybe_recalcular_sin_pesos()` recalcula una
+vez (en `admin_init`, por tandas) los parciales abiertos; los cerrados y los de trimestres
+cerrados no se tocan. Opción `edu_recalculo_sin_pesos`, auditado como `recalculo_sin_pesos`.
 
 ### Equivalencia cualitativa (Instructivo 2025)
 
@@ -355,7 +361,7 @@ portal: si algo falla, se vuelve a poner el shortcode.
 
 ## Estado actual
 
-**v1.16.0** · esquema `EDU_DB_VERSION` 1.0.11. Desde la 1.14.0 los módulos dependen del plan contratado (licencia firmada, ver «Plan contratado»). Desde la 1.16.0 cada institución elige modo de calificación «por parciales» o «solo trimestre».
+**v1.17.0** · esquema `EDU_DB_VERSION` 1.0.11. Desde la 1.14.0 los módulos dependen del plan contratado (licencia firmada, ver «Plan contratado»). Desde la 1.16.0 cada institución elige modo de calificación «por parciales» o «solo trimestre». Desde la 1.17.0 los parciales no ponderan: cada nota vale igual.
 
 Fases 0–7 del plugin completas (calificaciones, tareas, comunicados, asistencia, PWA, cuentas,
 pagos Payphone, WhatsApp y exportes Mineduc), más la revisión de seguridad de julio de 2026.

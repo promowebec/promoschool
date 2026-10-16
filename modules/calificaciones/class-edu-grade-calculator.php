@@ -7,11 +7,10 @@
  * por hooks (edu_grade_logged, edu_partial_closed, edu_trimester_closed) o
  * directamente por los controllers tras un batch de notas.
  *
- * Fórmula parcial:
- *   computed = Σ (score_componente × weight_componente)
- *   Si Σ(weight) ≠ 1.00 se normaliza dividiendo por Σ(weight) para no inflar
- *   o deflar artificialmente la nota del parcial. Componentes sin nota
- *   registrada se excluyen del cálculo (no cuentan como 0).
+ * Fórmula parcial (desde la 1.17.0, en los dos modos):
+ *   computed = promedio simple de TODAS las notas del parcial.
+ *   Cada nota vale igual: no hay pesos ni promedio previo por componente.
+ *   Un componente sin notas no aporta filas, así que no cuenta como 0.
  *
  * @package SistemaEducativo
  */
@@ -50,46 +49,20 @@ class Edu_Grade_Calculator {
 
 		$modo_trimestre = Edu_Service::MODO_TRIMESTRE === self::modo_del_estudiante( $student_id );
 
-		if ( $modo_trimestre ) {
-			/*
-			 * Modo «solo trimestre» (aplicativo del Ministerio): cada nota es un
-			 * aporte y se promedian todas por igual, sin pesos ni promedio previo
-			 * por componente. 10, 5, 5, 5 da 6.25 aunque tres estén en el mismo
-			 * componente.
-			 */
-			$avg = $wpdb->get_var( $wpdb->prepare(
-				"SELECT AVG(l.score) FROM $tl l
-				 INNER JOIN $tc c ON c.id = l.component_id
-				 WHERE l.student_id = %d AND c.subject_id = %d AND c.trimester_id = %d AND c.parcial_num = %d",
-				$student_id, $subject_id, $trimester_id, $parcial_num
-			) );
+		/*
+		 * Cada nota es un aporte y se promedian todas por igual, sin pesos ni
+		 * promedio previo por componente: 10, 5, 5, 5 da 6.25 aunque tres estén
+		 * en el mismo componente. Vale para los dos modos; en modo trimestre todo
+		 * vive en parcial_num = 1, así que la misma consulta da el trimestre.
+		 */
+		$avg = $wpdb->get_var( $wpdb->prepare(
+			"SELECT AVG(l.score) FROM $tl l
+			 INNER JOIN $tc c ON c.id = l.component_id
+			 WHERE l.student_id = %d AND c.subject_id = %d AND c.trimester_id = %d AND c.parcial_num = %d",
+			$student_id, $subject_id, $trimester_id, $parcial_num
+		) );
 
-			$computed = ( null !== $avg ) ? round( (float) $avg, 2 ) : 0.0;
-		} else {
-			// Componentes del set.
-			$components = $wpdb->get_results( $wpdb->prepare(
-				"SELECT id, weight FROM $tc WHERE subject_id = %d AND trimester_id = %d AND parcial_num = %d",
-				$subject_id, $trimester_id, $parcial_num
-			) );
-
-			$weighted_sum   = 0.0;
-			$weight_present = 0.0;
-
-			foreach ( $components as $c ) {
-				$score = $wpdb->get_var( $wpdb->prepare(
-					"SELECT AVG(score) FROM $tl WHERE student_id = %d AND component_id = %d",
-					$student_id, (int) $c->id
-				) );
-				if ( null === $score ) {
-					continue; // Sin nota registrada: no se considera.
-				}
-				$w               = (float) $c->weight;
-				$weighted_sum   += (float) $score * $w;
-				$weight_present += $w;
-			}
-
-			$computed = ( $weight_present > 0 ) ? round( $weighted_sum / $weight_present, 2 ) : 0.0;
-		}
+		$computed = ( null !== $avg ) ? round( (float) $avg, 2 ) : 0.0;
 
 		if ( $existing ) {
 			$wpdb->update(
@@ -129,6 +102,79 @@ class Edu_Grade_Calculator {
 		}
 
 		return $computed;
+	}
+
+	/** Opción: «hecho» o el último id de parcial_scores ya recalculado. */
+	const OPCION_RECALCULO_SIN_PESOS = 'edu_recalculo_sin_pesos';
+
+	/**
+	 * Recalcula una sola vez, sin pesos, los parciales abiertos que existían
+	 * antes de la 1.17.0 (hasta entonces se ponderaban por componente).
+	 *
+	 * Corre en admin_init por tandas y con un tope de tiempo, así que una
+	 * instalación grande termina en varias visitas a wp-admin sin bloquear
+	 * ninguna. Los parciales y trimestres cerrados no se tocan: un cierre no se
+	 * recalcula. Al terminar deja una sola entrada de auditoría con el resumen.
+	 */
+	public static function maybe_recalcular_sin_pesos() {
+		$estado = get_option( self::OPCION_RECALCULO_SIN_PESOS, '' );
+		if ( 'hecho' === $estado ) {
+			return;
+		}
+
+		// Otra petición (heartbeat, otra pestaña) ya está en ello.
+		if ( get_transient( 'edu_recalculo_sin_pesos_lock' ) ) {
+			return;
+		}
+		set_transient( 'edu_recalculo_sin_pesos_lock', 1, MINUTE_IN_SECONDS );
+
+		global $wpdb;
+		$tp  = $wpdb->prefix . 'edu_parcial_scores';
+		$tts = $wpdb->prefix . 'edu_trimester_scores';
+
+		$progreso = is_array( $estado ) ? $estado : array( 'cursor' => 0, 'revisados' => 0, 'cambiados' => 0 );
+		$limite   = microtime( true ) + 10;
+
+		do {
+			$filas = $wpdb->get_results( $wpdb->prepare(
+				// Un parcial abierto de un trimestre ya cerrado tampoco se toca:
+				// cambiaría el desglose de una nota que ya no se recalcula.
+				"SELECT ps.id, ps.student_id, ps.subject_id, ps.trimester_id, ps.parcial_num, ps.computed_score
+				 FROM $tp ps
+				 LEFT JOIN $tts ts ON ts.student_id = ps.student_id AND ts.subject_id = ps.subject_id
+				                  AND ts.trimester_id = ps.trimester_id AND ts.is_closed = 1
+				 WHERE ps.id > %d AND ps.is_closed = 0 AND ts.id IS NULL
+				 ORDER BY ps.id LIMIT 100",
+				(int) $progreso['cursor']
+			) );
+
+			foreach ( $filas as $f ) {
+				$nueva = self::recalculate_parcial( (int) $f->student_id, (int) $f->subject_id, (int) $f->trimester_id, (int) $f->parcial_num );
+				if ( false !== $nueva && abs( (float) $nueva - (float) $f->computed_score ) > 0.001 ) {
+					++$progreso['cambiados'];
+				}
+				++$progreso['revisados'];
+				$progreso['cursor'] = (int) $f->id;
+			}
+		} while ( count( $filas ) === 100 && microtime( true ) < $limite );
+
+		if ( count( $filas ) < 100 ) {
+			Edu_Audit::log(
+				Edu_Audit::RECALCULO_SIN_PESOS,
+				'parcial',
+				null,
+				null,
+				array(
+					'revisados' => $progreso['revisados'],
+					'cambiados' => $progreso['cambiados'],
+				)
+			);
+			update_option( self::OPCION_RECALCULO_SIN_PESOS, 'hecho', false );
+		} else {
+			update_option( self::OPCION_RECALCULO_SIN_PESOS, $progreso, false );
+		}
+
+		delete_transient( 'edu_recalculo_sin_pesos_lock' );
 	}
 
 	/**

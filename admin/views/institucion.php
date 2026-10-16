@@ -181,11 +181,11 @@ $status_code = isset( $_GET['code'] ) ? sanitize_key( $_GET['code'] ) : '';
 						<fieldset>
 							<label><input type="radio" name="modo_notas" value="<?php echo esc_attr( Edu_Service::MODO_PARCIALES ); ?>" <?php checked( $edu_modo, Edu_Service::MODO_PARCIALES ); ?>>
 								<?php esc_html_e( 'Por parciales', 'sistema-educativo' ); ?></label>
-							<p class="description"><?php esc_html_e( 'Dos parciales por trimestre. Cada parcial pondera sus componentes por peso; el 70% es el promedio de los dos parciales.', 'sistema-educativo' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Dos parciales por trimestre. Cada parcial es el promedio simple de sus notas; el 70% es el promedio de los dos parciales.', 'sistema-educativo' ); ?></p>
 							<br>
 							<label><input type="radio" name="modo_notas" value="<?php echo esc_attr( Edu_Service::MODO_TRIMESTRE ); ?>" <?php checked( $edu_modo, Edu_Service::MODO_TRIMESTRE ); ?>>
 								<?php esc_html_e( 'Solo trimestre (aplicativo del Ministerio)', 'sistema-educativo' ); ?></label>
-							<p class="description"><?php esc_html_e( 'Sin parciales. El 70% es el promedio simple de todos los aportes del trimestre; los pesos de los componentes no se usan.', 'sistema-educativo' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Sin parciales. El 70% es el promedio simple de todos los aportes del trimestre.', 'sistema-educativo' ); ?></p>
 						</fieldset>
 						<p class="description"><strong><?php esc_html_e( 'Se elige antes de empezar a calificar: con notas en el período activo ya no se puede cambiar.', 'sistema-educativo' ); ?></strong>
 							<?php esc_html_e( 'En los dos modos la evaluación sumativa (30%) sigue la regla de cada subnivel.', 'sistema-educativo' ); ?></p>
