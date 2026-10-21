@@ -114,7 +114,8 @@ class Edu_Grade_Calculator {
 	 * Corre en admin_init por tandas y con un tope de tiempo, así que una
 	 * instalación grande termina en varias visitas a wp-admin sin bloquear
 	 * ninguna. Los parciales y trimestres cerrados no se tocan: un cierre no se
-	 * recalcula. Al terminar deja una sola entrada de auditoría con el resumen.
+	 * recalcula. Cada nota que cambia queda en la auditoría con su valor anterior, y
+	 * al terminar se agrega una entrada con el resumen.
 	 */
 	public static function maybe_recalcular_sin_pesos() {
 		$estado = get_option( self::OPCION_RECALCULO_SIN_PESOS, '' );
@@ -152,6 +153,15 @@ class Edu_Grade_Calculator {
 				$nueva = self::recalculate_parcial( (int) $f->student_id, (int) $f->subject_id, (int) $f->trimester_id, (int) $f->parcial_num );
 				if ( false !== $nueva && abs( (float) $nueva - (float) $f->computed_score ) > 0.001 ) {
 					++$progreso['cambiados'];
+					// Una entrada por nota cambiada: el valor ponderado anterior queda
+					// recuperable si el colegio pregunta por qué cambió.
+					Edu_Audit::log(
+						Edu_Audit::RECALCULO_SIN_PESOS,
+						'parcial_score',
+						(int) $f->id,
+						array( 'computed_score' => (float) $f->computed_score ),
+						array( 'computed_score' => (float) $nueva )
+					);
 				}
 				++$progreso['revisados'];
 				$progreso['cursor'] = (int) $f->id;

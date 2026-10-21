@@ -227,16 +227,24 @@ edu_assert( 'Z: el trimestre cerrado no cambia', abs( (float) $trimestre( $est_z
 
 edu_assert( 'el recálculo queda marcado como hecho', 'hecho' === get_option( Edu_Grade_Calculator::OPCION_RECALCULO_SIN_PESOS ) );
 
-$audit = $wpdb->get_row( $wpdb->prepare(
-	"SELECT id, new_value FROM {$p}audit WHERE id > %d AND action = %s ORDER BY id DESC LIMIT 1",
+$entradas = $wpdb->get_results( $wpdb->prepare(
+	"SELECT id, entity_type, entity_id, old_value, new_value FROM {$p}audit WHERE id > %d AND action = %s ORDER BY id",
 	$antes_audit,
 	Edu_Audit::RECALCULO_SIN_PESOS
 ) );
-if ( $audit ) {
-	$creado['audit'][] = (int) $audit->id;
-}
-$resumen = $audit ? json_decode( $audit->new_value, true ) : array();
-edu_assert( 'deja una entrada de auditoría', (bool) $audit );
+$creado['audit'] = array_map( 'intval', wp_list_pluck( $entradas, 'id' ) );
+$audit           = $entradas ? end( $entradas ) : null;
+$resumen         = $audit ? json_decode( $audit->new_value, true ) : array();
+edu_assert( 'deja una entrada de resumen al final', $audit && 'parcial' === $audit->entity_type );
+
+$por_nota = array_values( array_filter( $entradas, fn( $e ) => 'parcial_score' === $e->entity_type ) );
+edu_assert( 'una entrada por nota cambiada (solo Y1)', 1 === count( $por_nota ) && $id_y1 === (int) $por_nota[0]->entity_id );
+edu_assert(
+	'guarda la nota anterior y la nueva',
+	$por_nota && 7.0 === (float) json_decode( $por_nota[0]->old_value, true )['computed_score']
+		&& 8.25 === (float) json_decode( $por_nota[0]->new_value, true )['computed_score'],
+	$por_nota ? $por_nota[0]->old_value . ' → ' . $por_nota[0]->new_value : ''
+);
 edu_assert(
 	'revisa 4 parciales (X1, X2, el vacío, Y1) y cambia 1',
 	4 === ( $resumen['revisados'] ?? null ) && 1 === ( $resumen['cambiados'] ?? null ),
