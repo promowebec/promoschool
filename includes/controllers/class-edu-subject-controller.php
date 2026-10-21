@@ -11,44 +11,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Edu_Subject_Controller {
 
+	/**
+	 * Crea o edita una materia propia. La lógica vive en
+	 * Edu_Curriculum_Service::save_subject().
+	 */
 	public static function handle_save() {
 		check_admin_referer( 'edu_save_subject' );
 		self::guard();
 
-		$institution_id = Edu_Context::current_institution_id();
-		$id             = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+		$id      = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+		$alcance = sanitize_key( wp_unslash( $_POST['alcance'] ?? 'todos' ) );
 
-		global $wpdb;
-		$t = $wpdb->prefix . 'edu_subjects';
-
-		$name = sanitize_text_field( wp_unslash( $_POST['name'] ?? '' ) );
-		$code = sanitize_text_field( wp_unslash( $_POST['code'] ?? '' ) );
-		$area = sanitize_text_field( wp_unslash( $_POST['area'] ?? '' ) );
-
-		if ( '' === $name ) {
-			self::redirect( array( 'action' => $id ? 'edit' : 'new', 'id' => $id, 'status' => 'error', 'code' => 'name_required' ) );
-		}
-
-		$data = array(
-			'institution_id' => $institution_id,
-			'name'           => $name,
-			'code'           => $code ?: null,
-			'area'           => $area ?: null,
-			'is_custom'      => 1,
+		$result = Edu_Curriculum_Service::save_subject(
+			array(
+				'id'         => $id,
+				'name'       => wp_unslash( $_POST['name'] ?? '' ), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- el servicio sanea.
+				'code'       => wp_unslash( $_POST['code'] ?? '' ), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+				'area'       => wp_unslash( $_POST['area'] ?? '' ), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+				'sub_levels' => 'uno' === $alcance ? array( wp_unslash( $_POST['sub_level'] ?? '' ) ) : array(), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			)
 		);
-		$formats = array( '%d', '%s', '%s', '%s', '%d' );
 
-		if ( $id > 0 ) {
-			$existing = $wpdb->get_row( $wpdb->prepare(
-				"SELECT id FROM $t WHERE id = %d AND institution_id = %d AND is_custom = 1",
-				$id, $institution_id
-			) );
-			if ( ! $existing ) {
-				self::redirect( array( 'status' => 'error', 'code' => 'not_found' ) );
+		if ( is_wp_error( $result ) ) {
+			$code = $result->get_error_code();
+			if ( in_array( $code, array( 'forbidden', 'no_institution' ), true ) ) {
+				wp_die( esc_html( $result->get_error_message() ) );
 			}
-			$wpdb->update( $t, $data, array( 'id' => $id ), $formats, array( '%d' ) );
-		} else {
-			$wpdb->insert( $t, $data, $formats );
+			if ( 'not_found' === $code ) {
+				self::redirect( array( 'status' => 'error', 'code' => $code ) );
+			}
+			self::redirect( array( 'action' => $id ? 'edit' : 'new', 'id' => $id, 'status' => 'error', 'code' => $code ) );
 		}
 
 		self::redirect( array( 'status' => 'updated' ) );

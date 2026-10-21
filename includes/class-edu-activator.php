@@ -283,6 +283,7 @@ class Edu_Activator {
 			code varchar(20) DEFAULT NULL,
 			area varchar(50) DEFAULT NULL,
 			is_custom tinyint(1) NOT NULL DEFAULT 0,
+			sub_levels varchar(100) DEFAULT NULL,
 			PRIMARY KEY  (id),
 			KEY idx_subjects_institution (institution_id),
 			KEY idx_subjects_catalog (catalog_id)

@@ -103,6 +103,117 @@ class Edu_Curriculum_Service {
 	}
 
 	/* ─────────────────────────────────────────────────────────────────────
+	 * Materias propias
+	 * ────────────────────────────────────────────────────────────────── */
+
+	/**
+	 * Subniveles en los que se puede ofrecer una materia propia, con su rótulo.
+	 * Son los mismos valores de wp_edu_grades.sub_level.
+	 *
+	 * @return array sub_level => rótulo.
+	 */
+	public static function sub_level_labels() {
+		return array(
+			'inicial_1'    => __( 'Inicial 1', 'sistema-educativo' ),
+			'inicial_2'    => __( 'Inicial 2', 'sistema-educativo' ),
+			'preparatoria' => __( 'Preparatoria (1ro EGB)', 'sistema-educativo' ),
+			'elemental'    => __( 'EGB Elemental (2do-4to)', 'sistema-educativo' ),
+			'media'        => __( 'EGB Media (5to-7mo)', 'sistema-educativo' ),
+			'superior'     => __( 'EGB Superior (8vo-10mo)', 'sistema-educativo' ),
+			'bg'           => __( 'Bachillerato General Unificado', 'sistema-educativo' ),
+			'bt'           => __( 'Bachillerato Técnico', 'sistema-educativo' ),
+		);
+	}
+
+	/**
+	 * Crea o edita una materia propia de la institución activa.
+	 *
+	 * El alcance decide en qué pensum aparece: sin subniveles (NULL) se ofrece
+	 * en todos los grados; con subniveles, solo en los grados de esos
+	 * subniveles. Cambiarlo no quita la materia de los grados que ya la tienen
+	 * en su pensum: eso se hace desde la pantalla de pensum.
+	 *
+	 * @param array $input {
+	 *     @type int          $id         0 = nueva.
+	 *     @type string       $name
+	 *     @type string       $code
+	 *     @type string       $area
+	 *     @type array|string $sub_levels Vacío = todos los niveles.
+	 * }
+	 * @return array|WP_Error
+	 */
+	public static function save_subject( array $input ) {
+		$cap = Edu_Service::require_cap( 'edu_manage_subjects' );
+		if ( is_wp_error( $cap ) ) {
+			return $cap;
+		}
+
+		$institution_id = Edu_Service::require_institution();
+		if ( is_wp_error( $institution_id ) ) {
+			return $institution_id;
+		}
+
+		$id   = isset( $input['id'] ) ? (int) $input['id'] : 0;
+		$name = sanitize_text_field( (string) ( $input['name'] ?? '' ) );
+		$code = sanitize_text_field( (string) ( $input['code'] ?? '' ) );
+		$area = sanitize_text_field( (string) ( $input['area'] ?? '' ) );
+
+		if ( '' === $name ) {
+			return Edu_Service::error( 'name_required', __( 'El nombre es obligatorio.', 'sistema-educativo' ) );
+		}
+
+		$raw = $input['sub_levels'] ?? array();
+		if ( ! is_array( $raw ) ) {
+			$raw = '' === (string) $raw ? array() : explode( ',', (string) $raw );
+		}
+
+		$validos    = array_keys( self::sub_level_labels() );
+		$sub_levels = array();
+		foreach ( $raw as $sl ) {
+			$sl = sanitize_key( (string) $sl );
+			if ( ! in_array( $sl, $validos, true ) ) {
+				return Edu_Service::error( 'invalid_sub_level', __( 'Elija un subnivel válido.', 'sistema-educativo' ) );
+			}
+			$sub_levels[ $sl ] = $sl;
+		}
+
+		global $wpdb;
+		$t = $wpdb->prefix . 'edu_subjects';
+
+		$data    = array(
+			'institution_id' => $institution_id,
+			'name'           => $name,
+			'code'           => '' !== $code ? $code : null,
+			'area'           => '' !== $area ? $area : null,
+			'is_custom'      => 1,
+			'sub_levels'     => $sub_levels ? implode( ',', $sub_levels ) : null,
+		);
+		$formats = array( '%d', '%s', '%s', '%s', '%d', '%s' );
+
+		if ( $id > 0 ) {
+			$existing = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT id FROM $t WHERE id = %d AND institution_id = %d AND is_custom = 1",
+					$id,
+					$institution_id
+				)
+			);
+			if ( ! $existing ) {
+				return Edu_Service::error( 'not_found', __( 'Materia no encontrada.', 'sistema-educativo' ), 404 );
+			}
+			$wpdb->update( $t, $data, array( 'id' => $id ), $formats, array( '%d' ) );
+		} else {
+			$wpdb->insert( $t, $data, $formats );
+			$id = (int) $wpdb->insert_id;
+		}
+
+		return array(
+			'id'         => $id,
+			'sub_levels' => array_values( $sub_levels ),
+		);
+	}
+
+	/* ─────────────────────────────────────────────────────────────────────
 	 * Componentes evaluables
 	 * ────────────────────────────────────────────────────────────────── */
 

@@ -5,7 +5,8 @@
  * Une el catálogo Mineduc (global) con `wp_edu_subjects` (institución actual).
  * Cada materia del catálogo se puede "Adoptar" → crea fila en subjects con
  * `catalog_id` apuntando a la del catálogo y `is_custom = 0`.
- * Las materias propias (`is_custom = 1`) aparecen en un bloque separado.
+ * Las materias propias (`is_custom = 1`) aparecen en un bloque separado y
+ * pueden ofrecerse en todos los niveles o en uno solo (`sub_levels`, v1.18.0).
  *
  * @package SistemaEducativo
  */
@@ -104,6 +105,7 @@ $sub_levels = array(
 				'name_required' => __( 'El nombre es obligatorio.', 'sistema-educativo' ),
 				'not_found'     => __( 'Materia no encontrada.', 'sistema-educativo' ),
 				'duplicate'     => __( 'Esta materia ya está adoptada en la institución.', 'sistema-educativo' ),
+				'invalid_sub_level' => __( 'Elija el nivel en el que se ofrece la materia.', 'sistema-educativo' ),
 			);
 			echo esc_html( $messages[ $status_code ] ?? __( 'Error.', 'sistema-educativo' ) );
 			?>
@@ -193,7 +195,9 @@ $sub_levels = array(
 			</div>
 		<?php endforeach; ?>
 
-		<?php if ( ! empty( $custom_subjects ) ) : ?>
+		<?php if ( ! empty( $custom_subjects ) ) :
+			$sl_labels = Edu_Curriculum_Service::sub_level_labels();
+		?>
 			<div class="edu-block edu-block-slate">
 				<div class="edu-block-header">
 					<div><strong><?php esc_html_e( 'Materias propias de la institución', 'sistema-educativo' ); ?></strong></div>
@@ -208,6 +212,19 @@ $sub_levels = array(
 							<td><strong><?php echo esc_html( $s->name ); ?></strong></td>
 							<td class="edu-muted-cell"><?php echo esc_html( $s->code ?: '' ); ?></td>
 							<td class="edu-muted-cell"><?php echo esc_html( $s->area ?: '—' ); ?></td>
+							<td class="edu-muted-cell">
+								<?php
+								if ( empty( $s->sub_levels ) ) {
+									esc_html_e( 'Todos los niveles', 'sistema-educativo' );
+								} else {
+									$nombres = array();
+									foreach ( explode( ',', $s->sub_levels ) as $sl ) {
+										$nombres[] = $sl_labels[ $sl ] ?? $sl;
+									}
+									echo esc_html( implode( ', ', $nombres ) );
+								}
+								?>
+							</td>
 							<td class="edu-muted-cell"><span class="edu-source-badge edu-source-custom"><?php esc_html_e( 'Propia', 'sistema-educativo' ); ?></span></td>
 							<td class="edu-action-cell">
 								<a href="<?php echo esc_url( admin_url( 'admin.php?page=edu-materias&action=edit&id=' . $s->id ) ); ?>"><?php esc_html_e( 'Editar', 'sistema-educativo' ); ?></a>
@@ -226,13 +243,16 @@ $sub_levels = array(
 			</div>
 		<?php endif; ?>
 
-		<p class="description"><?php esc_html_e( 'La asignación de materias al pensum de cada grado llega en Fase 2 con las calificaciones.', 'sistema-educativo' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Las materias se asignan a cada grado desde la pantalla «Pensum». Una materia propia solo aparece en el pensum de los grados de su nivel.', 'sistema-educativo' ); ?></p>
 
 	<?php else : ?>
 		<?php
 		$cur_name = $subject->name ?? '';
 		$cur_code = $subject->code ?? '';
 		$cur_area = $subject->area ?? '';
+		$cur_sls  = ! empty( $subject->sub_levels ) ? explode( ',', $subject->sub_levels ) : array();
+		$cur_sl   = $cur_sls ? $cur_sls[0] : '';
+		$alcance  = $cur_sls ? 'uno' : 'todos';
 		?>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="edu-form">
 			<?php wp_nonce_field( 'edu_save_subject' ); ?>
@@ -260,9 +280,30 @@ $sub_levels = array(
 						</datalist>
 					</td>
 				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Se ofrece en', 'sistema-educativo' ); ?></th>
+					<td>
+						<fieldset>
+							<label>
+								<input type="radio" name="alcance" value="todos" <?php checked( $alcance, 'todos' ); ?> onchange="document.getElementById('edu-sub-level').disabled = true;">
+								<?php esc_html_e( 'Todos los niveles', 'sistema-educativo' ); ?>
+							</label>
+							<br>
+							<label>
+								<input type="radio" name="alcance" value="uno" <?php checked( $alcance, 'uno' ); ?> onchange="document.getElementById('edu-sub-level').disabled = false;">
+								<?php esc_html_e( 'Solo un nivel:', 'sistema-educativo' ); ?>
+							</label>
+							<select id="edu-sub-level" name="sub_level" <?php disabled( $alcance, 'todos' ); ?>>
+								<option value=""><?php esc_html_e( '— Seleccionar nivel —', 'sistema-educativo' ); ?></option>
+								<?php foreach ( Edu_Curriculum_Service::sub_level_labels() as $sl_key => $sl_label ) : ?>
+									<option value="<?php echo esc_attr( $sl_key ); ?>" <?php selected( $cur_sl, $sl_key ); ?>><?php echo esc_html( $sl_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</fieldset>
+						<p class="description"><?php esc_html_e( 'Decide en el pensum de qué grados aparece la materia. Cambiarlo no la quita de los grados que ya la tienen asignada.', 'sistema-educativo' ); ?></p>
+					</td>
+				</tr>
 			</table>
-
-			<p class="description"><?php esc_html_e( 'Las materias propias no llevan subnivel por ahora (la columna no existe en el schema). En Fase 2 se asignarán al pensum de los grados que correspondan.', 'sistema-educativo' ); ?></p>
 
 			<?php submit_button( $subject ? __( 'Guardar cambios', 'sistema-educativo' ) : __( 'Crear materia', 'sistema-educativo' ) ); ?>
 			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=edu-materias' ) ); ?>"><?php esc_html_e( 'Cancelar', 'sistema-educativo' ); ?></a>

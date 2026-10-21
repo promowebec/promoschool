@@ -433,6 +433,11 @@ alcance personal (§5.1 nivel 3).
 | GET / PUT | `/grades/{id}/pensum` | autenticado / `edu_manage_curriculum` |
 
 `GET /grades` acepta `?level=basica&sub_level=media&period_id=3`.
+
+Desde la 1.18.0 cada materia de `GET /subjects` trae `sub_levels`: `null` si se ofrece en todos
+los niveles (siempre en las adoptadas del Mineduc) o la lista de subniveles de una materia
+propia, p. ej. `["bg"]`. **Hoy solo `GET /subjects` está implementado**; las escrituras de
+materias de esta tabla siguen pendientes (bitácora §9 #9).
 El `sub_level` viaja siempre en el recurso Grado porque **determina la fórmula de cálculo**
 (§9.4) y la SPA lo necesita para rotular "Examen 30%" vs. "Examen + Proyecto 30%".
 

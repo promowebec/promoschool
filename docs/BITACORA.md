@@ -152,6 +152,45 @@ Vista de supervisión para el rector: por asignación académica muestra compone
 
 ## 2.bis · Entradas de bitácora
 
+### 2026-10-20 — Materias propias por nivel (v1.18.0)
+
+**Qué se hizo.** Pedido del usuario: al crear una materia propia se elige si se ofrece en
+**todos los niveles** o **solo en uno**. Hasta ahora toda materia propia aparecía en el pensum
+de todos los grados, de Inicial a Bachillerato.
+
+- Columna nueva `wp_edu_subjects.sub_levels` (lista con comas, mismos valores que
+  `grades.sub_level`). `NULL` = todos los niveles, así que las materias propias existentes
+  siguen como estaban.
+- **Materias** (`admin/views/materias.php`): el formulario tiene «Se ofrece en: Todos los
+  niveles / Solo un nivel: [selector]» y el listado de materias propias muestra el nivel.
+- **Pensum** (`admin/views/pensum.php`): una materia propia solo aparece en los grados de su
+  nivel. Si ya estaba asignada a un grado de otro nivel, sigue apareciendo ahí (no se pierde de
+  vista ni se desasigna sola); se quita desmarcándola en el pensum.
+- La lógica salió del controller: `Edu_Curriculum_Service::save_subject()` (valida nombre,
+  nivel, institución y que la materia sea propia) y `sub_level_labels()`.
+  `Edu_Subject_Controller::handle_save()` queda como adaptador. Borrar y adoptar no cambian.
+- API: `GET /subjects` devuelve `sub_levels` (`null` = todos).
+
+**Archivos tocados:** `sistema-educativo.php` (1.18.0 / esquema 1.0.12),
+`includes/class-edu-activator.php`, `includes/services/class-edu-curriculum-service.php`,
+`includes/services/class-edu-catalog-service.php`,
+`includes/controllers/class-edu-subject-controller.php`, `admin/views/materias.php`,
+`admin/views/pensum.php`, `tests/test-materia-por-nivel.php` (nuevo),
+`docs/sistema_educativo_schema.sql`, contrato de la API, CLAUDE.md.
+
+**Cambios de esquema:** `wp_edu_subjects.sub_levels varchar(100) DEFAULT NULL`.
+`EDU_DB_VERSION` 1.0.11 → 1.0.12: dbDelta agrega la columna en la primera carga tras subir los
+archivos, sin reactivar el plugin. Puede afectar a Flipbook solo si lee `wp_edu_subjects` con
+`SELECT *` posicional (columna añadida al final).
+
+**Riesgos / notas de despliegue:**
+- Ninguna nota ni pensum cambia: las materias propias existentes quedan en «todos los niveles».
+  El colegio debe editar cada una para acotarla.
+- El formulario elige un solo nivel; el servicio y la columna ya aceptan varios para cuando se
+  pida.
+- `POST/PUT /subjects` siguen sin existir en la API aunque el contrato los lista (inconsistencia
+  previa, ver §9).
+
 ### 2026-10-16 — Parciales sin ponderación (v1.17.0)
 
 **Qué se hizo.** Decisión del usuario: en los parciales **todas las notas valen igual**, sin
@@ -171,7 +210,9 @@ Ej.: Tareas 10, 8, 9 · Prueba 6 → (10+8+9+6)/4 = 8.25   (antes, con pesos 1 y
   corre una sola vez en `admin_init`, por tandas de 100 y con tope de 10 s por visita, sobre los
   parciales **abiertos** cuyo trimestre tampoco está cerrado; refresca también el trimestre.
   Los cerrados no se tocan. Progreso en la opción `edu_recalculo_sin_pesos` (cursor →
-  `hecho`) y una entrada de auditoría `recalculo_sin_pesos` con `revisados` / `cambiados`.
+  `hecho`). Auditoría `recalculo_sin_pesos`: una entrada por parcial que cambia (entidad
+  `parcial_score`, con la nota ponderada anterior y la nueva, para poder responder al colegio)
+  y una de resumen al final (`revisados` / `cambiados`).
 - Pesos fuera de las pantallas: Componentes (sin columna ni suma), Calificaciones (sin aviso de
   suma ni peso en la cabecera), Panel de docentes, Institución, Tareas; en la app, grilla del
   docente, desglose de Notas y de Cierres. La columna `weight` se conserva en la tabla y en la
@@ -190,7 +231,7 @@ Ej.: Tareas 10, 8, 9 · Prueba 6 → (10+8+9+6)/4 = 8.25   (antes, con pesos 1 y
 `admin/views/componentes.php`, `calificaciones.php`, `panel-docentes.php`, `institucion.php`,
 `tareas.php`, `public/shortcodes/class-edu-shortcode-docente.php`,
 `public/spa/js/views/docente/calificaciones.js`, `docente/tareas.js`, `notas.js`,
-`rector/cierres.js`, `tests/test-parcial-sin-pesos.php` (nuevo, 19 comprobaciones),
+`rector/cierres.js`, `tests/test-parcial-sin-pesos.php` (nuevo, 21 comprobaciones),
 `tests/test-modo-trimestre.php`, CLAUDE.md, contrato y manual.
 
 **Cambios de esquema:** ninguno.
@@ -1453,6 +1494,7 @@ Las migraciones incrementales viven en `Edu_Activator::run_incremental_migration
 | 1.9.0 | (sin cambio de esquema) | Fase 2 completa: portal del rector, descarga de adjuntos y arreglo de las descargas firmadas |
 | 1.16.0 | (sin cambio de esquema) | Modo de calificación «solo trimestre» por institución (1.10–1.15: ver entradas de la §2.bis) |
 | 1.17.0 | (sin cambio de esquema) | Parciales sin ponderación: cada nota vale igual; recálculo único de las notas abiertas |
+| 1.18.0 | `subjects.sub_levels` (esquema 1.0.12) | Materias propias en todos los niveles o solo en uno |
 
 ---
 
@@ -1579,6 +1621,7 @@ apply_filters( 'edu_module_active', bool $activo, string $modulo );
 | 6 | Nginx | La protección de `edu-privado` con `.htaccess` no aplica; requiere regla manual en el server block. |
 | 7 | Tests | **Parcialmente resuelto (16 ago 2026):** `tests/` con 6 pruebas y 36 comprobaciones, sin PHPUnit. Cubre calificaciones, permisos, arranque y las plantillas de la SPA. Falta cubrir asistencia, comunicados, pagos y los adaptadores de wp-admin. |
 | 8 | Demo seed | `demo-seed.php` se carga si existe; debe eliminarse en producción real. |
+| 9 | Escritura de materias en la API | El contrato lista `POST /subjects`, `PUT/DELETE /subjects/{id}` y `POST /subjects/adopt`, pero solo existe `GET /subjects`. Crear/editar ya tiene servicio (`Edu_Curriculum_Service::save_subject()`); faltan las rutas y mover borrar/adoptar al servicio. |
 
 ---
 

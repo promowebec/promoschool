@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS `wp_edu_subjects` (
   `code` VARCHAR(20),
   `area` VARCHAR(50),
   `is_custom` BOOLEAN DEFAULT FALSE COMMENT 'TRUE si es materia propia, no del Mineduc',
+  `sub_levels` VARCHAR(100) NULL COMMENT 'Solo materias propias: subniveles donde se ofrece (lista con comas). NULL = todos (v1.0.12)',
   FOREIGN KEY (`institution_id`) REFERENCES `wp_edu_institutions`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`catalog_id`) REFERENCES `wp_edu_subjects_catalog`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

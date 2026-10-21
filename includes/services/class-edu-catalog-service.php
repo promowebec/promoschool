@@ -397,6 +397,8 @@ class Edu_Catalog_Service {
 			'code'           => $row->code,
 			'area'           => $row->area,
 			'is_custom'      => Edu_Api::boolean( $row->is_custom ),
+			// Solo materias propias: subniveles donde se ofrece. null = todos (1.18.0).
+			'sub_levels'     => ! empty( $row->sub_levels ) ? array_values( array_filter( explode( ',', $row->sub_levels ) ) ) : null,
 			'hours_week'     => isset( $row->hours_week ) && null !== $row->hours_week ? (int) $row->hours_week : null,
 		);
 	}

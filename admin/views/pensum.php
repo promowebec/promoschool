@@ -86,7 +86,8 @@ $code   = isset( $_GET['code'] ) ? sanitize_key( $_GET['code'] ) : '';
 		/*
 		 * Materias del subnivel: las que tienen catalog_id y ese catálogo incluye
 		 * el sub_level del grado (FIND_IN_SET), o que ya estén asignadas al grado.
-		 * Materias optativas: is_custom = TRUE (propias de la institución).
+		 * Materias optativas: is_custom = TRUE (propias de la institución), solo
+		 * si se ofrecen en todos los niveles (sub_levels NULL) o en el del grado.
 		 * is_elective = 0 → estándar del subnivel  |  1 → optativa
 		 */
 		$subjects = $wpdb->get_results( $wpdb->prepare(
@@ -100,12 +101,13 @@ $code   = isset( $_GET['code'] ) ? sanitize_key( $_GET['code'] ) : '';
 			 WHERE s.institution_id = %d
 			   AND (
 			       ( s.catalog_id IS NOT NULL AND FIND_IN_SET(%s, c.sub_levels) > 0 )
-			       OR s.is_custom = 1
+			       OR ( s.is_custom = 1 AND ( s.sub_levels IS NULL OR s.sub_levels = '' OR FIND_IN_SET(%s, s.sub_levels) > 0 ) )
 			       OR s.id IN ( SELECT subject_id FROM $tgs WHERE grade_id = %d )
 			   )
 			 ORDER BY is_elective ASC, s.area, s.name",
 			$grade_info->sub_level,
 			$institution_id,
+			$grade_info->sub_level,
 			$grade_info->sub_level,
 			$selected_grade
 		) );
